@@ -1,0 +1,24 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# Firebase 서비스 계정 키 및 앱 설정
+# ⚠️ 스파이크 목적으로 git 추적 허용 — 반드시 private 레포에서만 사용
+# google-services.json
+# GoogleService-Info.plist
+functions/.env
+functions/service-account.json
+scripts/.env
+.env
+.env.local
+
+# macOS
+.DS_Store

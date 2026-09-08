@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "씽크캠퍼스 스파이크",
+    "slug": "thinkcampus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "thinkcampus",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.smis.thinkcampus",
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "package": "com.smis.thinkcampus",
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3535f0c2-f1df-4c12-9d81-b2bf83a38dba"
+      }
+    },
+    "owner": "pobredward02"
+  }
+}

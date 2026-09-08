@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────
+    // enrollmentCodes: 클라이언트 읽기/쓰기 전면 차단
+    // 오직 Cloud Functions(서버)만 접근 가능
+    // ─────────────────────────────────────────────────────
+    match /enrollmentCodes/{code} {
+      allow read, write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // campuses: 로그인한 사용자 읽기만 허용 (쓰기는 Functions 경유)
+    // ─────────────────────────────────────────────────────
+    match /campuses/{campusId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // students: guardianUids 배열에 요청자 uid가 포함된 경우만 읽기 허용
+    // 쓰기는 Functions 경유
+    // ─────────────────────────────────────────────────────
+    match /students/{studentId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.guardianUids;
+      allow write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // enrollments: guardianUid 필드가 요청자 uid와 일치할 때만 읽기 허용
+    // 쓰기는 Functions 경유
+    // ─────────────────────────────────────────────────────
+    match /enrollments/{enrollmentId} {
+      allow read: if request.auth != null
+        && resource.data.guardianUid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // _ratelimit: 내부용 rate limit 카운터 (클라이언트 완전 차단)
+    // ─────────────────────────────────────────────────────
+    match /_ratelimit/{doc} {
+      allow read, write: if false;
+    }
+  }
+}

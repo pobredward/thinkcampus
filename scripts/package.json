@@ -1,0 +1,18 @@
+{
+  "name": "thinkcampus-scripts",
+  "version": "1.0.0",
+  "scripts": {
+    "seed": "ts-node seed.ts",
+    "seed:clean": "ts-node seed.ts --clean"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "firebase-admin": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.3"
+  },
+  "private": true
+}
