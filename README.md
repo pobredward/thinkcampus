@@ -10,22 +10,36 @@ React Native + Expo 기반 인증 검증용 스파이크 앱.
 ```
 thinkcampus/
 ├── app/
-│   ├── _layout.tsx          # 루트 레이아웃
-│   └── (tabs)/
-│       ├── _layout.tsx      # 탭 레이아웃
-│       ├── index.tsx        # Tab A: 등록코드 검증
-│       ├── otp.tsx          # Tab B: 전화 OTP
-│       └── status.tsx       # Tab C: 상태
+│   ├── _layout.tsx              # 루트 레이아웃
+│   ├── index.tsx                # 로그인 여부 확인 → /onboarding 또는 /main
+│   ├── goodbye.tsx              # 회원 탈퇴 완료 안내
+│   ├── onboarding/              # 등록코드 → 생년월일·관계·전화번호 → OTP, 전화번호 로그인
+│   └── main/                    # 하단 탭: 홈 / 알림 / 내 정보
+│       ├── index.tsx            # 홈 (자녀 2명 이상이면 오른쪽 위 자녀 전환)
+│       ├── notification.tsx
+│       ├── profile/             # 내 정보 · withdraw(회원 탈퇴)
+│       ├── faq/                 # FAQ + 챗봇 (tab=chatbot 으로 챗봇부터)
+│       └── program/
+│           ├── index.tsx                        # 프로그램 전체 회차 일정
+│           └── [programId]/
+│               ├── index.tsx                    # 회차 목록 (진행 · 출결 · 다음 수업)
+│               ├── session/[sessionId].tsx      # 회차 화면: 출결 · 일정 · 내용 · Q&A · 리포트
+│               └── report.tsx                   # 종합 리포트 (모든 회차가 끝난 뒤)
+├── components/              # ChildSwitcher · program/(헤더 · 회차 탭 패널) · ui/(BottomSheet · ProgressBar)
+├── hooks/                   # useAuthUser · useChildren · useSelectedChild
+├── lib/                     # dates · errors · contact
+├── data/                    # 더미 데이터(웹 web/src/data 와 같은 내용) · programView
+├── web/                     # Next.js 웹 버전 (web/README.md)
 ├── firebase.ts              # @react-native-firebase 인스턴스 export
-├── functions/               # Cloud Functions (TypeScript)
-│   └── src/index.ts
+├── functions/               # Cloud Functions (TypeScript) — deleteAccount(회원 탈퇴) 포함
 ├── scripts/                 # 시드 스크립트
-│   └── seed.ts
 ├── firestore.rules          # Firestore 보안 규칙
 ├── app.json                 # Expo config (config plugin 포함)
 ├── eas.json                 # EAS Build 설정
 └── firebase.json            # Firebase 프로젝트 설정
 ```
+
+화면 기준(학부모용): 글자 최소 14 · 본문 16 이상 · 제목 18~24.
 
 ---
 
@@ -60,7 +74,17 @@ Firebase 콘솔 → 프로젝트 설정 → 일반 → Android 앱 → `com.thin
 Firebase 콘솔 → 프로젝트 설정 → 일반 → Android 앱 → `google-services.json` 다운로드
 → **프로젝트 루트** (`/thinkcampus/google-services.json`) 에 저장
 
-> ⚠️ `.gitignore`에 등록되어 있으므로 커밋되지 않음. 팀원과 별도 채널로 공유.
+> ⚠️ `.gitignore`에 등록되어 있으므로 커밋되지 않음(공개 레포). 팀원과 별도 채널로 공유.
+>
+> **EAS Build** 는 git 에 없는 파일을 올리지 않으므로, 두 설정 파일을 EAS 파일 환경변수로 한 번 등록한다.
+> `app.config.js` 가 빌드 때 이 경로를 사용한다.
+>
+> ```bash
+> eas env:set --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret \
+>   --environment development --environment preview --environment production
+> eas env:set --name GOOGLE_SERVICE_INFO_PLIST --type file --value ./GoogleService-Info.plist --visibility secret \
+>   --environment development --environment preview --environment production
+> ```
 
 ### 1-4. (iOS) GoogleService-Info.plist 다운로드
 

@@ -1,0 +1,37 @@
+{
+  "name": "thinkcampus-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:emu": "NEXT_PUBLIC_USE_EMULATORS=1 NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-thinkcampus NEXT_PUBLIC_FIREBASE_API_KEY=demo-api-key NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-thinkcampus.firebaseapp.com NEXT_PUBLIC_FIREBASE_APP_ID=1:0:web:demo NEXT_DIST_DIR=.next-emu next dev -p 3100",
+    "build": "next build",
+    "start": "next start",
+    "build:emu": "NEXT_PUBLIC_USE_EMULATORS=1 NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-thinkcampus NEXT_PUBLIC_FIREBASE_API_KEY=demo-api-key NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-thinkcampus.firebaseapp.com NEXT_PUBLIC_FIREBASE_APP_ID=1:0:web:demo NEXT_DIST_DIR=.next-emu next build",
+    "start:emu": "NEXT_PUBLIC_USE_EMULATORS=1 NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-thinkcampus NEXT_PUBLIC_FIREBASE_API_KEY=demo-api-key NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-thinkcampus.firebaseapp.com NEXT_PUBLIC_FIREBASE_APP_ID=1:0:web:demo NEXT_DIST_DIR=.next-emu next start -p 3100",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run lint && npm run build",
+    "e2e": "node e2e/flow.e2e.mjs"
+  },
+  "dependencies": {
+    "firebase": "^12.19.0",
+    "next": "16.3.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "playwright": "^1.56.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20.9"
+  }
+}

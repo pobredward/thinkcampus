@@ -21,6 +21,7 @@ service cloud.firestore {
 
     // ─────────────────────────────────────────────────────
     // students: guardianUids 배열에 요청자 uid가 포함된 경우만 읽기 허용
+    // allowedGuardianPhoneHashes는 클라이언트에 노출 안 함 (Functions만 접근)
     // 쓰기는 Functions 경유
     // ─────────────────────────────────────────────────────
     match /students/{studentId} {
@@ -37,6 +38,30 @@ service cloud.firestore {
       allow read: if request.auth != null
         && resource.data.guardianUid == request.auth.uid;
       allow write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // shareTokens: viewReport HTTP Function이 서버에서만 읽음
+    // 클라이언트 직접 접근 완전 차단
+    // ─────────────────────────────────────────────────────
+    match /shareTokens/{token} {
+      allow read, write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // reports: guardianUids 배열에 요청자 uid가 포함된 경우만 읽기 허용
+    // ─────────────────────────────────────────────────────
+    match /reports/{reportId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.guardianUids;
+      allow write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // accountDeletions: 회원 탈퇴 기록 (개인정보 없음, deleteAccount Function 만 기록)
+    // ─────────────────────────────────────────────────────
+    match /accountDeletions/{doc} {
+      allow read, write: if false;
     }
 
     // ─────────────────────────────────────────────────────
