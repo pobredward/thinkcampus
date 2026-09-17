@@ -5,6 +5,7 @@
  *   확인 중  → 로딩 화면
  *   미인증   → /onboarding
  *   인증됨   → /main
+ * 체험 모드(lib/demo.ts)에서는 항상 인증된 상태라 바로 /main
  */
 
 import { useEffect } from "react";

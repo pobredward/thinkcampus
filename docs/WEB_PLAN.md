@@ -78,6 +78,14 @@ E2E 55개 시나리오 통과 (`web/e2e`). 모바일은 `tsc`, iOS Metro 번들,
 | `app/main/(tabs)/profile/{index,withdraw}.tsx` · `app/goodbye.tsx` | 내 정보 · 회원 탈퇴 · 탈퇴 완료 |
 | `hooks/`, `lib/`, `data/programView.ts`, `data/programGuide.ts` | 자녀 조회·선택, 날짜·에러 메시지·연락처, 회차 화면 뷰 모델, 안내 항목·기본 규정·Q&A (웹과 같은 로직) |
 
+### 임시 공개용 체험 모드 (2026-09-17)
+
+- 웹을 열면 등록코드·전화 인증 없이 바로 메인 — **010-7656-7933** 계정(달성캠퍼스, 자녀 김민준·이서연)으로 보인다. `web/src/lib/demo.ts`
+- Firebase 에 전혀 접속하지 않음(운영 데이터를 바꿀 수 없음). 로그아웃·보호자 초대·회원 탈퇴는 안내만, 공유는 미리보기 링크
+- 기본값이 **켜짐** — 실서비스로 바꿀 때 Vercel 환경변수 `NEXT_PUBLIC_DEMO_MODE=0` 후 재배포. 에뮬레이터 E2E 는 영향 없음, 체험 모드는 `npm run e2e:demo` 로 따로 확인
+- 모바일 앱은 그대로(로그인 필요)
+- 홈 "수강 예정 프로그램" 섹션은 웹·모바일 모두 잠시 숨김 (`SHOW_UPCOMING_ON_HOME`)
+
 ## 다음 단계
 
 1. Firebase 콘솔에서 웹 앱 등록 → `web/.env.local` / Vercel 환경변수 입력

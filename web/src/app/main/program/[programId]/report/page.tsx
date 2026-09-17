@@ -21,6 +21,7 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Spinner } from "@/components/ui/Spinner";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useShare } from "@/hooks/useShare";
+import { DEMO_MODE } from "@/lib/demo";
 import { getFns } from "@/lib/firebase";
 import { useDialog } from "@/providers/DialogProvider";
 import {
@@ -63,6 +64,7 @@ export default function ProgramReportPage() {
   async function handleShare() {
     setSharing(true);
     try {
+      if (DEMO_MODE) throw new Error("demo"); // 체험 모드: 서버 호출 없이 미리보기 링크로
       const fn = httpsCallable<{ reportId: string }, { url: string }>(getFns(), "createShareToken");
       const result = await fn({ reportId: report.reportId });
       const data = result.data;

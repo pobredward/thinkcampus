@@ -10,10 +10,13 @@
  * signOut() 으로 로그아웃하면 "의도적 로그아웃" 표시가 남아서
  * /main 인증 가드가 로그인 화면 대신 온보딩 첫 화면으로 보낸다.
  * 회원 탈퇴 후에는 signOut("withdrawn") → 가드가 /goodbye 로 보낸다.
+ *
+ * 체험 모드(lib/demo.ts)에서는 Firebase 없이 항상 010-7656-7933 보호자로 로그인된 상태.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut as fbSignOut } from "firebase/auth";
+import { DEMO_MODE, DEMO_USER } from "@/lib/demo";
 import { getFirebaseAuth, isFirebaseConfigured, type User } from "@/lib/firebase";
 
 export type SignOutReason = "user" | "withdrawn";
@@ -40,7 +43,14 @@ const AuthContext = createContext<AuthState>({
   signOut: async () => {},
 });
 
+const DEMO_STATE: AuthState = { user: DEMO_USER, loading: false, signOut: async () => {} };
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  if (DEMO_MODE) return <AuthContext.Provider value={DEMO_STATE}>{children}</AuthContext.Provider>;
+  return <FirebaseAuthProvider>{children}</FirebaseAuthProvider>;
+}
+
+function FirebaseAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const configured = isFirebaseConfigured();
 

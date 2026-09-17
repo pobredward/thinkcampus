@@ -431,13 +431,12 @@ await check("수강 중 · 수업 안내 [공지사항] → 독립 페이지(항
   await page.waitForURL(/\/main$/, { timeout: 15000 });
 });
 
-await check("홈 수강 예정 카드 → 첫 화면은 요약(기간·일시·장소)과 안내 버튼 6개만 · 스크롤 없이 보임", async () => {
-  const card = page.getByRole("button", { name: /^수강 예정 · .* 안내 보기$/ });
-  const text = await card.innerText();
-  for (const t of ["수강 예정", "겨울방학 STEAM 특강", "첫 수업", "12.5 (토)", "총 6회"]) {
-    if (!text.includes(t)) throw new Error(`카드에 "${t}" 없음: ` + text);
-  }
-  await card.click();
+await check("홈: 수강 예정 섹션은 잠시 숨김 → 수강 예정 화면(주소로 열기) 첫 화면은 요약(기간·일시·장소)과 안내 버튼 6개만 · 스크롤 없이 보임", async () => {
+  await page.getByText("현재 수강 중인 프로그램").waitFor({ timeout: 20000 });
+  if (await page.getByText("수강 예정 프로그램").count()) throw new Error("홈에 수강 예정 섹션이 보임");
+  if (await page.getByRole("button", { name: /^수강 예정 · / }).count()) throw new Error("홈에 수강 예정 카드가 보임");
+  const upQs = new URLSearchParams({ studentName: "김민준", programTitle: "2026 ThinkCampus 겨울방학 STEAM 특강", sid: "student-001" });
+  await page.goto(`${BASE}/main/program/prog-002?${upQs}`);
   await page.waitForURL(/\/main\/program\/prog-002\?/, { timeout: 15000 });
   const summary = page.getByRole("region", { name: "수업 요약" });
   for (const t of [

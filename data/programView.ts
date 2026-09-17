@@ -34,6 +34,9 @@ export function pickDummyAttendance(studentId: string | null | undefined): Stude
   return sum % 2 === 0 ? DUMMY_ATTENDANCE_SEOYEON : DUMMY_ATTENDANCE_MINJUN;
 }
 
+/** 홈에 "수강 예정 프로그램" 섹션을 보일지 — 잠시 숨김 (화면·데이터는 그대로, 주소로는 열림) */
+export const SHOW_UPCOMING_ON_HOME = false;
+
 /** 더미 프로그램 목록 — 수강 중(prog-001) · 수강 예정(prog-002) */
 export const DUMMY_PROGRAMS: Program[] = [DUMMY_PROGRAM, DUMMY_UPCOMING_PROGRAM];
 

@@ -3,10 +3,12 @@
 /**
  * 보호자에게 연결된 자녀 목록 — enrollments(guardianUid) → students / campuses
  * 모바일 홈/내 정보 화면의 fetchChildren 과 동일한 조회 로직.
+ * 체험 모드에서는 조회하지 않고 lib/demo.ts 의 고정 목록을 쓴다.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { DEMO_CHILDREN, DEMO_MODE } from "@/lib/demo";
 import { getDb } from "@/lib/firebase";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -32,6 +34,12 @@ export function useChildren(opts?: { activeOnly?: boolean }) {
   const fetchChildren = useCallback(
     async (isRefresh = false) => {
       if (!uid) return;
+      if (DEMO_MODE) {
+        setChildren(DEMO_CHILDREN);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);

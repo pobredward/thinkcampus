@@ -14,6 +14,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useShare } from "@/hooks/useShare";
 import { errMessage } from "@/lib/errors";
+import { DEMO_MODE } from "@/lib/demo";
 import { getFns } from "@/lib/firebase";
 import { printHtml } from "@/lib/print";
 import { useDialog } from "@/providers/DialogProvider";
@@ -164,6 +165,7 @@ export default function ReportScreen() {
       // 에러 시 Clipboard 복사 fallback 처리
       let url: string;
       try {
+        if (DEMO_MODE) throw new Error("demo"); // 체험 모드: 서버 호출 없이 임시 링크로
         // ── 공유 URL 생성 (Cloud Function 호출) ──
         // getFns() 는 프리렌더 단계에서 실행되면 안 되므로 모듈 최상위가 아닌 핸들러 안에서 만든다.
         const createShareTokenFn = httpsCallable<

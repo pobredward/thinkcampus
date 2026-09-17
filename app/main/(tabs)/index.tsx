@@ -5,7 +5,7 @@
  *   1. 환영 인사 + (자녀 2명 이상이면) 오른쪽 위 자녀 전환 버튼
  *   2. ⚠️ 프로그램 이수 규정·지침 버튼 ("반드시 지켜 주세요")
  *   3. 현재 수강 중 프로그램 카드 (탭하면 → 회차 번호 화면)
- *   4. 수강 예정 프로그램 카드 (탭하면 → 요약 + 안내 버튼)
+ *   4. 수강 예정 프로그램 카드 (탭하면 → 요약 + 안내 버튼) — 지금은 숨김 (SHOW_UPCOMING_ON_HOME)
  *   5. FAQ 진입 카드
  *   6. 이전 수강 이력 — 맨 아래 작은 버튼 (→ /main/history)
  *
@@ -32,7 +32,7 @@ import { calcSummary } from '../../../data/dummyAttendance';
 import { DUMMY_PROGRAM } from '../../../data/dummyProgram';
 import { DUMMY_UPCOMING_PROGRAM } from '../../../data/dummyUpcomingProgram';
 import { DUMMY_PAST_PROGRAMS } from '../../../data/dummyHistory';
-import { pickDummyAttendance } from '../../../data/programView';
+import { pickDummyAttendance, SHOW_UPCOMING_ON_HOME } from '../../../data/programView';
 import { useChildren, type Child } from '../../../hooks/useChildren';
 import { useSelectedChild } from '../../../hooks/useSelectedChild';
 import { daysBetween, dDayLabel, dotDateToKey, formatShortDate, todayKey } from '../../../lib/dates';
@@ -257,7 +257,7 @@ export default function HomeScreen() {
       )}
 
       {/* ── 수강 예정 ───────────────────────────── */}
-      {!loading && upcoming.length > 0 && (
+      {!loading && SHOW_UPCOMING_ON_HOME && upcoming.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>🗓 수강 예정 프로그램</Text>

@@ -17,6 +17,7 @@ import { useChildren } from "@/hooks/useChildren";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { errMessage } from "@/lib/errors";
 import { getFns } from "@/lib/firebase";
+import { DEMO_BLOCKED, DEMO_MODE, DEMO_NOTICE_TITLE } from "@/lib/demo";
 import { e164ToLocal } from "@/lib/phone";
 import { useAuth } from "@/providers/AuthProvider";
 import { useDialog } from "@/providers/DialogProvider";
@@ -45,6 +46,10 @@ export default function ProfileScreen() {
   }, []);
 
   function handleSignOut() {
+    if (DEMO_MODE) {
+      void dialog.alert(DEMO_NOTICE_TITLE, DEMO_BLOCKED.signOut);
+      return;
+    }
     void dialog.alert("로그아웃", "정말 로그아웃하시겠습니까?", [
       { text: "취소", style: "cancel" },
       {
@@ -70,6 +75,10 @@ export default function ProfileScreen() {
     }
     if (!inviteRelation.trim()) {
       void dialog.alert("확인", "관계를 선택하거나 입력해주세요.");
+      return;
+    }
+    if (DEMO_MODE) {
+      void dialog.alert(DEMO_NOTICE_TITLE, DEMO_BLOCKED.invite);
       return;
     }
     setInviteLoading(true);

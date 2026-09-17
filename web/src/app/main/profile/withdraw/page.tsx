@@ -18,6 +18,7 @@ import { useChildren } from "@/hooks/useChildren";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { clearSelectedChild } from "@/hooks/useSelectedChild";
 import { CALL_CENTER_PHONE } from "@/lib/contact";
+import { DEMO_BLOCKED, DEMO_MODE, DEMO_NOTICE_TITLE } from "@/lib/demo";
 import { errMessage } from "@/lib/errors";
 import { getFns } from "@/lib/firebase";
 import { e164ToLocal } from "@/lib/phone";
@@ -44,6 +45,10 @@ export default function WithdrawPage() {
       destructive: true,
     });
     if (!ok) return;
+    if (DEMO_MODE) {
+      void dialog.alert(DEMO_NOTICE_TITLE, DEMO_BLOCKED.withdraw);
+      return;
+    }
 
     setWorking(true);
     const uid = user.uid;
