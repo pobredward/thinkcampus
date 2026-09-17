@@ -73,12 +73,45 @@ export interface Program {
   targetGrade: string;     // 대상 학년 (예: '초등 3~6학년')
   maxStudents: number;     // 최대 수강 인원
   sessions: Session[];
+
+  // ── 수강 안내용 (수강 예정 화면에서 한 번에 보여 줌) ──
+  status?: 'active' | 'upcoming' | 'completed'; // 이 학생의 수강 상태 (없으면 active)
+  enrolledAt?: string;        // 수강 확정일 'YYYY.MM.DD'
+  overview?: string;          // 프로그램 소개
+  features?: string[];        // 수업 특징
+  commonMaterials?: string[]; // 매 회차 공통 준비물
+  notices?: string[];         // 공지사항
+  breaks?: ProgramBreak[];    // 회차 사이 휴강일
+
+  // ── 프로그램 안내 (카테고리 화면: 목적 · 공지 · 규정 · Q&A) ──
+  host?: string;              // 주최·운영 (예: '강남구청 · 씽크캠퍼스')
+  purpose?: string;           // 도입 취지 — 지자체가 이 프로그램을 운영하는 이유
+  rules?: ProgramRule[];      // 수업 규정·지침 (없으면 기본 규정 — programGuide.ts)
+  faq?: ProgramQnA[];         // 이 프로그램만의 Q&A (기본 Q&A 앞에 붙는다)
+}
+
+export interface ProgramRule {
+  title: string;
+  body: string;
+  important?: boolean; // 어기면 불이익(탈락·수료 불가 등)이 있는 항목
+}
+
+export interface ProgramQnA {
+  topic: string; // '준비물' · '지각·결석' · '모임·픽업' · '간식·음료' · '점심' …
+  q: string;
+  a: string;
+}
+
+export interface ProgramBreak {
+  date: string;   // 'YYYY.MM.DD (요일)'
+  reason: string; // 예: '신정 연휴 휴강'
 }
 
 // ── 더미 데이터 ──────────────────────────────────────────
 
 export const DUMMY_PROGRAM: Program = {
   id: 'prog-001',
+  status: 'active',
   campusId: 'campus-001',
   title: '2026 ThinkCampus 토요 창의융합',
   subtitle: '초등 특기적성 프로그램',
@@ -96,6 +129,25 @@ export const DUMMY_PROGRAM: Program = {
   location: '강남구 청소년수련관 3층 301호',
   targetGrade: '초등 3~6학년',
   maxStudents: 20,
+
+  host: '강남구청 교육지원과 · 씽크캠퍼스 운영',
+  purpose:
+    '토요일 오전을 알차게 보낼 수 있도록 강남구가 지원하는 무료 특기적성 프로그램입니다. 학교에서 하기 어려운 체험·토론·발표 수업을 대학생 멘토와 함께하며, 스스로 생각하고 말하는 힘을 기르는 것이 목표입니다.',
+  overview:
+    '격주 토요일마다 역사·과학·경제·영어 등 서로 다른 주제를 하나씩 깊게 다룹니다. 매 회차 활동지와 발표로 마무리하고, 수업이 끝나면 앱에 출결과 선생님 피드백이 올라옵니다.',
+  features: [
+    '한 반 20명 이하, 대학생 멘토 수업',
+    '매 회차 활동지·발표로 마무리',
+    '회차별 리포트와 종합 리포트 제공',
+  ],
+  commonMaterials: ['필기도구', '개인 물병'],
+  notices: [
+    '수업 10분 전(9:50)까지 3층 301호로 와 주세요.',
+    '수련관 주차는 2시간 무료입니다. (1층 안내데스크에서 차량 등록)',
+    '결석·지각할 때는 수업 전날까지 캠퍼스로 연락해 주세요.',
+    '마지막 수업(11월 14일)이 끝나면 종합 리포트가 발급돼요.',
+  ],
+
   sessions: [
     // ── 1회차 ──────────────────────────────────────────
     {

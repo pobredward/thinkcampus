@@ -1,6 +1,6 @@
 # 씽크캠퍼스 학부모 앱 — Web 버전 (결정 기록 & 현황)
 
-최종 갱신: 2026-09-17 (모바일 반영)
+최종 갱신: 2026-09-17 (수강 예정 화면)
 
 ## 결정
 
@@ -45,23 +45,38 @@
 | 홈 수강 카드 | 상태 · 프로그램명 · 요일/시간 · 진도 · 다음 수업 한 줄로 간소화 |
 | 프로그램 상세 | 탭(출결/수업/리포트) → 달력 → 수업 일지를 거쳐 **회차 목록 + 회차 화면**으로 확정. 프로그램 화면은 진행 한 줄과 회차 목록만(다음 수업 강조). 회차를 누르면 탭 **출결 / 일정 / 내용 / Q&A / 리포트(끝난 회차만)**, 이전/다음 회차 넘기기(보던 탭 유지). 종합 리포트는 모든 회차가 끝난 뒤 목록 아래에서 열림 |
 | 글자 크기 | 학부모용 기준: 최소 14 · 본문 16 이상 · 제목 18~24, 옅은 글자색 진하게, 한글 어절 단위 줄바꿈(모바일은 iOS 만 — Android 는 RN 에 해당 옵션 없음). 웹 E2E 가 모든 화면에서 14px 미만 글자를 검사 |
-| 홈 | "학습 리포트 미리보기"(샘플) 카드 제거 |
+| 홈 | "학습 리포트 미리보기"(샘플) 카드 제거. **수강 예정** 섹션 추가 |
+| 수강 예정 | 더미 `dummyUpcomingProgram.ts`(겨울방학 STEAM 특강 · 매주 토 · 2026.12.05–2027.01.16 · 6회 · 1/2 휴강). `Program` 에 `status/overview/features/commonMaterials/notices/breaks/enrolledAt` 선택 필드 추가, `getDummyProgram(programId)` 로 조회. 처음엔 한 화면에 모두 펼쳤다가 회의 결과로 아래 ①처럼 바꿈 |
 | 회원 탈퇴 | 내 정보 맨 아래 → `/main/profile/withdraw` (안내 → 확인 체크 → 재확인) → Cloud Function `deleteAccount` → `/goodbye`. 내 연결 정보·공유 링크·Auth 계정 삭제, 학생 기록은 유지, 재가입은 새 등록코드/초대로. **배포 필요**: `firebase deploy --only functions:deleteAccount,firestore:rules` |
 | 더미 데이터 | **6회차**(격주 토요일 09.05 ~ 11.14, 18차시)로 축소, 회차별 Q&A 추가, 출결 3회 완료 + 3회 예정 (웹·모바일 같은 데이터) |
 
-E2E 50개 시나리오 통과 (`web/e2e`). 모바일은 `tsc`, iOS Metro 번들, react-native-web 렌더(가짜 Firebase)로 화면 확인.
+### 회의 반영 (2026-09-17) — 40~50대 학부모: 첫 화면은 단순하게, 자세한 건 버튼 뒤로
+
+| # | 항목 | 내용 |
+|---|---|---|
+| ① | 수강 예정 | 첫 화면 = **요약**(수강 예정·첫 수업 D-day / 기간 / 매주 토 10:00–12:00 · 휴강 / 장소) + **안내 버튼 6개**(프로그램 목적 · 회차별 내용 · 공지사항 · 수업 규정·지침 · 자주 묻는 질문 · 문의하기) — 스크롤 없이 보임. 버튼 → 독립된 안내 페이지 `/main/program/[id]/guide/{purpose,sessions,notices,rules,qna}` (페이지 사이 탭 없음 — 안내가 늘어도 `programGuide.ts` 한 줄 + 페이지 파일 하나만 추가). 회차별 내용: 시간은 위에 한 번, 회차마다 날짜·주제·강사 → 누르면 회차 화면(일정·내용·Q&A, 출결 없음) |
+| ② | 홈 | 수강 중 카드 위에 빨간 **"프로그램 이수 규정·지침 — 반드시 지켜 주세요"** 버튼(수강 중 프로그램의 규정 화면, ← 홈). **이전 수강 이력은 맨 아래 작은 버튼** → `/main/history` 목록 화면 |
+| ③ | 수강 중 | 순서 **수업 안내(규정·공지·Q&A·목적) → 회차별 수업 → 종합 리포트**. 회차는 **버튼 모양 한 줄에 3개**("N회차 · 날짜"), 출석/지각/결석은 눌러서 회차 화면에서만. 끝난 회차는 회색 + "✓ 완료", 다음 회차는 파란색 + "다음 수업", 남은 회차는 흰 바탕 — 별도 다음 수업 카드 없음. 요일·시간·기간은 헤더에 한 번. 회차 화면 탭은 아이콘 + 큰 글자 (2차 피드백 반영) |
+| 데이터 | `Program` 에 `host`(주최·운영) · `purpose`(도입 취지) · `rules`(규정) · `faq`(프로그램 Q&A) 추가. 기본 규정(지각 2회 이상 수강 취소 · 80% 출석 수료 등)과 기본 Q&A(준비물 · 지각·결석 · 모임·픽업 · 간식·음료 · 점심)는 `data/programGuide.ts` — 지자체·프로그램마다 `rules`/`faq` 로 교체. 이전 이력 더미는 `data/dummyHistory.ts` |
+| 모바일 구조 | 상세 화면을 숨은 탭에서 **탭 위 Stack** 으로 옮김(`app/main/_layout.tsx` = Stack, 탭은 `app/main/(tabs)/`). 숨은 탭은 안쪽 스택을 기억해서, 수강 중 → 홈 → 수강 예정 → "← 홈" 이 예전 프로그램 화면으로 가던 문제 수정. 주소(`/main`, `/main/profile` …)는 그대로. 상세 화면에서는 하단 탭바가 보이지 않음(웹은 계속 보임) |
+| 남은 것 | ④ 리포트(항목별 점수·최종 점수·코멘트, Before/After 레벨 테스트 막대그래프) ⑤ 알림(푸시 + 문자) — 학교·방과후 업체가 학부모와 어떻게 소통하는지 확인 후 진행 |
+
+E2E 55개 시나리오 통과 (`web/e2e`). 모바일은 `tsc`, iOS Metro 번들, react-native-web 렌더(가짜 Firebase)로 화면·뒤로가기 흐름 확인.
 
 ### 모바일 구조 (변경 후)
 
 | 경로 | 내용 |
 |---|---|
-| `app/main/index.tsx` | 홈 — 자녀 전환(`components/ChildSwitcher`), 간소화 카드, 샘플 리포트 카드 제거 |
-| `app/main/program/[programId]/index.tsx` | 회차 목록 (예전 `sess-…` 주소는 회차 화면 내용 탭으로) |
+| `app/main/_layout.tsx` | **Stack** — 탭 위에 상세 화면(프로그램·안내·이력·FAQ)을 쌓음 |
+| `app/main/(tabs)/_layout.tsx` | 하단 탭 홈 / 알림 / 내 정보 (탭 글자 14) |
+| `app/main/(tabs)/index.tsx` | 홈 — 자녀 전환(`components/ChildSwitcher`), 규정·지침 버튼, 간소화 카드, 맨 아래 이전 수강 이력 버튼 |
+| `app/main/history.tsx` | 이전 수강 이력 |
+| `app/main/program/[programId]/index.tsx` | 수강 중: 수업 안내 → 회차 버튼 3열 → 종합 리포트 / 수강 예정: `components/program/UpcomingProgram` (예전 `sess-…` 주소는 회차 화면 내용 탭으로) |
+| `app/main/program/[programId]/guide/{purpose,sessions,notices,rules,qna}.tsx` | 안내 페이지(각각 독립) — 공통 틀 `components/program/GuideScreen`(`openGuide()`로 열기), 버튼 묶음 `components/program/GuideMenu` |
 | `app/main/program/[programId]/session/[sessionId].tsx` | 회차 화면 — 탭 패널은 `components/program/session/*` |
 | `app/main/program/[programId]/{attendance,sessions}.tsx` | 예전 탭 → 회차 목록 리디렉션 (`[sessionId].tsx` 는 경로 충돌로 삭제) |
-| `app/main/profile/{index,withdraw}.tsx` · `app/goodbye.tsx` | 내 정보 · 회원 탈퇴 · 탈퇴 완료 |
-| `hooks/`, `lib/`, `data/programView.ts` | 자녀 조회·선택, 날짜·에러 메시지·연락처, 회차 화면 뷰 모델 (웹과 같은 로직) |
-| `app/main/_layout.tsx` | 탭 `backBehavior="history"` (회차 Q&A → 챗봇 → 뒤로 = 회차로), 탭 글자 14 |
+| `app/main/(tabs)/profile/{index,withdraw}.tsx` · `app/goodbye.tsx` | 내 정보 · 회원 탈퇴 · 탈퇴 완료 |
+| `hooks/`, `lib/`, `data/programView.ts`, `data/programGuide.ts` | 자녀 조회·선택, 날짜·에러 메시지·연락처, 회차 화면 뷰 모델, 안내 항목·기본 규정·Q&A (웹과 같은 로직) |
 
 ## 다음 단계
 

@@ -1,6 +1,7 @@
 /**
  * 회차 화면 — 회차 하나를 누르면 들어오는 곳 (웹 /main/program/[programId]/session/[sessionId] 와 같은 구성)
  *
+ *   (수강 예정 프로그램: 회차별 내용 → 회차. 출결 탭 없이 일정·내용·Q&A, ← 회차별 내용)
  *   [파란 헤더]  ← 회차 목록 · 학생 · N회차 · 주제 · 상태 · 날짜
  *   [탭]        출결 | 일정 | 내용 | Q&A | 리포트(끝난 회차만)   ← 스크롤해도 위에 고정
  *   [탭 내용]
@@ -28,14 +29,15 @@ import { QnaPanel } from '../../../../../components/program/session/QnaPanel';
 import { ReportPanel } from '../../../../../components/program/session/ReportPanel';
 import { SchedulePanel } from '../../../../../components/program/session/SchedulePanel';
 import { STATUS_BADGE } from '../../../../../components/program/statusColors';
-import { DUMMY_PROGRAM } from '../../../../../data/dummyProgram';
 import {
   availableTabs,
   buildDayItems,
   defaultTab,
+  getDummyProgram,
   isDone,
   isProgramFinished,
   isSessionTab,
+  isUpcomingProgram,
   matchProgramReport,
   pickDummyAttendance,
   pickDummyReport,
@@ -68,7 +70,10 @@ export default function SessionScreen() {
     ...(sid ? { sid } : {}),
   };
 
-  const program = DUMMY_PROGRAM;
+  const program = getDummyProgram(programId);
+  // 수강 예정 프로그램은 "회차별 내용" 안내 화면에서 들어온다 (출결 탭 없음)
+  const upcomingProgram = isUpcomingProgram(program);
+  const listLabel = upcomingProgram ? '회차별 내용' : '회차 목록';
   const attendance = useMemo(() => pickDummyAttendance(sid), [sid]);
   const items = useMemo(() => buildDayItems(program, attendance), [program, attendance]);
   const index = items.findIndex((d) => d.session.id === sessionId);
@@ -77,7 +82,7 @@ export default function SessionScreen() {
   const next = index >= 0 && index < items.length - 1 ? items[index + 1] : null;
   const today = todayKey();
 
-  const tabs = item ? availableTabs(item) : [];
+  const tabs = item ? availableTabs(item, program) : [];
   const tabParam = params.tab ?? null;
   const tab: SessionTab | null = item
     ? isSessionTab(tabParam) && tabs.includes(tabParam)
@@ -91,6 +96,8 @@ export default function SessionScreen() {
 
   function goList() {
     if (router.canGoBack()) router.back();
+    else if (upcomingProgram)
+      router.replace({ pathname: '/main/program/[programId]/guide/sessions', params: { programId, ...passParams } });
     else router.replace({ pathname: '/main/program/[programId]', params: { programId, ...passParams } });
   }
 
@@ -105,7 +112,7 @@ export default function SessionScreen() {
 
   // 다른 회차로: 보던 탭이 그 회차에도 있으면 유지
   function goSession(target: DayItem) {
-    const keep = tab && availableTabs(target).includes(tab) ? tab : undefined;
+    const keep = tab && availableTabs(target, program).includes(tab) ? tab : undefined;
     router.replace({
       pathname: '/main/program/[programId]/session/[sessionId]',
       params: { programId, sessionId: target.session.id, ...passParams, ...(keep ? { tab: keep } : {}) },
@@ -133,7 +140,7 @@ export default function SessionScreen() {
       <View style={[styles.notFound, { paddingTop: insets.top }]}>
         <Text style={styles.notFoundText}>회차 정보를 찾을 수 없습니다.</Text>
         <TouchableOpacity onPress={goList}>
-          <Text style={styles.notFoundLink}>← 회차 목록으로</Text>
+          <Text style={styles.notFoundLink}>← {listLabel}으로</Text>
         </TouchableOpacity>
       </View>
     );
@@ -167,7 +174,7 @@ export default function SessionScreen() {
         }}
       >
         <TouchableOpacity onPress={goList} style={styles.backBtn} hitSlop={8} accessibilityRole="button">
-          <Text style={styles.backText}>← 회차 목록</Text>
+          <Text style={styles.backText}>← {listLabel}</Text>
         </TouchableOpacity>
         <Text style={styles.headerSub}>
           {studentName ? `${studentName} 학생 · ` : ''}
@@ -204,6 +211,7 @@ export default function SessionScreen() {
               onPress={() => selectTab(t.id)}
               style={[styles.tab, active && styles.tabActive]}
             >
+              <Text style={styles.tabIcon}>{t.icon}</Text>
               <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
             </Pressable>
           );
@@ -278,13 +286,15 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 14,
-    paddingBottom: 11,
+    gap: 2,
+    paddingTop: 10,
+    paddingBottom: 8,
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: '#1d4ed8' },
-  tabText: { fontSize: 16, fontWeight: '600', color: '#6b7280' },
+  tabActive: { borderBottomColor: '#1d4ed8', backgroundColor: '#eff6ff' },
+  tabIcon: { fontSize: 22, lineHeight: 26 },
+  tabText: { fontSize: 17, fontWeight: '600', color: '#4b5563' },
   tabTextActive: { fontWeight: '800', color: '#1d4ed8' },
 
   panel: { paddingHorizontal: 16, paddingTop: 20, gap: 12 },

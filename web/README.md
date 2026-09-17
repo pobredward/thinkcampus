@@ -17,20 +17,23 @@ web/
 │       ├── report/           #     학습 리포트 (공유 / PDF)
 │       ├── report_detail/[reportId]/
 │       ├── faq/              #     FAQ + 챗봇
+│       ├── history/          #     이전 수강 이력 (홈 맨 아래 버튼)
 │       └── program/
 │           ├── page.tsx                      # 프로그램 목록
-│           ├── [programId]/page.tsx          # 프로그램 상세 — 진행 한 줄 + 회차 목록 (+ 종료 후 종합 리포트)
-│           ├── [programId]/session/[sessionId]/  # 회차 화면 — 탭: 출결 · 일정 · 내용 · Q&A · 리포트(끝난 회차만), 이전/다음 회차
+│           ├── [programId]/page.tsx          # 수강 중 — 수업 안내 버튼 → 회차 버튼(한 줄에 3개, 출결은 눌러서) → 종합 리포트
+│           │                                 #   (수강 예정이면 요약 + 안내 버튼 6개 — components/program/UpcomingProgram)
+│           ├── [programId]/guide/{purpose,sessions,notices,rules,qna}/  # 안내 페이지 (각각 독립, 공통 틀은 components/program/GuidePage)
+│           ├── [programId]/session/[sessionId]/  # 회차 화면 — 탭: 출결 · 일정 · 내용 · Q&A · 리포트(끝난 회차만), 이전/다음 회차 (수강 예정은 일정·내용·Q&A)
 │           ├── [programId]/report/           # 종합 학습 리포트
 │           ├── [programId]/{attendance,sessions}/  # (예전 탭 주소 → 회차 목록으로 리디렉션)
 │           └── session/[sessionId]/          # (예전 회차 상세 → 회차 화면 "내용" 탭으로 리디렉션)
-├── src/components/           # ChildSwitcher(자녀 전환) · program/(ProgramHeader · session/ 회차 탭 패널) · ui/ (Spinner, Button, TextField, OtpInput, TabBar, Collapse, ProgressBar, BottomSheet …)
+├── src/components/           # ChildSwitcher(자녀 전환) · program/(ProgramHeader · GuideMenu 안내 버튼 · GuidePage 안내 페이지 틀 · UpcomingProgram · session/ 회차 탭 패널) · ui/ (Spinner, Button, TextField, OtpInput, TabBar, Collapse, ProgressBar, BottomSheet …)
 ├── src/providers/            # AuthProvider(로그인 상태) · DialogProvider(Alert.alert 대체) · ToastProvider
 ├── src/hooks/                # useChildren(자녀 조회) · useSelectedChild(선택 자녀 기억) · useShare · useBack · useCountdown · usePageTitle
 ├── src/lib/                  # firebase(초기화 + 전화 OTP/reCAPTCHA) · dates · phone · errors · share · print · navHistory
-├── src/data/                 # 더미 데이터(모바일 ../data 와 같은 내용) · programView(회차 목록·회차 화면용 조합 함수, 탭 정의, 공통 Q&A)
+├── src/data/                 # 더미 데이터(모바일 ../data 와 같은 내용) · programView(회차 목록·회차 화면용 조합 함수, 탭 정의, 공통 Q&A) · programGuide(안내 항목·기본 규정·기본 Q&A) · dummyHistory
 ├── docs/PORTING_GUIDE.md     # RN 화면 → Next.js 페이지 옮기는 규칙 (새 화면 추가할 때 참고)
-└── e2e/                      # 에뮬레이터 대상 브라우저 E2E (50개 시나리오)
+└── e2e/                      # 에뮬레이터 대상 브라우저 E2E (55개 시나리오)
 ```
 
 ---
@@ -86,7 +89,7 @@ Firebase 콘솔 → 프로젝트 설정 → 일반 → **내 앱 → 웹 앱(</>
 
 ## 4. 에뮬레이터로 전체 흐름 테스트 (SMS 없이)
 
-`e2e/README.md` 참고. 실제 Cloud Functions 코드를 로컬 에뮬레이터에서 돌리고, 헤드리스 브라우저로 **등록코드 → 생년월일 → OTP → 홈 → 프로그램/리포트/공유/인쇄 → 알림 → 내정보(보호자 초대) → 로그아웃 → 딥링크 가드 → 재로그인 → 자녀 2명 전환 → 회차 목록·회차 화면(출결·일정·내용·Q&A·리포트 탭, 이전/다음 회차) → 초대받은 보호자 로그인 → 회원 탈퇴(서버 정리 확인·재로그인 시 자동 연결 안 됨)** 까지 50개 시나리오를 검증한다.
+`e2e/README.md` 참고. 실제 Cloud Functions 코드를 로컬 에뮬레이터에서 돌리고, 헤드리스 브라우저로 **등록코드 → 생년월일 → OTP → 홈 → 프로그램/리포트/공유/인쇄 → 알림 → 내정보(보호자 초대) → 로그아웃 → 딥링크 가드 → 재로그인 → 자녀 2명 전환 → 회차 목록·회차 화면(출결·일정·내용·Q&A·리포트 탭, 이전/다음 회차) → 수강 예정 요약·안내 화면(목적·회차별 내용·공지·규정·Q&A) → 홈 규정·지침 버튼·이전 수강 이력 → 초대받은 보호자 로그인 → 회원 탈퇴(서버 정리 확인·재로그인 시 자동 연결 안 됨)** 까지 55개 시나리오를 검증한다.
 
 ---
 
@@ -111,6 +114,10 @@ Firebase 콘솔 → 프로젝트 설정 → 일반 → **내 앱 → 웹 앱(</>
 | 홈 수강 중 카드: 학생명·부제·칩·진도·다음 수업(날짜·시간·주제·장소)·CTA | **간소화**: 상태 · 프로그램명 · 요일/시간 · 진도 · 다음 수업 한 줄(2주 이내면 D-day) — **모바일도 반영** |
 | 프로그램 상세: 파란 헤더 + 출결 / 수업 / 리포트 탭 3개 (회차 목록 중복) | **회차 목록만 있는 단순한 화면**: 진행 한 줄(진행 3/6 · 출석/지각/결석) → 회차 카드(날짜 · 주제 · 출결 배지, 다음 수업은 파란 테두리 + D-day). 회차를 누르면 **회차 화면**: 헤더(회차 · 주제 · 상태 · 날짜) 아래 고정 탭 **출결 / 일정 / 내용 / Q&A / 리포트**(리포트는 끝난 회차만). 선택한 탭은 `?tab=` 로 유지, 아래 버튼·좌우 스와이프로 이전/다음 회차(보던 탭 유지). Q&A 는 회차별 질문 + 공통 질문 아코디언과 챗봇(`/main/faq?tab=chatbot`)·전화 버튼. 종합 리포트는 모든 회차가 끝나면 목록 아래에서 열림 — **모바일도 반영** |
 | 글자 크기 9~26px 혼용 | **학부모용 글자 크기**: 최소 14px · 본문 16px 이상 · 제목 18~24px, 옅은 회색/하늘색 글자는 한 단계 진하게, 한글은 어절 단위 줄바꿈(`word-break: keep-all`). E2E 가 모든 화면에서 14px 미만 글자를 검사 — **모바일도 반영** |
+| 홈: 수강 중 · 수강 이력 | **수강 예정** 섹션 추가 — 카드(개강일·D-day·요일/시간·총 회차) → `/main/program/prog-002` (더미 `data/dummyUpcomingProgram.ts`) — **모바일도 반영** |
+| (회의 반영 ①) 수강 예정: 한 화면에 모든 내용 | **첫 화면은 요약 + 안내 버튼**: 수강 예정·첫 수업 D-day / 기간 / 일시(휴강) / 장소, 그 아래 버튼 6개 — 프로그램 목적 · 회차별 내용 · 공지사항 · 수업 규정·지침 · 자주 묻는 질문 · 문의하기 (스크롤 없이 한 화면). 버튼 → 독립된 안내 페이지 `/main/program/[id]/guide/{purpose,sessions,notices,rules,qna}` (페이지 사이 탭 없음 — 새 안내는 `programGuide.ts` 한 줄 + 페이지 파일 하나). 회차별 내용 → 회차를 누르면 회차 화면(일정·내용·Q&A, 출결 탭 없음). 규정·Q&A 는 기본 예시(`data/programGuide.ts`)를 두고 프로그램마다 `program.rules` / `program.faq` 로 교체 — **모바일도 반영** |
+| (회의 반영 ②) 홈: 수강 중 · 예정 · 이전 이력 목록 | **이전 수강 이력은 맨 아래 작은 버튼** → `/main/history`. **"프로그램 이수 규정·지침" 버튼**(빨간색, "반드시 지켜 주세요")을 수강 중 카드 위에 → 수강 중 프로그램의 규정 화면(`?from=home`, ← 홈) — **모바일도 반영** |
+| (회의 반영 ③) 수강 중: 회차 카드 세로 목록 | 순서 **수업 안내(규정·공지·Q&A·목적) → 회차별 수업 → 종합 리포트**. 회차는 **버튼 모양(테두리·그림자) 한 줄에 3개** — "N회차 · 날짜"만, 출석/지각/결석은 눌러서 회차 화면에서 확인. 끝난 회차는 회색 바탕 + "✓ 완료", 다음 회차는 파란색 + "다음 수업", 남은 회차는 흰 바탕(별도 다음 수업 카드 없음). 운영 요일·시간·기간은 헤더에 한 번만. 회차 화면 탭은 아이콘 + 큰 글자로 — **모바일도 반영** |
 | 홈 "학습 리포트 미리보기"(샘플) 카드 | **제거** — 종합 리포트는 프로그램 회차 목록(모든 회차 종료 후)에서만 진입 — **모바일도 반영** |
 | 내 정보: 로그아웃만 | **회원 탈퇴** (`/main/profile/withdraw`): 무엇이 사라지는지 안내(연결 자녀 이름·전화번호) → 확인 체크 → 한 번 더 확인 → Cloud Function `deleteAccount` → `/goodbye` — **모바일도 반영** |
 | 서버 연결 실패 시 SDK 영문 메시지 | "서버에 연결할 수 없습니다" 안내 (에뮬레이터 모드에서는 실행 명령까지 표시), 메시지 끝의 HTTP 상태 `[401]` 제거 |

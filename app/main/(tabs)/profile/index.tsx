@@ -22,10 +22,10 @@ import { router } from 'expo-router';
 import { signOut } from '@react-native-firebase/auth';
 import { httpsCallable } from '@react-native-firebase/functions';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { auth, functions } from '../../../firebase';
-import { useChildren } from '../../../hooks/useChildren';
-import { clearSelectedChild } from '../../../hooks/useSelectedChild';
-import { errMessage } from '../../../lib/errors';
+import { auth, functions } from '../../../../firebase';
+import { useChildren } from '../../../../hooks/useChildren';
+import { clearSelectedChild } from '../../../../hooks/useSelectedChild';
+import { errMessage } from '../../../../lib/errors';
 
 const RELATION_PRESETS = ['부(아빠)', '조모(할머니)', '조부(할아버지)', '이모', '삼촌', '기타'];
 

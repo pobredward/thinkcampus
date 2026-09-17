@@ -219,7 +219,8 @@ export default function FaqScreen() {
   // ?tab=chatbot 으로 들어오면 챗봇 탭부터 (회차 Q&A 의 "챗봇에게 묻기")
   const sp = useSearchParams();
   const initialTab: TabType = sp.get("tab") === "chatbot" ? "chatbot" : "faq";
-  const backLabel = sp.get("from") === "session" ? "← 회차로" : "← 홈";
+  const from = sp.get("from");
+  const backLabel = from === "session" ? "← 회차로" : from ? "← 이전" : "← 홈";
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   return (

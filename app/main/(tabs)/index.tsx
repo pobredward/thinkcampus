@@ -1,14 +1,16 @@
 /**
  * 홈 화면 (학부모 허브)
  *
- * 구조:
+ * 구조 (40~50대 학부모 기준 — 첫 화면은 단순하게, 크게. 웹 app/main/page.tsx 와 동일):
  *   1. 환영 인사 + (자녀 2명 이상이면) 오른쪽 위 자녀 전환 버튼
- *   2. 수강 중 / 예정 프로그램 카드 (탭하면 → 프로그램 회차 목록)
- *   3. 수강 이력 (완료된 프로그램)
- *   4. FAQ 진입 카드
+ *   2. ⚠️ 프로그램 이수 규정·지침 버튼 ("반드시 지켜 주세요")
+ *   3. 현재 수강 중 프로그램 카드 (탭하면 → 회차 번호 화면)
+ *   4. 수강 예정 프로그램 카드 (탭하면 → 요약 + 안내 버튼)
+ *   5. FAQ 진입 카드
+ *   6. 이전 수강 이력 — 맨 아래 작은 버튼 (→ /main/history)
  *
- * 프로그램 카드를 누르면 /main/program/[programId] (회차 목록)
- * → 회차를 누르면 출결 / 일정 / 내용 / Q&A / 리포트 탭
+ * 프로그램 카드를 누르면 /main/program/[programId]
+ * → 회차 번호를 누르면 출결 / 일정 / 내용 / Q&A / 리포트 탭
  */
 
 import React from 'react';
@@ -23,14 +25,17 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChildSwitcher } from '../../components/ChildSwitcher';
-import { ProgressBar } from '../../components/ui/ProgressBar';
-import { calcSummary } from '../../data/dummyAttendance';
-import { DUMMY_PROGRAM } from '../../data/dummyProgram';
-import { pickDummyAttendance } from '../../data/programView';
-import { useChildren, type Child } from '../../hooks/useChildren';
-import { useSelectedChild } from '../../hooks/useSelectedChild';
-import { daysBetween, dDayLabel, dotDateToKey, formatShortDate, todayKey } from '../../lib/dates';
+import { ChildSwitcher } from '../../../components/ChildSwitcher';
+import { openGuide } from '../../../components/program/GuideScreen';
+import { ProgressBar } from '../../../components/ui/ProgressBar';
+import { calcSummary } from '../../../data/dummyAttendance';
+import { DUMMY_PROGRAM } from '../../../data/dummyProgram';
+import { DUMMY_UPCOMING_PROGRAM } from '../../../data/dummyUpcomingProgram';
+import { DUMMY_PAST_PROGRAMS } from '../../../data/dummyHistory';
+import { pickDummyAttendance } from '../../../data/programView';
+import { useChildren, type Child } from '../../../hooks/useChildren';
+import { useSelectedChild } from '../../../hooks/useSelectedChild';
+import { daysBetween, dDayLabel, dotDateToKey, formatShortDate, todayKey } from '../../../lib/dates';
 
 // ── 타입 ────────────────────────────────────────────────
 
@@ -52,6 +57,9 @@ interface ProgramCard {
   fixedDay: string;
   frequency: string;
   status: 'active' | 'upcoming' | 'completed';
+  /** 수강 예정 카드용 'YYYY.MM.DD' */
+  startDate?: string;
+  endDate?: string;
 }
 
 // ── 더미: 선택된 자녀의 프로그램 목록 시뮬레이션 ────────
@@ -59,9 +67,10 @@ interface ProgramCard {
 
 function buildDummyProgramCards(child: Child | null): {
   active: ProgramCard[];
-  past: ProgramCard[];
+  upcoming: ProgramCard[];
+  pastCount: number;
 } {
-  if (!child) return { active: [], past: [] };
+  if (!child) return { active: [], upcoming: [], pastCount: 0 };
 
   // 자녀마다 진도가 다르게 보이도록 더미 출결 선택 (프로그램 상세와 같은 규칙)
   const attendance = pickDummyAttendance(child.studentId);
@@ -89,43 +98,33 @@ function buildDummyProgramCards(child: Child | null): {
     },
   ];
 
-  // 이력 (더미: 지난 캠프 2개). 완료된 과정은 다음 수업 정보가 없으므로 null / 빈 값
-  const pastBase = {
-    nextSessionDate: null,
-    nextSessionTopic: null,
-    nextSessionStartTime: null,
-    nextSessionEndTime: null,
-    nextSessionLocation: null,
-    fixedDay: '',
-    frequency: '',
-    status: 'completed' as const,
-  };
-  const past: ProgramCard[] = [
+  // 수강 예정 (더미: 겨울방학 특강 — 수강 확정, 아직 시작 전)
+  const up = DUMMY_UPCOMING_PROGRAM;
+  const firstSession = up.sessions[0] ?? null;
+  const upcoming: ProgramCard[] = [
     {
-      ...pastBase,
-      programId: 'past-prog-001',
+      programId: up.id,
       studentId: child.studentId,
       studentName: child.studentName,
-      title: '2026 ThinkCampus 여름학기',
-      subtitle: '수학·과학 집중 캠프',
-      totalSessions: 6,
-      totalHours: 12,
-      completedSessions: 6,
-    },
-    {
-      ...pastBase,
-      programId: 'past-prog-002',
-      studentId: child.studentId,
-      studentName: child.studentName,
-      title: '2026 영어 스피킹 특강',
-      subtitle: '원어민 회화 집중 과정',
-      totalSessions: 4,
-      totalHours: 8,
-      completedSessions: 4,
+      title: up.title,
+      subtitle: up.subtitle,
+      totalSessions: up.totalSessions,
+      totalHours: up.totalHours,
+      completedSessions: 0,
+      nextSessionDate: firstSession?.date ?? null,
+      nextSessionTopic: firstSession?.topic ?? null,
+      nextSessionStartTime: firstSession?.startTime ?? null,
+      nextSessionEndTime: firstSession?.endTime ?? null,
+      nextSessionLocation: up.location,
+      fixedDay: up.fixedDay,
+      frequency: up.frequency === 'biweekly' ? '격주' : '매주',
+      status: 'upcoming',
+      startDate: up.startDate,
+      endDate: up.endDate,
     },
   ];
 
-  return { active, past };
+  return { active, upcoming, pastCount: DUMMY_PAST_PROGRAMS.length };
 }
 
 // ── 메인 컴포넌트 ────────────────────────────────────────
@@ -143,7 +142,7 @@ export default function HomeScreen() {
     return '좋은 저녁이에요 🌙';
   };
 
-  const { active, past } = buildDummyProgramCards(selected);
+  const { active, upcoming, pastCount } = buildDummyProgramCards(selected);
 
   const goToProgram = (card: ProgramCard) => {
     router.push({
@@ -156,6 +155,16 @@ export default function HomeScreen() {
       },
     });
   };
+
+  // 규정·지침 — 수강 중 프로그램의 규정 화면 (돌아올 때 "← 홈")
+  const rulesCard = active[0] ?? null;
+  const goToRules = (card: ProgramCard) =>
+    openGuide(card.programId, 'rules', {
+      studentName: card.studentName,
+      programTitle: card.title,
+      sid: card.studentId,
+      from: 'home',
+    });
 
   return (
     <ScrollView
@@ -213,7 +222,25 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ── 수강 중 / 예정 프로그램 ─────────────── */}
+      {/* ── 규정·지침 (반드시 지켜 주세요) ─────── */}
+      {!loading && rulesCard && (
+        <TouchableOpacity
+          style={styles.rulesBtn}
+          onPress={() => goToRules(rulesCard)}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="프로그램 이수 규정·지침 보기"
+        >
+          <Text style={styles.rulesIcon}>⚠️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rulesTitle}>프로그램 이수 규정·지침</Text>
+            <Text style={styles.rulesDesc}>반드시 지켜 주세요 · 지각·결석 기준</Text>
+          </View>
+          <Text style={[styles.arrow, { color: '#fca5a5' }]}>›</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* ── 현재 수강 중 ────────────────────────── */}
       {!loading && active.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
@@ -229,14 +256,14 @@ export default function HomeScreen() {
         </>
       )}
 
-      {/* ── 수강 이력 ───────────────────────────── */}
-      {!loading && past.length > 0 && (
+      {/* ── 수강 예정 ───────────────────────────── */}
+      {!loading && upcoming.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>📂 이전 수강 이력</Text>
+            <Text style={styles.sectionTitle}>🗓 수강 예정 프로그램</Text>
           </View>
-          {past.map((card) => (
-            <PastProgramCard
+          {upcoming.map((card) => (
+            <UpcomingProgramCard
               key={`${card.programId}-${card.studentId}`}
               card={card}
               onPress={() => goToProgram(card)}
@@ -258,6 +285,18 @@ export default function HomeScreen() {
             <Text style={styles.faqDesc}>FAQ · 자주 묻는 질문 보기</Text>
           </View>
           <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* ── 이전 수강 이력 (맨 아래 작은 버튼) ───── */}
+      {!loading && pastCount > 0 && (
+        <TouchableOpacity
+          style={styles.historyBtn}
+          onPress={() => router.push('/main/history')}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+        >
+          <Text style={styles.historyText}>📂 이전 수강 이력 보기 ({pastCount}) ›</Text>
         </TouchableOpacity>
       )}
 
@@ -334,29 +373,57 @@ function ActiveProgramCard({ card, onPress }: { card: ProgramCard; onPress: () =
   );
 }
 
-// ── 서브 컴포넌트: 이전 수강 카드 ────────────────────────
+// ── 서브 컴포넌트: 수강 예정 카드 ────────────────────────
+// 개강일 · D-day · 요일/시간 · 기간 — 누르면 요약 + 안내 버튼
 
-function PastProgramCard({ card, onPress }: { card: ProgramCard; onPress: () => void }) {
+function UpcomingProgramCard({ card, onPress }: { card: ProgramCard; onPress: () => void }) {
+  const firstKey = card.nextSessionDate ? dotDateToKey(card.nextSessionDate) : '';
+  const days = firstKey ? daysBetween(todayKey(), firstKey) : -1;
+  const dday = days >= 0 ? dDayLabel(days) : '';
+
   return (
-    <TouchableOpacity style={styles.pastCard} onPress={onPress} activeOpacity={0.8}>
-      <View style={styles.pastCardLeft}>
-        <View style={styles.pastIconWrap}>
-          <Text style={styles.pastIcon}>✅</Text>
-        </View>
-        <View style={styles.pastCardInfo}>
-          <Text style={styles.pastCardStudent}>{card.studentName} 학생</Text>
-          <Text style={styles.pastCardTitle} numberOfLines={1}>
-            {card.title}
-          </Text>
-          <Text style={styles.pastCardMeta}>총 {card.totalSessions}회차 · 수료 완료</Text>
-        </View>
-      </View>
-      <View style={styles.pastCardRight}>
-        <View style={styles.completedBadge}>
-          <Text style={styles.completedBadgeText}>완료</Text>
+    <TouchableOpacity
+      style={styles.upcomingCard}
+      onPress={onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={`수강 예정 · ${card.title} 안내 보기`}
+    >
+      <View style={styles.activeCardTop}>
+        <View style={styles.upcomingBadge}>
+          <Text style={styles.upcomingBadgeText}>수강 예정</Text>
         </View>
         <Text style={styles.arrow}>›</Text>
       </View>
+
+      <Text style={styles.activeCardTitle} lineBreakStrategyIOS="hangul-word">
+        {card.title}
+      </Text>
+      <Text style={styles.activeCardMeta}>
+        {card.frequency} {card.fixedDay}요일
+        {card.nextSessionStartTime && card.nextSessionEndTime
+          ? ` · ${card.nextSessionStartTime}–${card.nextSessionEndTime}`
+          : ''}
+        {` · 총 ${card.totalSessions}회`}
+      </Text>
+
+      {!!firstKey && (
+        <View style={styles.upcomingRow}>
+          <Text style={styles.upcomingLabel}>첫 수업</Text>
+          <Text style={styles.upcomingDate}>{formatShortDate(firstKey)}</Text>
+          {!!card.endDate && (
+            <Text style={styles.nextTopic} numberOfLines={1}>
+              ~ {formatShortDate(dotDateToKey(card.endDate))}
+            </Text>
+          )}
+          {!!dday && (
+            <View style={styles.upcomingDday}>
+              <Text style={styles.ddayText}>{dday}</Text>
+            </View>
+          )}
+        </View>
+      )}
+      <Text style={styles.upcomingCta}>기간·장소·수업 안내 보기 ›</Text>
     </TouchableOpacity>
   );
 }
@@ -418,7 +485,7 @@ const styles = StyleSheet.create({
 
   // 섹션 헤더
   sectionHeader: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 12 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  sectionTitle: { fontSize: 19, fontWeight: '800', color: '#111827' },
 
   arrow: { fontSize: 24, color: '#d1d5db', fontWeight: '300' },
 
@@ -480,43 +547,75 @@ const styles = StyleSheet.create({
   ddayBadge: { backgroundColor: '#1d4ed8', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
   ddayText: { fontSize: 14, color: '#ffffff', fontWeight: '700' },
 
-  // 이전 수강 카드
-  pastCard: {
+  // 수강 예정 카드
+  upcomingCard: {
     marginHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 12,
     backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    borderRadius: 20,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#ddd6fe',
+    shadowColor: '#7c3aed',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  pastCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  pastIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pastIcon: { fontSize: 22 },
-  pastCardInfo: { flex: 1 },
-  pastCardStudent: { fontSize: 14, color: '#6b7280', marginBottom: 2 },
-  pastCardTitle: { fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 2 },
-  pastCardMeta: { fontSize: 14, color: '#6b7280' },
-  pastCardRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  completedBadge: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    paddingHorizontal: 8,
+  upcomingBadge: {
+    backgroundColor: '#f5f3ff',
+    borderRadius: 20,
+    paddingHorizontal: 9,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#ddd6fe',
   },
-  completedBadgeText: { fontSize: 14, color: '#6b7280', fontWeight: '600' },
+  upcomingBadgeText: { fontSize: 14, color: '#6d28d9', fontWeight: '700' },
+  upcomingRow: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f5f3ff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  upcomingLabel: { fontSize: 14, color: '#6d28d9', fontWeight: '700' },
+  upcomingDate: { fontSize: 15, color: '#111827', fontWeight: '700' },
+  upcomingDday: { backgroundColor: '#7c3aed', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
+  upcomingCta: { marginTop: 12, fontSize: 15, fontWeight: '600', color: '#6d28d9' },
+
+  // 규정·지침 버튼
+  rulesBtn: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#fef2f2',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  rulesIcon: { fontSize: 28 },
+  rulesTitle: { fontSize: 18, lineHeight: 26, fontWeight: '800', color: '#b91c1c' },
+  rulesDesc: { fontSize: 15, fontWeight: '600', color: '#dc2626' },
+
+  // 이전 수강 이력 버튼 (작게)
+  historyBtn: {
+    alignSelf: 'center',
+    marginTop: 24,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  historyText: { fontSize: 15, fontWeight: '600', color: '#4b5563' },
 
   // FAQ 카드
   faqCard: {

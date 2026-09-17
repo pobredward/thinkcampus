@@ -219,13 +219,17 @@ export default function FaqScreen() {
   useEffect(() => {
     setActiveTab(params.tab === 'chatbot' ? 'chatbot' : 'faq');
   }, [params.tab]);
-  const backLabel = params.from === 'session' ? '← 회차로' : '← 홈';
+  const backLabel = params.from === 'session' ? '← 회차로' : params.from ? '← 이전' : '← 홈';
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       {/* 헤더 */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/main'))}
+          style={styles.backBtn}
+          accessibilityRole="button"
+        >
           <Text style={styles.backText}>{backLabel}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>고객 지원</Text>

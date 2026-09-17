@@ -23,11 +23,11 @@ import { router } from 'expo-router';
 import { signOut } from '@react-native-firebase/auth';
 import { httpsCallable } from '@react-native-firebase/functions';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { auth, functions } from '../../../firebase';
-import { useChildren } from '../../../hooks/useChildren';
-import { clearSelectedChild } from '../../../hooks/useSelectedChild';
-import { CALL_CENTER_PHONE } from '../../../lib/contact';
-import { errMessage } from '../../../lib/errors';
+import { auth, functions } from '../../../../firebase';
+import { useChildren } from '../../../../hooks/useChildren';
+import { clearSelectedChild } from '../../../../hooks/useSelectedChild';
+import { CALL_CENTER_PHONE } from '../../../../lib/contact';
+import { errMessage } from '../../../../lib/errors';
 
 function formatPhone(e164: string | null | undefined): string {
   if (!e164) return '';

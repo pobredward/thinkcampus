@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * 회차 화면 — 회차 하나를 누르면 들어오는 곳
+ * 회차 화면 — 회차 번호를 누르면 들어오는 곳
+ * (수강 예정 프로그램: 회차별 내용 → 회차. 출결 탭 없이 일정·내용·Q&A)
  *
  *   [파란 헤더]  ← 회차 목록 · 학생 · N회차 · 주제 · 날짜 · 상태
  *   [탭]        출결 | 일정 | 내용 | Q&A | 리포트(끝난 회차만)   ← 스크롤해도 위에 고정
@@ -19,14 +20,15 @@ import { ContentPanel } from "@/components/program/session/ContentPanel";
 import { QnaPanel } from "@/components/program/session/QnaPanel";
 import { ReportPanel } from "@/components/program/session/ReportPanel";
 import { SchedulePanel } from "@/components/program/session/SchedulePanel";
-import { DUMMY_PROGRAM } from "@/data/dummyProgram";
 import {
   availableTabs,
   buildDayItems,
   defaultTab,
+  getDummyProgram,
   isDone,
   isProgramFinished,
   isSessionTab,
+  isUpcomingProgram,
   matchProgramReport,
   pickDummyAttendance,
   pickDummyReport,
@@ -55,10 +57,13 @@ export default function SessionPage() {
     p.delete("tab");
     return p.toString();
   }, [sp]);
-  const programUrl = `/main/program/${programId}${baseQs ? `?${baseQs}` : ""}`;
-  const goList = useUpTo(programUrl, { skip: SESSION_PATH });
+  const program = getDummyProgram(programId);
+  const upcomingProgram = isUpcomingProgram(program);
+  // 수강 예정 프로그램은 "회차별 내용" 안내 화면에서 들어온다
+  const listUrl = `/main/program/${programId}${upcomingProgram ? "/guide/sessions" : ""}${baseQs ? `?${baseQs}` : ""}`;
+  const goList = useUpTo(listUrl, { skip: SESSION_PATH });
+  const listLabel = upcomingProgram ? "회차별 내용" : "회차 목록";
 
-  const program = DUMMY_PROGRAM;
   const sid = sp.get("sid");
   const attendance = useMemo(() => pickDummyAttendance(sid), [sid]);
   const items = useMemo(() => buildDayItems(program, attendance), [program, attendance]);
@@ -69,7 +74,7 @@ export default function SessionPage() {
   const studentName = sp.get("studentName");
   const today = todayKey();
 
-  const tabs = item ? availableTabs(item) : [];
+  const tabs = item ? availableTabs(item, program) : [];
   const tabParam = sp.get("tab");
   const tab: SessionTab | null = item
     ? isSessionTab(tabParam) && tabs.includes(tabParam)
@@ -100,7 +105,7 @@ export default function SessionPage() {
 
   // 다른 회차로: 보던 탭이 그 회차에도 있으면 유지
   function goSession(target: DayItem) {
-    const keep = tab && availableTabs(target).includes(tab) ? tab : null;
+    const keep = tab && availableTabs(target, program).includes(tab) ? tab : null;
     router.replace(hrefFor(target.session.id, keep));
   }
 
@@ -137,7 +142,7 @@ export default function SessionPage() {
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-20">
         <p className="text-[17px] text-gray-700">회차 정보를 찾을 수 없습니다.</p>
         <button type="button" onClick={goList} className="tap text-[17px] font-bold text-brand">
-          ← 회차 목록으로
+          ← {listLabel}으로
         </button>
       </div>
     );
@@ -154,7 +159,7 @@ export default function SessionPage() {
     <div className="flex flex-1 flex-col bg-[#f8fafc] pb-10" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <header ref={headerRef} className="no-print bg-brand px-5 pb-5" style={{ paddingTop: "calc(var(--sat) + 10px)" }}>
         <button type="button" onClick={goList} className="tap -ml-1 py-1 pr-2 text-[16px] font-medium text-blue-100">
-          ← 회차 목록
+          ← {listLabel}
         </button>
         <p className="mt-2 text-[16px] text-blue-100">
           {studentName ? `${studentName} 학생 · ` : ""}
@@ -189,10 +194,15 @@ export default function SessionPage() {
                 aria-controls="session-panel"
                 tabIndex={active ? 0 : -1}
                 onClick={() => selectTab(t.id)}
-                className={`tap flex-1 border-b-[3px] pt-[14px] pb-[11px] text-center text-[16px] ${
-                  active ? "border-brand font-extrabold text-brand" : "border-transparent font-semibold text-gray-500"
+                className={`tap flex flex-1 flex-col items-center gap-[2px] border-b-[3px] pt-[10px] pb-[8px] text-center text-[17px] ${
+                  active
+                    ? "border-brand bg-brand-light font-extrabold text-brand"
+                    : "border-transparent font-semibold text-gray-600"
                 }`}
               >
+                <span aria-hidden="true" className="text-[22px] leading-[26px]">
+                  {t.icon}
+                </span>
                 {t.label}
               </button>
             );

@@ -14,21 +14,25 @@ thinkcampus/
 │   ├── index.tsx                # 로그인 여부 확인 → /onboarding 또는 /main
 │   ├── goodbye.tsx              # 회원 탈퇴 완료 안내
 │   ├── onboarding/              # 등록코드 → 생년월일·관계·전화번호 → OTP, 전화번호 로그인
-│   └── main/                    # 하단 탭: 홈 / 알림 / 내 정보
-│       ├── index.tsx            # 홈 (자녀 2명 이상이면 오른쪽 위 자녀 전환)
-│       ├── notification.tsx
-│       ├── profile/             # 내 정보 · withdraw(회원 탈퇴)
+│   └── main/                    # Stack: 하단 탭 위에 상세 화면을 쌓는다 (뒤로가기가 항상 들어온 순서대로)
+│       ├── (tabs)/              # 하단 탭: 홈 / 알림 / 내 정보
+│       │   ├── index.tsx        # 홈 (규정·지침 버튼 · 수강 중 · 수강 예정 · FAQ · 맨 아래 이전 수강 이력 버튼)
+│       │   ├── notification.tsx
+│       │   └── profile/         # 내 정보 · withdraw(회원 탈퇴)
+│       ├── history.tsx          # 이전 수강 이력
 │       ├── faq/                 # FAQ + 챗봇 (tab=chatbot 으로 챗봇부터)
 │       └── program/
 │           ├── index.tsx                        # 프로그램 전체 회차 일정
 │           └── [programId]/
-│               ├── index.tsx                    # 회차 목록 (진행 · 출결 · 다음 수업)
-│               ├── session/[sessionId].tsx      # 회차 화면: 출결 · 일정 · 내용 · Q&A · 리포트
+│               ├── index.tsx                    # 수강 중: 수업 안내 버튼 → 회차 버튼(한 줄에 3개, 출결은 눌러서) → 종합 리포트
+│               │                                #   (수강 예정이면 요약 + 안내 버튼 6개 — components/program/UpcomingProgram)
+│               ├── guide/{purpose,sessions,notices,rules,qna}.tsx  # 안내 페이지 (각각 독립, 공통 틀은 components/program/GuideScreen)
+│               ├── session/[sessionId].tsx      # 회차 화면: 출결 · 일정 · 내용 · Q&A · 리포트 (수강 예정은 일정·내용·Q&A)
 │               └── report.tsx                   # 종합 리포트 (모든 회차가 끝난 뒤)
-├── components/              # ChildSwitcher · program/(헤더 · 회차 탭 패널) · ui/(BottomSheet · ProgressBar)
+├── components/              # ChildSwitcher · program/(헤더 · GuideMenu 안내 버튼 · GuideScreen 안내 페이지 틀 · UpcomingProgram · 회차 탭 패널) · ui/(BottomSheet · ProgressBar)
 ├── hooks/                   # useAuthUser · useChildren · useSelectedChild
 ├── lib/                     # dates · errors · contact
-├── data/                    # 더미 데이터(웹 web/src/data 와 같은 내용) · programView
+├── data/                    # 더미 데이터(웹 web/src/data 와 같은 내용) · programView · programGuide(안내 항목·기본 규정·기본 Q&A)
 ├── web/                     # Next.js 웹 버전 (web/README.md)
 ├── firebase.ts              # @react-native-firebase 인스턴스 export
 ├── functions/               # Cloud Functions (TypeScript) — deleteAccount(회원 탈퇴) 포함

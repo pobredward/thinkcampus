@@ -2,10 +2,8 @@
  * 메인 탭 레이아웃 — 3개 탭 (심플 학부모 뷰)
  * 홈 / 알림 / 내 정보
  *
- * 프로그램·출결·리포트는 홈에서 프로그램 카드를 눌러
- * Stack으로 진입하는 방식으로 변경됨
- *
- * backBehavior="history": 회차 Q&A → FAQ(챗봇) 에서 뒤로가기 하면 홈이 아니라 보던 회차로 돌아간다.
+ * 프로그램·안내·이력·FAQ 등 나머지 화면은 탭 위에 쌓이는 Stack 화면이다 (app/main/_layout.tsx).
+ * → "← 홈"·뒤로가기가 항상 들어온 화면으로 돌아가고, 예전 화면이 탭 안에 남지 않는다.
  */
 
 import React from 'react';
@@ -39,7 +37,6 @@ export default function MainTabLayout() {
 
   return (
     <Tabs
-      backBehavior="history"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -85,12 +82,6 @@ export default function MainTabLayout() {
         }}
       />
 
-      {/* 아래 화면들은 탭바에 표시하지 않음 */}
-      <Tabs.Screen name="program" options={{ href: null }} />
-      <Tabs.Screen name="attendance" options={{ href: null }} />
-      <Tabs.Screen name="report" options={{ href: null }} />
-      <Tabs.Screen name="faq" options={{ href: null }} />
-      <Tabs.Screen name="report_detail" options={{ href: null }} />
     </Tabs>
   );
 }

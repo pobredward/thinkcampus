@@ -10,7 +10,8 @@ import {
   type SessionRecord,
   type StudentAttendance,
 } from "@/data/dummyAttendance";
-import type { Program, Session } from "@/data/dummyProgram";
+import { DUMMY_PROGRAM, type Program, type Session } from "@/data/dummyProgram";
+import { DUMMY_UPCOMING_PROGRAM } from "@/data/dummyUpcomingProgram";
 import { DUMMY_REPORT, type ProgramReport, type StudentReport } from "@/data/dummyReport";
 import { dotDateToKey } from "@/lib/dates";
 
@@ -31,6 +32,36 @@ export function pickDummyAttendance(studentId: string | null | undefined): Stude
   if (!studentId) return DUMMY_ATTENDANCE_MINJUN;
   const sum = [...studentId].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
   return sum % 2 === 0 ? DUMMY_ATTENDANCE_SEOYEON : DUMMY_ATTENDANCE_MINJUN;
+}
+
+/** 더미 프로그램 목록 — 수강 중(prog-001) · 수강 예정(prog-002) */
+export const DUMMY_PROGRAMS: Program[] = [DUMMY_PROGRAM, DUMMY_UPCOMING_PROGRAM];
+
+/** programId → 프로그램 (모르는 id — 지난 수강 이력 카드 등 — 는 수강 중 프로그램으로) */
+export function getDummyProgram(programId: string | null | undefined): Program {
+  return DUMMY_PROGRAMS.find((p) => p.id === programId) ?? DUMMY_PROGRAM;
+}
+
+export function isUpcomingProgram(program: Program): boolean {
+  return program.status === "upcoming";
+}
+
+/** 수강 예정 화면의 회차 순서 — 회차와 휴강일을 날짜순으로 */
+export type TimelineEntry =
+  | { kind: "session"; key: string; session: Session }
+  | { kind: "break"; key: string; reason: string };
+
+export function buildTimeline(program: Program): TimelineEntry[] {
+  const entries: TimelineEntry[] = [
+    ...program.sessions.map((session) => ({ kind: "session" as const, key: dotDateToKey(session.date), session })),
+    ...(program.breaks ?? []).map((b) => ({ kind: "break" as const, key: dotDateToKey(b.date), reason: b.reason })),
+  ];
+  return entries.filter((e) => e.key).sort((a, b) => a.key.localeCompare(b.key));
+}
+
+/** 강사 이름 목록 (중복 제거, 첫 등장 순) */
+export function instructorNames(program: Program): string[] {
+  return [...new Set(program.sessions.map((s) => s.instructor.name))];
 }
 
 export function pickDummyReport(): StudentReport {
@@ -102,18 +133,21 @@ export function summarize(items: DayItem[], total: number): ProgressSummary {
 
 export type SessionTab = "attendance" | "schedule" | "content" | "qna" | "report";
 
-export const SESSION_TABS: { id: SessionTab; label: string; title: string }[] = [
-  { id: "attendance", label: "출결", title: "출결" },
-  { id: "schedule", label: "일정", title: "프로그램 일정" },
-  { id: "content", label: "내용", title: "프로그램 내용" },
-  { id: "qna", label: "Q&A", title: "프로그램 Q&A" },
-  { id: "report", label: "리포트", title: "수업 리포트" },
+export const SESSION_TABS: { id: SessionTab; label: string; title: string; icon: string }[] = [
+  { id: "attendance", label: "출결", title: "출결", icon: "✅" },
+  { id: "schedule", label: "일정", title: "프로그램 일정", icon: "🗓" },
+  { id: "content", label: "내용", title: "프로그램 내용", icon: "📖" },
+  { id: "qna", label: "Q&A", title: "프로그램 Q&A", icon: "💬" },
+  { id: "report", label: "리포트", title: "수업 리포트", icon: "📊" },
 ];
 
-/** 리포트 탭은 끝난 회차에만 보인다 */
-export function availableTabs(item: DayItem): SessionTab[] {
+/** 리포트 탭은 끝난 회차에만, 수강 예정 프로그램은 출결 탭 없이 일정·내용·Q&A 만 */
+export function availableTabs(item: DayItem, program?: Program): SessionTab[] {
   const done = isDone(item.status);
-  return SESSION_TABS.map((t) => t.id).filter((id) => id !== "report" || done);
+  const upcoming = program ? isUpcomingProgram(program) : false;
+  return SESSION_TABS.map((t) => t.id).filter(
+    (id) => (id !== "report" || done) && (id !== "attendance" || !upcoming),
+  );
 }
 
 /** 처음 열 탭 — 끝난 회차는 출결, 아직 안 한 회차는 일정 */

@@ -112,6 +112,9 @@ async function checkFontSizes(p, name) {
   }, MIN_FONT_PX);
   for (const b of bad) if (!fontViolations.has(b)) fontViolations.set(b, name);
 }
+// 탭바 위까지가 첫 화면
+const visibleBottom = () =>
+  page.evaluate(() => window.innerHeight - (document.querySelector("nav.sticky.bottom-0")?.getBoundingClientRect().height ?? 0));
 const shot = async (name, opts = {}) => {
   await checkFontSizes(page, name);
   return page.screenshot({ path: `${SHOTS}/${name}.png`, ...opts });
@@ -231,19 +234,61 @@ await check("홈 카드(간소화) → 프로그램 회차 목록", async () => 
   if (await page.getByRole("region", { name: "다음 수업" }).count()) throw new Error("예전 수업 일지 카드가 남아 있음");
 });
 
-await check("회차 목록: 진행 3/6 · 6개 회차(출결 상태) · 4회차 다음 수업 강조 · 종합 리포트는 종료 후", async () => {
-  await page.getByRole("heading", { name: "회차별 수업" }).waitFor();
+await check("수강 중 화면: 수업 안내 → 회차별 수업 → 종합 리포트 순서 · 회차 버튼 3개씩 2줄(출결 표시 없음, 끝난 회차 회색·✓ 완료) · 다음 수업 카드 없음 · 날짜는 헤더에 한 번", async () => {
+  const guideH = page.getByRole("heading", { name: "수업 안내" });
+  const sessionsH = page.getByRole("heading", { name: "회차별 수업" });
+  await sessionsH.waitFor();
   await page.getByText("진행 3").waitFor();
+  const header = page.locator("header").first();
+  await header.getByText("격주 토요일 10:00–12:00").waitFor();
+  await header.getByText("9월 5일 ~ 11월 14일 · 총 6회").waitFor();
+  // 순서
+  const yGuide = (await guideH.boundingBox()).y;
+  const ySessions = (await sessionsH.boundingBox()).y;
+  const yReport = (await page.getByText("📊 종합 리포트").boundingBox()).y;
+  if (!(yGuide < ySessions && ySessions < yReport)) throw new Error(`순서 ${yGuide} / ${ySessions} / ${yReport}`);
+  for (const b of ["수업 규정·지침", "공지사항", "자주 묻는 질문", "프로그램 목적"]) {
+    await page.getByRole("button", { name: b, exact: true }).waitFor();
+  }
+  if (await page.getByRole("button", { name: "회차별 내용", exact: true }).count()) throw new Error("수강 중 화면에 회차별 내용 버튼");
+  // 회차 버튼 6개 · 한 줄에 3개 · 출결 단어 없음
   const rows = page.getByRole("button", { name: /^\d+회차 / });
   if ((await rows.count()) !== 6) throw new Error("회차 수 " + (await rows.count()));
-  const expect = { 1: "출석", 2: "출석", 3: "지각", 4: "다음 수업", 5: "예정", 6: "예정" };
-  for (const [n, s] of Object.entries(expect)) {
+  const boxes = [];
+  for (let n = 1; n <= 6; n++) boxes.push(await sessionRow(n).boundingBox());
+  const ys = boxes.map((b) => Math.round(b.y));
+  if (!(ys[0] === ys[1] && ys[1] === ys[2] && ys[3] === ys[4] && ys[4] === ys[5] && ys[3] > ys[0])) throw new Error("3개씩 2줄 아님 " + ys);
+  const limit = await visibleBottom();
+  if (boxes[5].y + boxes[5].height > limit) throw new Error(`회차 버튼이 첫 화면 밖 ${boxes[5].y + boxes[5].height} > ${limit}`);
+  for (let n = 1; n <= 6; n++) {
     const label = await sessionRow(n).getAttribute("aria-label");
-    if (!label?.endsWith(s)) throw new Error(`${n}회차 상태: ${label}`);
+    const text = await sessionRow(n).innerText();
+    if (/출석|지각|결석|예정/.test(label + text)) throw new Error(`${n}회차에 출결 표시: ${label} / ${text}`);
   }
-  await sessionRow(4).getByText("10월 17일 (토)").waitFor();
+  await sessionRow(1).getByText("1회차").waitFor();
+  await sessionRow(1).getByText("9.5 (토)").waitFor();
+  if (!(await sessionRow(4).getAttribute("aria-label")).endsWith("다음 수업")) throw new Error("4회차 다음 수업 표시 없음");
+  // 끝난 회차(1~3)는 회색·"✓ 완료", 다음(4)은 파란 채움, 남은 회차(5~6)는 흰 바탕 — 색이 서로 달라야 함
+  const bg = async (n) => sessionRow(n).evaluate((el) => getComputedStyle(el).backgroundColor);
+  for (const n of [1, 2, 3]) {
+    if (!(await sessionRow(n).getAttribute("aria-label")).endsWith("완료")) throw new Error(`${n}회차 완료 표시 없음`);
+    await sessionRow(n).getByText("✓ 완료").waitFor();
+  }
+  const [bDone, bNext, bLater] = [await bg(1), await bg(4), await bg(5)];
+  if (new Set([bDone, bNext, bLater]).size !== 3) throw new Error(`상태별 배경색이 같음 ${bDone} / ${bNext} / ${bLater}`);
+  if ((await bg(2)) !== bDone || (await bg(6)) !== bLater) throw new Error("같은 상태인데 배경색이 다름");
+  if (await sessionRow(5).getByText("✓ 완료").count()) throw new Error("남은 회차에 완료 표시");
+  // 버튼처럼 보이는지: 테두리 2px + 그림자
+  const look = await sessionRow(1).evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { border: parseFloat(cs.borderTopWidth), shadow: cs.boxShadow };
+  });
+  if (look.border < 2 || look.shadow === "none") throw new Error("버튼 모양 아님 " + JSON.stringify(look));
+  if (await page.getByRole("button", { name: /^다음 수업 보기/ }).count()) throw new Error("다음 수업 카드가 남아 있음");
+  if (await page.getByText(/출석 \d+ · 지각/).count()) throw new Error("출결 합계가 보임");
   await page.getByText("6회 수업이 모두 끝나면 발급돼요", { exact: false }).waitFor();
   if (await page.getByRole("button", { name: /종합 리포트 보기/ }).count()) throw new Error("진행 중인데 종합 리포트 버튼");
+  return `회차 버튼 아래 끝 ${Math.round(boxes[5].y + boxes[5].height)}px / 탭바 위 ${limit}px`;
 });
 await sleep(300);
 await shot("06-program-sessions");
@@ -253,7 +298,7 @@ await check("3회차(지각) → 출결 탭: 입실 10:18 · 18분 늦음 · 탭
   await sessionRow(3).click();
   await page.waitForURL(/\/session\/sess-03\?/, { timeout: 15000 });
   await page.getByRole("heading", { level: 1, name: "한국사 인문학 — 우리 역사 깊이 읽기" }).waitFor();
-  const names = await page.getByRole("tab").allInnerTexts();
+  const names = (await page.getByRole("tab").allInnerTexts()).map((t) => t.split("\n").pop().trim());
   if (names.join(",") !== "출결,일정,내용,Q&A,리포트") throw new Error("탭: " + names.join(","));
   await expectSelected("출결");
   await panel().getByRole("heading", { name: "출결", exact: true }).waitFor();
@@ -359,6 +404,167 @@ await check("Q&A [챗봇에게 묻기] → 챗봇 탭 → ← 회차로 → ← 
   await page.waitForURL(/\/session\/sess-04\?.*tab=qna/, { timeout: 15000 });
   await page.getByRole("button", { name: "← 회차 목록" }).click();
   await page.waitForURL(/\/main\/program\/prog-001\?/, { timeout: 15000 });
+  await page.getByRole("button", { name: "← 홈" }).click();
+  await page.waitForURL(/\/main$/, { timeout: 15000 });
+});
+
+await check("수강 중 · 수업 안내 [공지사항] → 독립 페이지(항목 탭 없음) → ← 프로그램 → [수업 규정·지침] → ← 프로그램 → ← 홈", async () => {
+  await page.getByRole("button", { name: /상세 보기$/ }).click();
+  await page.waitForURL(/\/main\/program\/prog-001\?/, { timeout: 15000 });
+  await page.getByRole("button", { name: "공지사항", exact: true }).click();
+  await page.waitForURL(/\/prog-001\/guide\/notices\?/, { timeout: 15000 });
+  await page.getByRole("heading", { level: 1, name: "공지사항" }).waitFor();
+  await page.getByText("수업 10분 전(9:50)까지 3층 301호로 와 주세요.").waitFor();
+  if (await page.getByRole("navigation", { name: "안내 항목" }).count()) throw new Error("안내 항목 탭 줄이 남아 있음");
+  for (const other of ["목적", "규정", "Q&A"]) {
+    if (await page.getByRole("button", { name: other, exact: true }).count()) throw new Error(`다른 안내로 가는 버튼(${other})이 있음`);
+  }
+  await page.getByRole("button", { name: "← 프로그램" }).click();
+  await page.waitForURL(/\/main\/program\/prog-001\?/, { timeout: 15000 });
+  await page.getByRole("button", { name: "수업 규정·지침", exact: true }).click();
+  await page.waitForURL(/\/prog-001\/guide\/rules\?/, { timeout: 15000 });
+  await page.getByRole("heading", { level: 1, name: "수업 규정·지침" }).waitFor();
+  await page.getByRole("button", { name: "← 프로그램" }).click();
+  await page.waitForURL(/\/main\/program\/prog-001\?/, { timeout: 15000 });
+  await page.getByRole("heading", { name: "회차별 수업" }).waitFor();
+  await page.getByRole("button", { name: "← 홈" }).click();
+  await page.waitForURL(/\/main$/, { timeout: 15000 });
+});
+
+await check("홈 수강 예정 카드 → 첫 화면은 요약(기간·일시·장소)과 안내 버튼 6개만 · 스크롤 없이 보임", async () => {
+  const card = page.getByRole("button", { name: /^수강 예정 · .* 안내 보기$/ });
+  const text = await card.innerText();
+  for (const t of ["수강 예정", "겨울방학 STEAM 특강", "첫 수업", "12.5 (토)", "총 6회"]) {
+    if (!text.includes(t)) throw new Error(`카드에 "${t}" 없음: ` + text);
+  }
+  await card.click();
+  await page.waitForURL(/\/main\/program\/prog-002\?/, { timeout: 15000 });
+  const summary = page.getByRole("region", { name: "수업 요약" });
+  for (const t of [
+    "12월 5일 ~ 1월 16일 · 총 6회",
+    "매주 토요일 10:00–12:00",
+    "1월 2일 (토) 신정 연휴 휴강",
+    "강남구 청소년수련관 2층 창작실",
+  ]) {
+    await summary.getByText(t, { exact: false }).first().waitFor();
+  }
+  await summary.getByText(/^첫 수업 D-\d+$/).waitFor();
+  await page.getByRole("heading", { name: "무엇이 궁금하세요?" }).waitFor();
+  const buttons = ["프로그램 목적", "회차별 내용", "공지사항", "수업 규정·지침", "자주 묻는 질문", "문의하기"];
+  for (const b of buttons) await page.getByRole("button", { name: b, exact: true }).waitFor();
+  const last = await page.getByRole("button", { name: "문의하기", exact: true }).boundingBox();
+  const limit = await visibleBottom();
+  if (!last || last.y + last.height > limit) throw new Error(`안내 버튼이 첫 화면 밖 bottom=${last && last.y + last.height} > ${limit}`);
+  if (await page.getByRole("tab").count()) throw new Error("수강 예정 화면에 탭이 있음");
+  if (await page.getByRole("article").count()) throw new Error("회차 카드가 첫 화면에 펼쳐져 있음");
+  if (await page.getByText("진행 0", { exact: false }).count()) throw new Error("회차 번호 화면이 보임");
+  await sleep(300);
+  await shot("08d-upcoming");
+  return `마지막 버튼 bottom=${Math.round(last.y + last.height)}px / 탭바 위 ${limit}px`;
+});
+
+await check("수강 예정 · 회차별 내용 → 날짜·주제·강사 목록(시간은 위에 한 번) → 6회차 → 일정·내용·Q&A(출결 없음) → ← 회차별 내용", async () => {
+  await page.getByRole("button", { name: "회차별 내용", exact: true }).click();
+  await page.waitForURL(/\/prog-002\/guide\/sessions\?/, { timeout: 15000 });
+  await page.getByRole("heading", { level: 1, name: "회차별 내용" }).waitFor();
+  await page.getByText("매주 토요일 10:00–12:00").first().waitFor();
+  const rows = page.getByRole("button", { name: /^\d+회차 / });
+  if ((await rows.count()) !== 6) throw new Error("회차 수 " + (await rows.count()));
+  await sessionRow(1).getByText("12월 5일 (토)").waitFor();
+  await sessionRow(1).getByText("정다은 강사").waitFor();
+  await page.getByText("1월 2일 (토) · 신정 연휴 휴강").waitFor();
+  await sleep(200);
+  await shot("08e-guide-sessions", { fullPage: true });
+  await sessionRow(6).click();
+  await page.waitForURL(/\/prog-002\/session\/win-06\?/, { timeout: 15000 });
+  await page.getByRole("heading", { level: 1, name: "성과 발표회 & 수료식" }).waitFor();
+  const names = (await page.getByRole("tab").allInnerTexts()).map((t) => t.split("\n").pop().trim());
+  if (names.join(",") !== "일정,내용,Q&A") throw new Error("탭: " + names.join(","));
+  await expectSelected("일정");
+  await tab("내용").click();
+  await panel().getByRole("heading", { name: "강사 소개" }).waitFor();
+  await panel().getByText("정다은").first().waitFor();
+  await sleep(200);
+  await shot("08f-upcoming-session");
+  await page.getByRole("button", { name: "← 회차별 내용" }).click();
+  await page.waitForURL(/\/prog-002\/guide\/sessions\?/, { timeout: 15000 });
+  await page.getByRole("heading", { level: 1, name: "회차별 내용" }).waitFor();
+});
+
+async function openUpcomingGuide(button, urlPart) {
+  await page.getByRole("button", { name: "← 프로그램 안내" }).click();
+  await page.waitForURL(/\/main\/program\/prog-002\?/, { timeout: 15000 });
+  await page.getByRole("button", { name: button, exact: true }).click();
+  await page.waitForURL(new RegExp(`/prog-002/guide/${urlPart}\\?`), { timeout: 15000 });
+  if (await page.getByRole("navigation", { name: "안내 항목" }).count()) throw new Error("안내 항목 탭 줄이 남아 있음");
+}
+
+await check("수강 예정 · 안내 페이지를 하나씩: 규정·지침(필수 2개) → Q&A(프로그램 질문 먼저, 펼침) → 공지(준비물) → 목적 — 매번 ← 프로그램 안내 → ← 홈", async () => {
+  await openUpcomingGuide("수업 규정·지침", "rules");
+  await page.getByRole("note").getByText("반드시 지켜 주세요.").waitFor();
+  await page.getByRole("heading", { name: "지각 2회 이상이면 수강 취소" }).waitFor();
+  const must = await page.getByText("필수", { exact: true }).count();
+  if (must !== 2) throw new Error("필수 규정 " + must);
+  await sleep(200);
+  await shot("08g-guide-rules", { fullPage: true });
+
+  await openUpcomingGuide("자주 묻는 질문", "qna");
+  const list = page.getByRole("region", { name: "자주 묻는 질문 목록" });
+  const qs = list.getByRole("button");
+  if (!(await qs.first().innerText()).includes("태블릿이나 앱을 미리 준비해야 하나요?")) throw new Error("프로그램 질문이 먼저가 아님");
+  for (const q of ["수업이 끝나면 어디서 데려가나요?", "간식이나 음료를 챙겨야 하나요?", "수업 후 점심은 어떻게 하나요?"]) {
+    await list.getByText(q).waitFor();
+  }
+  await qs.first().click();
+  if ((await qs.first().getAttribute("aria-expanded")) !== "true") throw new Error("질문이 펼쳐지지 않음");
+  await list.getByText("ScratchJr", { exact: false }).waitFor();
+  await sleep(400);
+  await shot("08h-guide-qna", { fullPage: true });
+
+  await openUpcomingGuide("공지사항", "notices");
+  await page.getByText("첫 수업은 오리엔테이션을 겸해", { exact: false }).waitFor();
+  await page.getByRole("heading", { name: "매번 챙길 준비물" }).waitFor();
+
+  await openUpcomingGuide("프로그램 목적", "purpose");
+  await page.getByRole("heading", { name: "왜 운영하나요?" }).waitFor();
+  await page.getByText("강남구가 지원하는 방학 특강", { exact: false }).waitFor();
+  await sleep(200);
+  await shot("08i-guide-purpose", { fullPage: true });
+
+  await page.getByRole("button", { name: "← 프로그램 안내" }).click();
+  await page.waitForURL(/\/main\/program\/prog-002\?/, { timeout: 15000 });
+  await page.getByRole("region", { name: "수업 요약" }).waitFor();
+  await page.getByRole("button", { name: "← 홈" }).click();
+  await page.waitForURL(/\/main$/, { timeout: 15000 });
+});
+
+await check("홈: 규정·지침 버튼(수강 중 위) → 규정 화면(← 홈) · 이전 수강 이력은 맨 아래 작은 버튼 → 목록 화면", async () => {
+  const rules = page.getByRole("button", { name: "프로그램 이수 규정·지침 보기" });
+  const rulesBox = await rules.boundingBox();
+  const activeBox = await page.getByRole("button", { name: /상세 보기$/ }).boundingBox();
+  if (!rulesBox || !activeBox || rulesBox.y >= activeBox.y) throw new Error("규정 버튼이 수강 중 카드 위에 있지 않음");
+  if (await page.getByRole("heading", { name: /이전 수강 이력/ }).count()) throw new Error("홈에 이전 수강 이력 목록이 남아 있음");
+  if (await page.getByText("2026 ThinkCampus 여름학기").count()) throw new Error("홈에 지난 프로그램 카드가 남아 있음");
+  const hist = page.getByRole("button", { name: /이전 수강 이력 보기 \(2\)/ });
+  const histBox = await hist.boundingBox();
+  const faqBox = await page.getByRole("button", { name: /궁금하신 점이 있으신가요/ }).boundingBox();
+  if (!histBox || !faqBox || histBox.y <= faqBox.y) throw new Error("이력 버튼이 맨 아래가 아님");
+
+  await rules.click();
+  await page.waitForURL(/\/prog-001\/guide\/rules\?.*from=home/, { timeout: 15000 });
+  await page.getByRole("heading", { level: 1, name: "수업 규정·지침" }).waitFor();
+  await page.getByRole("button", { name: "← 홈" }).click();
+  await page.waitForURL(/\/main$/, { timeout: 15000 });
+
+  await page.getByRole("button", { name: /이전 수강 이력 보기/ }).click();
+  await page.waitForURL(/\/main\/history$/, { timeout: 15000 });
+  await page.getByRole("heading", { level: 1, name: /이전 수강 이력/ }).waitFor();
+  await page.getByText("김민준 학생").waitFor();
+  const items = page.getByRole("button", { name: /수강 이력 보기$/ });
+  if ((await items.count()) !== 2) throw new Error("이력 수 " + (await items.count()));
+  await page.getByText("2026.07.20 ~ 2026.08.14").waitFor();
+  await sleep(200);
+  await shot("08j-history");
   await page.getByRole("button", { name: "← 홈" }).click();
   await page.waitForURL(/\/main$/, { timeout: 15000 });
 });
@@ -564,8 +770,9 @@ await check("자녀 전환 시트 → 최민철 선택 → 인사말·프로그�
   await sheet.getByRole("option", { name: /최민철/ }).click();
   await sheet.waitFor({ state: "detached" });
   await page.getByText("최민철 학부모님!").waitFor();
-  await page.getByText("최민철 학생").first().waitFor();
-  if (await page.getByText("김민준 학생").count()) throw new Error("이전 자녀 카드가 남아 있음");
+  if (await page.getByText("김민준 학부모님!").count()) throw new Error("이전 자녀 인사말이 남아 있음");
+  // 최민철(더미 B)은 진도가 달라 카드 진행 표시도 바뀐다
+  await page.getByRole("button", { name: /상세 보기$/ }).waitFor();
   await sleep(300);
   await shot("25-home-switched");
 });
@@ -576,9 +783,7 @@ await check("새로고침 후에도 선택 유지 → 회차 목록·회차 화�
   await page.getByRole("button", { name: /상세 보기$/ }).click();
   await page.waitForURL(/\/main\/program\/prog-001\?.*sid=student-004/, { timeout: 20000 });
   await page.getByText("최민철 학생").first().waitFor();
-  // 학생별 출결: 최민철(더미 B)은 2회차(9/19) 결석
-  const label = await sessionRow(2).getAttribute("aria-label");
-  if (!label?.endsWith("결석")) throw new Error("2회차 결석 표시 없음: " + label);
+  // 학생별 출결: 최민철(더미 B)은 2회차(9/19) 결석 — 회차 버튼에는 안 보이고 눌러서 확인
   await sessionRow(2).click();
   await page.waitForURL(/\/session\/sess-02\?.*sid=student-004/, { timeout: 15000 });
   await page.getByText("최민철 학생", { exact: false }).first().waitFor();

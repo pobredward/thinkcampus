@@ -1,13 +1,15 @@
 /**
- * 프로그램 상세 — 회차 목록만 보여 주는 단순한 화면
+ * 프로그램 화면 (수강 중) — 스크롤 없이 한눈에 (웹 app/main/program/[programId]/page.tsx 와 같은 구성)
  *
- *   [파란 헤더]   학생 · 프로그램명 · 요일/시간 · 장소
- *   [진행]        진행 3 / 6회 · 출석/지각/결석
- *   [회차 목록]   1회차 … 6회차 (날짜 · 주제 · 출결 상태, 다음 수업 강조)
+ *   [파란 헤더]   학생 · 프로그램명 · 요일/시간 · 기간 · 장소 (날짜는 여기 한 번만)
+ *   [수업 안내]   수업 규정·지침 · 공지사항 · 자주 묻는 질문 · 프로그램 목적 (각각 독립 페이지)
+ *   [회차별 수업] 1회차 ~ 6회차 버튼 (한 줄에 3개) — 끝난 회차는 회색, 다음 수업은 파란색. 출결은 눌러서 회차 화면에서
  *   [종합 리포트] 모든 회차가 끝나면 열림
  *
- * 회차를 누르면 → /main/program/[programId]/session/[sessionId]
- *   (출결 · 프로그램 일정 · 프로그램 내용 · 프로그램 Q&A · 끝난 회차는 리포트)
+ * 회차 버튼을 누르면 → /main/program/[programId]/session/[sessionId]
+ *   (출결 · 일정 · 내용 · Q&A · 끝난 회차는 리포트)
+ *
+ * 수강 예정 프로그램(status: upcoming)은 요약 + 안내 버튼 화면(UpcomingProgram)을 보여 준다.
  *
  * params: programId · studentName · programTitle · sid(학생 id)
  */
@@ -15,21 +17,23 @@
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { GuideMenu } from '../../../../components/program/GuideMenu';
 import { ProgramHeader } from '../../../../components/program/ProgramHeader';
-import { ProgressBar } from '../../../../components/ui/ProgressBar';
-import { DUMMY_PROGRAM } from '../../../../data/dummyProgram';
+import { UpcomingProgram } from '../../../../components/program/UpcomingProgram';
+import { openGuide } from '../../../../components/program/GuideScreen';
+import { periodLine, scheduleLine, type GuideSection } from '../../../../data/programGuide';
 import {
   buildDayItems,
+  getDummyProgram,
   isDone,
   isProgramFinished,
+  isUpcomingProgram,
   nextUpcoming,
   pickDummyAttendance,
-  STATUS_LABEL,
   summarize,
   type DayItem,
 } from '../../../../data/programView';
-import { STATUS_BADGE } from '../../../../components/program/statusColors';
-import { daysBetween, dDayLabel, formatKoreanDate, todayKey } from '../../../../lib/dates';
+import { formatShortDate } from '../../../../lib/dates';
 
 type Params = { programId: string; studentName?: string; programTitle?: string; sid?: string };
 
@@ -38,7 +42,7 @@ export default function ProgramSessionsScreen() {
   const { programId, studentName = '', sid } = params;
 
   // TODO: Firestore 에서 programId / studentId 기준 조회
-  const program = DUMMY_PROGRAM;
+  const program = getDummyProgram(programId);
   const programTitle = params.programTitle ?? program.title;
 
   const attendance = useMemo(() => pickDummyAttendance(sid), [sid]);
@@ -56,12 +60,30 @@ export default function ProgramSessionsScreen() {
     );
   }
 
+  const goHome = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/main');
+  };
+
+  const passParams: Record<string, string> = { studentName, programTitle, ...(sid ? { sid } : {}) };
+
+  // 수강 예정 — 요약 + 안내 버튼
+  if (isUpcomingProgram(program)) {
+    return (
+      <UpcomingProgram
+        program={program}
+        studentName={studentName}
+        programTitle={programTitle}
+        passParams={passParams}
+        onBack={goHome}
+      />
+    );
+  }
+
   const summary = summarize(items, program.totalSessions);
   const next = nextUpcoming(items);
   const finished = isProgramFinished(items);
-  const today = todayKey();
 
-  const passParams = { studentName, programTitle, ...(sid ? { sid } : {}) };
   const openSession = (d: DayItem) =>
     router.push({
       pathname: '/main/program/[programId]/session/[sessionId]',
@@ -69,15 +91,12 @@ export default function ProgramSessionsScreen() {
     });
   const openReport = () =>
     router.push({ pathname: '/main/program/[programId]/report', params: { programId, ...passParams } });
+  const onOpenGuide = (section: GuideSection) => openGuide(programId, section, passParams);
 
-  const goHome = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/main');
-  };
-
-  // 두 줄: 운영 요일·시간 / 장소
+  // 운영 요일·시간 / 기간 / 장소 — 날짜는 여기서 한 번만
   const meta = [
-    `${program.frequency === 'biweekly' ? '격주' : '매주'} ${program.fixedDay}요일 ${program.startTime}–${program.endTime}`,
+    scheduleLine(program),
+    `${periodLine(program)} · 총 ${program.totalSessions}회`,
     `📍 ${program.location}`,
   ].join('\n');
 
@@ -85,30 +104,34 @@ export default function ProgramSessionsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <ProgramHeader mode="overview" studentName={studentName} programTitle={programTitle} meta={meta} onBack={goHome} />
 
-      {/* ── 진행 ─────────────────────────────── */}
-      <View style={styles.progressCard}>
-        <View style={styles.progressHead}>
-          <Text style={styles.progressTitle}>
-            진행 {summary.done}
-            <Text style={styles.progressTotal}> / {summary.total}회</Text>
-          </Text>
-          <Text style={styles.progressCounts}>
-            출석 <Text style={{ fontWeight: '700', color: '#15803d' }}>{summary.present}</Text> · 지각{' '}
-            <Text style={{ fontWeight: '700', color: '#b45309' }}>{summary.late}</Text> · 결석{' '}
-            <Text style={{ fontWeight: '700', color: '#dc2626' }}>{summary.absent}</Text>
-          </Text>
-        </View>
-        <ProgressBar value={summary.total ? summary.done / summary.total : 0} height={10} />
+      {/* ── 수업 안내 ─────────────────────────── */}
+      <Text style={styles.sectionTitle} accessibilityRole="header">
+        수업 안내
+      </Text>
+      <View style={styles.section}>
+        <GuideMenu
+          sections={['rules', 'notices', 'qna', 'purpose']}
+          noticeCount={program.notices?.length}
+          onOpen={onOpenGuide}
+        />
       </View>
 
-      {/* ── 회차 목록 ─────────────────────────── */}
-      <Text style={styles.sectionTitle} accessibilityRole="header">
-        회차별 수업
+      {/* ── 회차별 수업 ───────────────────────── */}
+      <View style={styles.sessionsHead}>
+        <Text style={styles.sectionTitleInline} accessibilityRole="header">
+          회차별 수업
+        </Text>
+        <Text style={styles.progress}>
+          진행 {summary.done}
+          <Text style={styles.progressTotal}> / {summary.total}회</Text>
+        </Text>
+      </View>
+      <Text style={styles.hint} lineBreakStrategyIOS="hangul-word">
+        회차를 누르면 출결·내용·Q&amp;A를 볼 수 있어요.
       </Text>
-      <Text style={styles.sectionHint}>회차를 누르면 출결·일정·내용·Q&amp;A를 볼 수 있어요.</Text>
-      <View style={styles.list}>
+      <View style={[styles.section, styles.grid]}>
         {items.map((d) => (
-          <SessionRow key={d.key} item={d} isNext={d === next} today={today} onOpen={() => openSession(d)} />
+          <SessionButton key={d.key} item={d} isNext={d === next} onOpen={() => openSession(d)} />
         ))}
       </View>
 
@@ -131,57 +154,33 @@ export default function ProgramSessionsScreen() {
   );
 }
 
-// ── 회차 한 줄 ─────────────────────────────────────────────
+// ── 회차 버튼 하나 ─────────────────────────────────────────
+// 출결(출석·지각·결석)은 여기서 보이지 않는다 — 눌러서 회차 화면에서 확인
+// 상태는 색으로만 구분: 끝난 회차 = 회색(차분하게) · 다음 수업 = 파란색 채움 · 남은 회차 = 흰 바탕 파란 테두리
 
-function SessionRow({
-  item,
-  isNext,
-  today,
-  onOpen,
-}: {
-  item: DayItem;
-  isNext: boolean;
-  today: string;
-  onOpen: () => void;
-}) {
+function SessionButton({ item, isNext, onOpen }: { item: DayItem; isNext: boolean; onOpen: () => void }) {
   const { session, status } = item;
+  const cancelled = status === 'cancelled';
   const done = isDone(status);
-  const dDay = isNext ? dDayLabel(daysBetween(today, item.key)) : '';
-  const badge = STATUS_BADGE[status];
+  const stateLabel = isNext ? ' · 다음 수업' : done ? ' · 완료' : '';
 
   return (
     <TouchableOpacity
       onPress={onOpen}
-      activeOpacity={0.85}
+      activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={`${session.sessionNumber}회차 ${session.topic} · ${isNext ? '다음 수업' : STATUS_LABEL[status]}`}
-      style={[styles.row, isNext && styles.rowNext]}
+      accessibilityLabel={`${session.sessionNumber}회차 ${session.topic}${stateLabel}`}
+      style={[styles.sessionBtn, isNext ? styles.sessionBtnNext : done && styles.sessionBtnDone]}
     >
-      <View style={[styles.numBox, isNext ? styles.numNext : done ? styles.numDone : styles.numLater]}>
-        <Text style={[styles.numText, { color: isNext ? '#ffffff' : done ? '#374151' : '#6b7280' }]}>
-          {session.sessionNumber}
-        </Text>
-        <Text style={[styles.numUnit, { color: isNext ? '#ffffff' : done ? '#374151' : '#6b7280' }]}>회차</Text>
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <View style={styles.dateLine}>
-          <Text style={[styles.date, isNext && styles.dateNext]}>{formatKoreanDate(item.key)}</Text>
-          {isNext && <Text style={styles.nextLabel}>{dDay ? `다음 수업 · ${dDay}` : '다음 수업'}</Text>}
-        </View>
-        <Text style={styles.topic} lineBreakStrategyIOS="hangul-word">
-          {session.topic}
-        </Text>
-      </View>
-
-      <View style={styles.rowRight}>
-        {!isNext && (
-          <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-            <Text style={[styles.badgeText, { color: badge.color }]}>{STATUS_LABEL[status]}</Text>
-          </View>
-        )}
-        <Text style={styles.chevron}>›</Text>
-      </View>
+      <Text style={[styles.sessionNum, isNext ? { color: '#ffffff' } : done && styles.textDone]}>
+        {session.sessionNumber}회차
+      </Text>
+      <Text style={[styles.sessionDate, isNext ? { color: '#dbeafe' } : done && styles.textDone]}>
+        {formatShortDate(item.key)}
+      </Text>
+      {isNext && <Text style={styles.sessionTag}>다음 수업</Text>}
+      {done && <Text style={styles.sessionDoneTag}>✓ 완료</Text>}
+      {cancelled && <Text style={styles.sessionCancelled}>휴강</Text>}
     </TouchableOpacity>
   );
 }
@@ -190,73 +189,67 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   content: { paddingBottom: 40 },
 
-  progressCard: {
-    marginHorizontal: 16,
-    marginTop: -12,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+  sectionTitle: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    shadowColor: '#111827',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    paddingTop: 20,
+    paddingBottom: 12,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
   },
-  progressHead: {
+  section: { paddingHorizontal: 16 },
+
+  sessionsHead: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'baseline',
     justifyContent: 'space-between',
     columnGap: 12,
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
-  progressTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  sectionTitleInline: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  progress: { fontSize: 16, fontWeight: '700', color: '#374151' },
   progressTotal: { fontWeight: '500', color: '#6b7280' },
-  progressCounts: { fontSize: 16, color: '#4b5563' },
+  hint: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12, fontSize: 16, color: '#4b5563' },
 
-  sectionTitle: { paddingHorizontal: 20, paddingTop: 28, fontSize: 20, fontWeight: '800', color: '#111827' },
-  sectionHint: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12, fontSize: 16, color: '#4b5563' },
-  list: { paddingHorizontal: 16, gap: 12 },
-
-  row: {
-    flexDirection: 'row',
+  // 한 줄에 3개: (전체 - 간격 12×2) / 3
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  sessionBtn: {
+    flexBasis: '30%',
+    flexGrow: 1,
+    minHeight: 92,
     alignItems: 'center',
-    gap: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#bfdbfe',
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  rowNext: {
-    borderColor: '#1d4ed8',
+    // 버튼처럼 보이도록 아래 그림자
     shadowColor: '#1d4ed8',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 0,
     elevation: 3,
   },
-  numBox: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  numNext: { backgroundColor: '#1d4ed8' },
-  numDone: { backgroundColor: '#f3f4f6' },
-  numLater: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5e7eb' },
-  numText: { fontSize: 20, lineHeight: 22, fontWeight: '800' },
-  numUnit: { fontSize: 14, lineHeight: 17, fontWeight: '600' },
-
-  dateLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8 },
-  date: { fontSize: 16, color: '#4b5563' },
-  dateNext: { fontWeight: '700', color: '#1d4ed8' },
-  nextLabel: { fontSize: 15, fontWeight: '700', color: '#1d4ed8' },
-  topic: { marginTop: 2, fontSize: 18, lineHeight: 26, fontWeight: '700', color: '#111827' },
-
-  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  badge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
-  badgeText: { fontSize: 15, fontWeight: '700' },
-  chevron: { fontSize: 24, color: '#9ca3af' },
+  sessionBtnNext: { borderColor: '#1d4ed8', backgroundColor: '#1d4ed8', shadowOpacity: 0.35 },
+  // 끝난 회차: 회색 바탕·테두리, 그림자 약하게
+  sessionBtnDone: {
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f3f4f6',
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    elevation: 1,
+  },
+  textDone: { color: '#6b7280' },
+  sessionNum: { fontSize: 20, lineHeight: 26, fontWeight: '800', color: '#1d4ed8' },
+  sessionDate: { marginTop: 4, fontSize: 15, lineHeight: 20, fontWeight: '600', color: '#374151' },
+  sessionTag: { marginTop: 4, fontSize: 14, lineHeight: 18, fontWeight: '700', color: '#ffffff' },
+  sessionDoneTag: { marginTop: 4, fontSize: 14, lineHeight: 18, fontWeight: '700', color: '#6b7280' },
+  sessionCancelled: { marginTop: 4, fontSize: 14, lineHeight: 18, fontWeight: '600', color: '#6b7280' },
 
   reportWrap: { marginHorizontal: 16, marginTop: 24 },
   reportBtn: { backgroundColor: '#1d4ed8', borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
