@@ -39,7 +39,7 @@ export function ContentPanel({ session }: { session: Session }) {
 
       {!!session.objectives?.length && (
         <Card title="수업 목표" icon="🎯">
-          <Bullets items={session.objectives} color="#1d4ed8" />
+          <Bullets items={session.objectives} color="#d4b06a" />
         </Card>
       )}
 
@@ -66,7 +66,7 @@ export function ContentPanel({ session }: { session: Session }) {
         <Card title="수업 자료" icon="📂">
           {!!session.planUrl && (
             <View style={styles.linkRow}>
-              <LinkButton tone="blue" label="📋 전체 수업 계획서" onPress={() => void openUrl(session.planUrl!)} />
+              <LinkButton tone="blue" label="전체 수업 계획서" onPress={() => void openUrl(session.planUrl!)} />
             </View>
           )}
           {session.lessonPlans?.map(({ lessonNumber, topic, slideUrl, activityUrl }, i) => (
@@ -77,9 +77,9 @@ export function ContentPanel({ session }: { session: Session }) {
               <Text style={styles.lessonNo}>{lessonNumber}차시</Text>
               <Body style={styles.lessonTopic}>{topic}</Body>
               <View style={styles.linkRow}>
-                {!!slideUrl && <LinkButton tone="blue" label="🖥 수업 PPT" onPress={() => void openUrl(slideUrl)} />}
+                {!!slideUrl && <LinkButton tone="blue" label="수업 PPT" onPress={() => void openUrl(slideUrl)} />}
                 {!!activityUrl && (
-                  <LinkButton tone="green" label="📝 활동지" onPress={() => void openUrl(activityUrl)} />
+                  <LinkButton tone="green" label="활동지" onPress={() => void openUrl(activityUrl)} />
                 )}
               </View>
             </View>
@@ -99,10 +99,10 @@ function LinkButton({ label, tone, onPress }: { label: string; tone: 'blue' | 'g
       accessibilityRole="link"
       style={[
         styles.linkBtn,
-        blue ? { borderColor: '#bfdbfe', backgroundColor: '#eff6ff' } : { borderColor: '#bbf7d0', backgroundColor: '#f0fdf4' },
+        blue ? { borderColor: '#343a47', backgroundColor: '#1e232d' } : { borderColor: '#262b36', backgroundColor: '#1e232d' },
       ]}
     >
-      <Text style={[styles.linkText, { color: blue ? '#1d4ed8' : '#15803d' }]}>{label}</Text>
+      <Text style={[styles.linkText, { color: blue ? '#141a24' : '#374151' }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -112,31 +112,31 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
-    backgroundColor: '#eff6ff',
+    borderColor: '#343a47',
+    backgroundColor: '#1e232d',
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginBottom: 12,
   },
-  codeText: { fontSize: 15, fontWeight: '700', color: '#1d4ed8' },
-  desc: { fontSize: 17, lineHeight: 27, color: '#1f2937' },
-  rotation: { marginTop: 12, fontSize: 15, lineHeight: 23, color: '#4b5563' },
-  body: { fontSize: 16, lineHeight: 26, color: '#1f2937' },
+  codeText: { fontSize: 15, fontWeight: '700', color: '#d4b06a' },
+  desc: { fontSize: 17, lineHeight: 27, color: '#d4d7dd' },
+  rotation: { marginTop: 12, fontSize: 15, lineHeight: 23, color: '#9aa0ab' },
+  body: { fontSize: 16, lineHeight: 26, color: '#d4d7dd' },
   instructorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#1e232d',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { fontSize: 22, fontWeight: '700', color: '#1d4ed8' },
-  instructorName: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  instructorTitle: { fontSize: 15, color: '#4b5563' },
-  lessonDivider: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
-  lessonNo: { fontSize: 15, fontWeight: '700', color: '#1d4ed8' },
-  lessonTopic: { marginBottom: 8, fontSize: 17, fontWeight: '600', color: '#111827' },
+  avatarText: { fontSize: 22, fontWeight: '700', color: '#d4b06a' },
+  instructorName: { fontSize: 18, fontWeight: '700', color: '#f2f2f0' },
+  instructorTitle: { fontSize: 15, color: '#9aa0ab' },
+  lessonDivider: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#262b36' },
+  lessonNo: { fontSize: 15, fontWeight: '700', color: '#d4b06a' },
+  lessonTopic: { marginBottom: 8, fontSize: 17, fontWeight: '600', color: '#f2f2f0' },
   linkRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   linkBtn: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 9 },
   linkText: { fontSize: 16, fontWeight: '600' },

@@ -10,19 +10,18 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Feather from '@expo/vector-icons/Feather';
+import { C } from '../../../lib/theme';
 
-function TabIcon({
-  symbol,
-  label,
-  focused,
-}: {
-  symbol: string;
-  label: string;
-  focused: boolean;
-}) {
+type IconName = 'home' | 'bell' | 'user';
+const ICON_BOX_H = 58;
+
+/** 선 아이콘(잉크) + 선택된 탭 위에 짧은 골드 선 — 이모지는 쓰지 않는다 (웹 components/ui/TabBar.tsx 와 같은 모양) */
+function TabIcon({ name, label, focused }: { name: IconName; label: string; focused: boolean }) {
   return (
-    <View style={[styles.tabIconWrap, focused && styles.tabIconWrapActive]}>
-      <Text style={styles.tabSymbol}>{symbol}</Text>
+    <View style={styles.tabIconWrap}>
+      <View style={[styles.indicator, focused && styles.indicatorActive]} />
+      <Feather name={name} size={23} color={focused ? C.gold : C.faint} />
       <Text style={[styles.tabLabel, focused && styles.tabLabelActive]} numberOfLines={1}>
         {label}
       </Text>
@@ -39,26 +38,28 @@ export default function MainTabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: C.bg },
         tabBarStyle: {
           height: tabBarHeight,
           borderTopWidth: 1,
-          borderTopColor: '#f3f4f6',
-          backgroundColor: '#ffffff',
+          borderTopColor: C.line,
+          backgroundColor: C.bg,
           paddingBottom: bottomPad,
-          paddingTop: 6,
+          paddingTop: 0,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarShowLabel: false,
+        // 아이콘 칸을 탭 높이만큼 키워서 골드 선이 탭 바 맨 위에 딱 붙게 (기본 안쪽 여백 5 상쇄)
+        tabBarIconStyle: { width: 88, height: ICON_BOX_H, marginTop: -5 },
       }}
     >
       {/* 홈: 모든 정보의 허브 */}
       <Tabs.Screen
         name="index"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon symbol="🏠" label="홈" focused={focused} />
-          ),
+          tabBarAccessibilityLabel: '홈',
+          tabBarIcon: ({ focused }) => <TabIcon name="home" label="홈" focused={focused} />,
         }}
       />
 
@@ -66,9 +67,8 @@ export default function MainTabLayout() {
       <Tabs.Screen
         name="notification"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon symbol="🔔" label="알림" focused={focused} />
-          ),
+          tabBarAccessibilityLabel: '알림',
+          tabBarIcon: ({ focused }) => <TabIcon name="bell" label="알림" focused={focused} />,
         }}
       />
 
@@ -76,12 +76,10 @@ export default function MainTabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon symbol="👤" label="내 정보" focused={focused} />
-          ),
+          tabBarAccessibilityLabel: '내 정보',
+          tabBarIcon: ({ focused }) => <TabIcon name="user" label="내 정보" focused={focused} />,
         }}
       />
-
     </Tabs>
   );
 }
@@ -89,27 +87,21 @@ export default function MainTabLayout() {
 const styles = StyleSheet.create({
   tabIconWrap: {
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 1,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 10,
-    minWidth: 44,
+    justifyContent: 'flex-start',
+    gap: 3,
+    width: 88,
+    height: ICON_BOX_H,
   },
-  tabIconWrapActive: {
-    backgroundColor: '#eff6ff',
-  },
-  tabSymbol: {
-    fontSize: 22,
-  },
+  indicator: { width: 32, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, marginBottom: 7 },
+  indicatorActive: { backgroundColor: C.gold },
   tabLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: C.sub,
     fontWeight: '500',
     textAlign: 'center',
   },
   tabLabelActive: {
-    color: '#1d4ed8',
+    color: C.gold,
     fontWeight: '700',
   },
 });

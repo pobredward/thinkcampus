@@ -1,15 +1,18 @@
 /**
  * 이전 수강 이력 — 홈 맨 아래 "이전 수강 이력 보기" 버튼에서 들어온다 (웹 app/main/history/page.tsx)
  * 끝난 프로그램 목록. 누르면 그 프로그램 화면(더미 단계: 수강 중 프로그램 화면으로 대체)
+ * 상단 경로: 홈 › 이전 수강 이력 (› 지난 프로그램 — via=history)
  */
 
 import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Breadcrumbs } from '../../components/ui/Breadcrumbs';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DUMMY_PAST_PROGRAMS, type PastProgram } from '../../data/dummyHistory';
 import { useChildren } from '../../hooks/useChildren';
 import { useSelectedChild } from '../../hooks/useSelectedChild';
+import { HOME_CRUMB } from '../../lib/crumbs';
 
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
@@ -18,11 +21,6 @@ export default function HistoryScreen() {
 
   // TODO: Firestore enrollments(status: completed) 조회
   const items = selected ? DUMMY_PAST_PROGRAMS : [];
-
-  const goHome = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/main');
-  };
 
   const open = (p: PastProgram) => {
     if (!selected) return;
@@ -33,23 +31,22 @@ export default function HistoryScreen() {
         studentName: selected.studentName,
         programTitle: p.title,
         sid: selected.studentId,
+        via: 'history', // 상단 경로: 홈 › 이전 수강 이력 › 프로그램
       },
     });
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={goHome} style={styles.backBtn} hitSlop={8} accessibilityRole="button">
-          <Text style={styles.backText}>← 홈</Text>
-        </TouchableOpacity>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
+        <Breadcrumbs items={[HOME_CRUMB, { label: '이전 수강 이력' }]} />
         {!!selected && <Text style={styles.headerSub}>{selected.studentName} 학생</Text>}
         <Text style={styles.headerTitle} accessibilityRole="header">
-          📂 이전 수강 이력
+          이전 수강 이력
         </Text>
       </View>
 
-      {loading && <ActivityIndicator color="#1d4ed8" size="large" style={{ padding: 48 }} />}
+      {loading && <ActivityIndicator color="#d4b06a" size="large" style={{ padding: 48 }} />}
 
       {!loading && items.length === 0 && (
         <View style={styles.empty}>
@@ -68,9 +65,6 @@ export default function HistoryScreen() {
               accessibilityLabel={`${p.title} 수강 이력 보기`}
               style={styles.row}
             >
-              <View style={styles.iconBox}>
-                <Text style={styles.icon}>✅</Text>
-              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.title} lineBreakStrategyIOS="hangul-word">
                   {p.title}
@@ -90,14 +84,12 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#0c0e13' },
   content: { paddingBottom: 40 },
 
-  header: { backgroundColor: '#1d4ed8', paddingHorizontal: 20, paddingBottom: 20 },
-  backBtn: { alignSelf: 'flex-start', paddingVertical: 4, paddingRight: 8 },
-  backText: { fontSize: 16, fontWeight: '500', color: '#dbeafe' },
-  headerSub: { marginTop: 8, fontSize: 15, color: '#dbeafe' },
-  headerTitle: { marginTop: 4, fontSize: 24, lineHeight: 32, fontWeight: '800', color: '#ffffff' },
+  header: { backgroundColor: '#0c0e13', paddingHorizontal: 20, paddingBottom: 20 },
+  headerSub: { marginTop: 4, fontSize: 15, color: '#9aa0ab' },
+  headerTitle: { marginTop: 4, fontSize: 24, lineHeight: 33, fontWeight: '800', color: '#f2f2f0' },
 
   empty: {
     margin: 20,
@@ -105,34 +97,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    borderColor: '#262b36',
+    backgroundColor: '#161a22',
     alignItems: 'center',
   },
-  emptyText: { fontSize: 17, color: '#4b5563' },
+  emptyText: { fontSize: 17, color: '#9aa0ab' },
 
   list: { paddingHorizontal: 16, paddingTop: 20, gap: 12 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+    backgroundColor: '#161a22',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderColor: '#262b36',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
   },
-  iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#f9fafb',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  icon: { fontSize: 24 },
-  title: { fontSize: 18, lineHeight: 26, fontWeight: '700', color: '#111827' },
-  meta: { fontSize: 15, color: '#4b5563' },
-  chevron: { fontSize: 24, color: '#9ca3af' },
+  title: { fontSize: 18, lineHeight: 26, fontWeight: '700', color: '#f2f2f0' },
+  meta: { fontSize: 15, color: '#9aa0ab' },
+  chevron: { fontSize: 24, color: '#7c8390' },
 });

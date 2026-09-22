@@ -20,17 +20,17 @@ function PurposeSection({ program }: { program: Program }) {
     <>
       {program.purpose && (
         <Card title="왜 운영하나요?" icon="🏛">
-          <p className="text-[17px] leading-[27px] text-gray-800">{program.purpose}</p>
-          {program.host && <p className="mt-3 text-[15px] text-gray-600">주최·운영 · {program.host}</p>}
+          <p className="text-[17px] leading-[27px] text-fg2">{program.purpose}</p>
+          {program.host && <p className="mt-3 text-[15px] text-sub">주최·운영 · {program.host}</p>}
         </Card>
       )}
       {!!(program.overview || program.features?.length) && (
         <Card title="어떤 수업인가요?" icon="📖">
-          {program.overview && <p className="text-[17px] leading-[27px] text-gray-800">{program.overview}</p>}
+          {program.overview && <p className="text-[17px] leading-[27px] text-fg2">{program.overview}</p>}
           {!!program.features?.length && (
-            <div className="mt-4 rounded-2xl bg-brand-light p-4">
-              <p className="mb-2 text-[16px] font-bold text-brand">이런 점이 좋아요</p>
-              <Bullets items={program.features} color="#1d4ed8" />
+            <div className="mt-4 rounded-2xl bg-elev p-4">
+              <p className="mb-2 text-[16px] font-bold text-gold">이런 점이 좋아요</p>
+              <Bullets items={program.features} color="#d4b06a" />
             </div>
           )}
         </Card>
@@ -41,12 +41,12 @@ function PurposeSection({ program }: { program: Program }) {
         </InfoRow>
         <InfoRow label="수업">
           총 {program.totalSessions}회 · {program.totalHours}차시
-          <span className="block text-[15px] text-gray-600">회당 {program.sessionHours}차시 (120분)</span>
+          <span className="block text-[15px] text-sub">회당 {program.sessionHours}차시 (120분)</span>
         </InfoRow>
         {teachers.length > 0 && (
           <InfoRow label="강사">
             {teachers.join(", ")}
-            <span className="block text-[15px] text-gray-600">회차마다 담당 강사가 달라요</span>
+            <span className="block text-[15px] text-sub">회차마다 담당 강사가 달라요</span>
           </InfoRow>
         )}
       </Card>

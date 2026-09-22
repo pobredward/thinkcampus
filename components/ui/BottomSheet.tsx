@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#343a47',
     marginBottom: 12,
   },
   titleRow: {
@@ -61,6 +61,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#111827' },
-  close: { fontSize: 20, color: '#6b7280', paddingHorizontal: 4 },
+  title: { fontSize: 20, fontWeight: '700', color: '#f2f2f0' },
+  close: { fontSize: 20, color: '#9aa0ab', paddingHorizontal: 4 },
 });

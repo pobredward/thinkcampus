@@ -14,7 +14,8 @@
 import { useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ProgramHeader } from "@/components/program/ProgramHeader";
-import { useBack } from "@/hooks/useBack";
+import { getDummyProgram } from "@/data/programView";
+import { programCrumbs } from "@/lib/crumbs";
 import { httpsCallable } from "firebase/functions";
 import { Collapse } from "@/components/ui/Collapse";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -37,15 +38,13 @@ export default function ProgramReportPage() {
   const sp = useSearchParams();
   const { programId } = useParams<{ programId: string }>();
   const studentName = sp.get("studentName");
-  const programTitle = sp.get("programTitle") ?? "";
-  // 들어온 화면으로 (앱 안 기록이 없으면 회차 목록)
-  const goBack = useBack(`/main/program/${programId}?${sp.toString()}`);
+  const programTitle = sp.get("programTitle") ?? getDummyProgram(programId).title;
   const header = (
     <ProgramHeader
       mode="report"
       studentName={studentName ?? ""}
       programTitle={programTitle}
-      onBack={goBack}
+      crumbs={[...programCrumbs({ programId, programTitle, sp }), { label: "종합 리포트" }]}
     />
   );
   const dialog = useDialog();
@@ -91,12 +90,11 @@ export default function ProgramReportPage() {
 
   if (!isReportReady) {
     return (
-      <div className="flex flex-1 flex-col bg-[#f8fafc]">
+      <div className="flex flex-1 flex-col bg-paper">
         {header}
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[#f8fafc] p-8">
-          <p className="text-[48px]">⏳</p>
-          <p className="text-[20px] font-bold text-gray-700">리포트 준비 중</p>
-          <p className="text-center text-[16px] leading-[25px] text-gray-500">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-paper p-8">
+          <p className="text-[20px] font-bold text-fg2">리포트 준비 중</p>
+          <p className="text-center text-[16px] leading-[25px] text-sub">
             캠프 종료 후 영업일 기준
             <br />
             3~5일 내에 업로드됩니다.
@@ -110,17 +108,17 @@ export default function ProgramReportPage() {
   const gradeBg = getGradeBg(report.totalGrade);
 
   return (
-    <div className="flex flex-1 flex-col bg-[#f8fafc]">
+    <div className="flex flex-1 flex-col bg-paper">
       {header}
-      <div className="flex flex-1 flex-col bg-[#f8fafc] pt-4 pb-8">
+      <div className="flex flex-1 flex-col bg-paper pt-4 pb-8">
         {/* ── 종합 등급 카드 ───────────────── */}
-        <div className="mx-4 mb-2 rounded-[20px] border border-gray-200 bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+        <div className="mx-4 mb-2 rounded-[20px] border border-line bg-card p-5">
           <div className="mb-3 flex items-start justify-between">
             <div>
-              <p className="mb-1 text-[14px] text-gray-500">
+              <p className="mb-1 text-[14px] text-sub">
                 {studentName ?? report.studentName} 학생
               </p>
-              <p className="text-[16px] font-bold text-gray-900">{report.personalityType}</p>
+              <p className="text-[16px] font-bold text-fg">{report.personalityType}</p>
             </div>
             <div
               className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[14px]"
@@ -133,26 +131,26 @@ export default function ProgramReportPage() {
           </div>
 
           <div className="mb-4 flex items-baseline gap-1">
-            <span className="text-[40px] font-extrabold leading-[1.2] text-gray-900">
+            <span className="text-[40px] font-extrabold leading-[1.2] text-fg">
               {report.totalScore}
             </span>
-            <span className="text-[16px] text-gray-500">/ 100점</span>
+            <span className="text-[16px] text-sub">/ 100점</span>
           </div>
 
           {/* 강점·성장 분야 */}
           <div className="mb-[14px] flex gap-2">
-            <div className="flex flex-1 flex-col gap-1 rounded-[10px] bg-[#f8fafc] p-[10px]">
-              <p className="mb-[2px] text-[14px] font-bold text-gray-700">💪 강점 분야</p>
+            <div className="flex flex-1 flex-col gap-1 rounded-[10px] bg-paper p-[10px]">
+              <p className="mb-[2px] text-[14px] font-bold text-fg2">강점 분야</p>
               {report.strengthAreas.map((a, i) => (
-                <p key={i} className="text-[14px] font-medium text-brand">
+                <p key={i} className="text-[14px] font-medium text-gold">
                   • {a}
                 </p>
               ))}
             </div>
-            <div className="flex flex-1 flex-col gap-1 rounded-[10px] bg-amber-50 p-[10px]">
-              <p className="mb-[2px] text-[14px] font-bold text-gray-700">🚀 발전 분야</p>
+            <div className="flex flex-1 flex-col gap-1 rounded-[10px] bg-elev p-[10px]">
+              <p className="mb-[2px] text-[14px] font-bold text-fg2">발전 분야</p>
               {report.growthAreas.map((a, i) => (
-                <p key={i} className="text-[14px] font-medium text-amber-600">
+                <p key={i} className="text-[14px] font-medium text-sub">
                   • {a}
                 </p>
               ))}
@@ -160,11 +158,11 @@ export default function ProgramReportPage() {
           </div>
 
           {/* 담임 총평 */}
-          <div className="mb-[14px] rounded-xl border-l-[3px] border-brand bg-gray-50 p-[14px]">
-            <p className="mb-[6px] text-[14px] font-bold uppercase tracking-[0.3px] text-gray-500">
+          <div className="mb-[14px] rounded-xl border-l-[3px] border-gold bg-elev p-[14px]">
+            <p className="mb-[6px] text-[14px] font-bold uppercase tracking-[0.3px] text-sub">
               담임 총평
             </p>
-            <p className="text-[15px] leading-[24px] text-gray-700">{report.overallComment}</p>
+            <p className="text-[15px] leading-[24px] text-fg2">{report.overallComment}</p>
           </div>
 
           {/* 공유 버튼 */}
@@ -175,15 +173,15 @@ export default function ProgramReportPage() {
             className="tap no-print flex w-full items-center justify-center rounded-xl bg-brand py-[13px]"
           >
             {sharing ? (
-              <Spinner color="#fff" size="small" />
+              <Spinner color="#0c0e13" size="small" />
             ) : (
-              <span className="text-[16px] font-bold text-white">📤 리포트 공유하기</span>
+              <span className="text-[16px] font-bold text-ink">리포트 공유하기</span>
             )}
           </button>
         </div>
 
         {/* ── 프로그램별 상세 ──────────────── */}
-        <p className="px-4 pt-4 pb-2 text-[14px] font-bold uppercase tracking-[0.5px] text-gray-500">
+        <p className="px-4 pt-4 pb-2 text-[14px] font-bold uppercase tracking-[0.5px] text-sub">
           프로그램별 평가
         </p>
 
@@ -217,7 +215,7 @@ function ProgramCard({
   const gradeBg = getGradeBg(program.grade);
 
   return (
-    <div className="mx-4 mb-2 overflow-hidden rounded-[14px] border border-gray-200 bg-white">
+    <div className="mx-4 mb-2 overflow-hidden rounded-[14px] border border-line bg-card">
       {/* 카드 헤더 */}
       <button
         type="button"
@@ -225,12 +223,11 @@ function ProgramCard({
         aria-expanded={expanded}
         className="tap flex w-full items-center gap-[10px] p-[14px] text-left"
       >
-        <span className="text-[24px]">{program.programIcon}</span>
         <span className="block min-w-0 flex-1">
-          <span className="block truncate text-[16px] font-bold text-gray-900">
+          <span className="block truncate text-[16px] font-bold text-fg">
             {program.programName}
           </span>
-          <span className="mt-[2px] block text-[14px] text-gray-500">{program.instructorName}</span>
+          <span className="mt-[2px] block text-[14px] text-sub">{program.instructorName}</span>
         </span>
         <span
           className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px]"
@@ -240,28 +237,28 @@ function ProgramCard({
             {program.grade}
           </span>
         </span>
-        <span className="ml-[2px] text-[14px] text-gray-500">{expanded ? "∧" : "∨"}</span>
+        <span className="ml-[2px] text-[14px] text-sub">{expanded ? "∧" : "∨"}</span>
       </button>
 
       {/* 확장 영역 */}
       <Collapse open={expanded}>
-        <div className="flex flex-col gap-3 border-t border-gray-100 p-[14px]">
+        <div className="flex flex-col gap-3 border-t border-line p-[14px]">
           {/* 점수 바 */}
           <div className="flex items-center gap-[10px]">
-            <p className="text-[22px] font-extrabold text-gray-900">{program.overallScore}점</p>
-            <div className="rounded-lg border border-green-200 bg-green-50 px-2 py-[3px]">
-              <p className="text-[14px] font-bold text-green-600">+{program.growthIndex}점 성장</p>
+            <p className="text-[22px] font-extrabold text-fg">{program.overallScore}점</p>
+            <div className="rounded-lg border border-line bg-elev px-2 py-[3px]">
+              <p className="text-[14px] font-bold text-gold">+{program.growthIndex}점 성장</p>
             </div>
           </div>
 
           {/* 역량별 바 차트 */}
           {program.competencies.map((comp) => (
             <div key={comp.label} className="flex items-center gap-2">
-              <p className="w-20 shrink-0 text-[14px] text-gray-700">{comp.label}</p>
+              <p className="w-20 shrink-0 text-[14px] text-fg2">{comp.label}</p>
               <div className="relative flex-1">
                 {/* 또래 평균 */}
                 <div
-                  className="absolute top-[-3px] z-[1] h-[14px] w-[2px] rounded-[1px] bg-gray-400"
+                  className="absolute top-[-3px] z-[1] h-[14px] w-[2px] rounded-[1px] bg-line2"
                   style={{ left: `${comp.benchmark}%` }}
                 />
                 {/* 내 점수 */}
@@ -273,29 +270,29 @@ function ProgramCard({
                   )}
                 />
               </div>
-              <p className="w-7 shrink-0 text-right text-[14px] font-bold text-gray-700">
+              <p className="w-7 shrink-0 text-right text-[14px] font-bold text-fg2">
                 {comp.score}
               </p>
             </div>
           ))}
-          <p className="text-right text-[14px] text-gray-500">| 또래 평균</p>
+          <p className="text-right text-[14px] text-sub">| 또래 평균</p>
 
           {/* 강사 코멘트 */}
-          <div className="rounded-[10px] border-l-[3px] border-gray-500 bg-gray-50 p-3">
-            <p className="mb-[6px] text-[14px] font-bold uppercase tracking-[0.3px] text-gray-500">
+          <div className="rounded-[10px] border-l-[3px] border-line2 bg-elev p-3">
+            <p className="mb-[6px] text-[14px] font-bold uppercase tracking-[0.3px] text-sub">
               강사 코멘트
             </p>
-            <p className="text-[15px] leading-[22px] text-gray-700">{program.instructorComment}</p>
+            <p className="text-[15px] leading-[22px] text-fg2">{program.instructorComment}</p>
           </div>
 
           {/* 하이라이트 */}
           {program.highlights.length > 0 && (
             <div className="flex flex-col gap-[6px]">
-              <p className="text-[14px] font-bold text-gray-700">✨ 인상적이었던 점</p>
+              <p className="text-[14px] font-bold text-fg2">인상적이었던 점</p>
               {program.highlights.map((h, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="mt-[7px] h-[5px] w-[5px] shrink-0 rounded-[2.5px] bg-brand" />
-                  <p className="flex-1 text-[14px] leading-[22px] text-gray-700">{h}</p>
+                  <p className="flex-1 text-[14px] leading-[22px] text-fg2">{h}</p>
                 </div>
               ))}
             </div>
@@ -303,14 +300,14 @@ function ProgramCard({
 
           {/* 다음 단계 */}
           {program.nextSteps.length > 0 && (
-            <div className="flex flex-col gap-2 rounded-[10px] bg-blue-50 p-3">
-              <p className="mb-1 text-[14px] font-bold text-brand">📌 향후 발전 방향</p>
+            <div className="flex flex-col gap-2 rounded-[10px] bg-elev p-3">
+              <p className="mb-1 text-[14px] font-bold text-gold">향후 발전 방향</p>
               {program.nextSteps.map((step, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <span className="h-[18px] w-[18px] shrink-0 rounded-[9px] bg-brand text-center text-[14px] font-bold leading-[21px] text-white">
+                  <span className="h-[18px] w-[18px] shrink-0 rounded-[9px] bg-brand text-center text-[14px] font-bold leading-[21px] text-ink">
                     {i + 1}
                   </span>
-                  <p className="flex-1 text-[14px] leading-[22px] text-[#1e40af]">{step}</p>
+                  <p className="flex-1 text-[14px] leading-[22px] text-fg">{step}</p>
                 </div>
               ))}
             </div>

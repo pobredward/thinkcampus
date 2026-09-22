@@ -126,34 +126,34 @@ function DialogView({
       role="alertdialog"
       aria-modal="true"
       aria-labelledby={`dlg-title-${req.id}`}
-      className="no-print fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 px-8"
+      className="no-print fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 px-8"
     >
-      <div className="tc-fade-up w-full max-w-[300px] overflow-hidden rounded-[14px] bg-white shadow-xl">
+      <div className="tc-fade-up w-full max-w-[300px] overflow-hidden rounded-[14px] bg-card">
         <div className="px-5 pb-4 pt-5 text-center">
-          <p id={`dlg-title-${req.id}`} className="text-[18px] font-bold text-gray-900">
+          <p id={`dlg-title-${req.id}`} className="text-[18px] font-bold text-fg">
             {req.title}
           </p>
           {req.message && (
-            <p className="mt-2 whitespace-pre-line text-[16px] leading-[24px] text-gray-600 [overflow-wrap:anywhere] select-text">
+            <p className="mt-2 whitespace-pre-line text-[16px] leading-[24px] text-sub [overflow-wrap:anywhere] select-text">
               {req.message}
             </p>
           )}
         </div>
-        <div className={`flex border-t border-gray-100 ${vertical ? "flex-col" : "flex-row"}`}>
+        <div className={`flex border-t border-line ${vertical ? "flex-col" : "flex-row"}`}>
           {req.buttons.map((b, i) => {
             const color =
               b.style === "destructive"
-                ? "text-red-600"
+                ? "text-danger"
                 : b.style === "cancel"
-                  ? "text-gray-500"
-                  : "text-brand";
+                  ? "text-sub"
+                  : "text-gold";
             const weight = b.style === "cancel" ? "font-medium" : "font-bold";
             const border = vertical
               ? i > 0
-                ? "border-t border-gray-100"
+                ? "border-t border-line"
                 : ""
               : i > 0
-                ? "border-l border-gray-100"
+                ? "border-l border-line"
                 : "";
             return (
               <button
@@ -161,7 +161,7 @@ function DialogView({
                 type="button"
                 autoFocus={i === req.buttons.length - 1}
                 onClick={() => onPress(i)}
-                className={`tap flex-1 py-[13px] text-center text-[16px] ${color} ${weight} ${border} active:bg-gray-50`}
+                className={`tap flex-1 py-[13px] text-center text-[16px] ${color} ${weight} ${border} active:bg-elev`}
               >
                 {b.text}
               </button>

@@ -35,7 +35,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           className="no-print pointer-events-none fixed inset-x-0 z-[1100] flex justify-center px-6"
           style={{ bottom: "calc(var(--tabbar-h) + var(--sab) + 20px)" }}
         >
-          <div className="tc-fade-up max-w-[420px] rounded-full bg-gray-900/90 px-4 py-[10px] text-center text-[15px] font-medium text-white shadow-lg">
+          <div className="tc-fade-up max-w-[420px] rounded-full bg-elev px-4 py-[10px] text-center text-[15px] font-medium text-fg">
             {message}
           </div>
         </div>

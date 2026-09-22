@@ -19,16 +19,16 @@ function NoticesSection({ program }: { program: Program }) {
     <>
       {notices.length === 0 ? (
         <Card>
-          <p className="text-[17px] text-gray-700">아직 올라온 공지가 없어요.</p>
+          <p className="text-[17px] text-fg2">아직 올라온 공지가 없어요.</p>
         </Card>
       ) : (
         <ol className="flex flex-col gap-3">
           {notices.map((n, i) => (
-            <li key={i} className="flex gap-3 rounded-[20px] border border-gray-200 bg-white p-5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[16px] font-extrabold text-amber-800">
+            <li key={i} className="flex gap-3 rounded-[20px] border border-line bg-card p-5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-elev text-[16px] font-extrabold text-gold">
                 {i + 1}
               </span>
-              <p className="flex-1 pt-[2px] text-[17px] leading-[26px] text-gray-900">{n}</p>
+              <p className="flex-1 pt-[2px] text-[17px] leading-[26px] text-fg">{n}</p>
             </li>
           ))}
         </ol>
@@ -39,7 +39,7 @@ function NoticesSection({ program }: { program: Program }) {
             {program.commonMaterials.map((m) => (
               <span
                 key={m}
-                className="rounded-full border border-green-200 bg-green-50 px-4 py-[7px] text-[16px] font-semibold text-green-700"
+                className="rounded-full border border-line bg-elev px-4 py-[7px] text-[16px] font-semibold text-gold"
               >
                 {m}
               </span>

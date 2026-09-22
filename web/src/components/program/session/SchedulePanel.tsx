@@ -14,7 +14,7 @@ export function SchedulePanel({ item, today }: { item: DayItem; today: string })
     <>
       <PanelTitle>프로그램 일정</PanelTitle>
       {status === "cancelled" && (
-        <Note tone="amber">
+        <Note>
           이 회차는 휴강이에요{session.cancelReason ? ` (${session.cancelReason})` : ""}.
           {session.makeUpDate && ` 보강은 ${session.makeUpDate}에 진행돼요.`}
         </Note>
@@ -24,14 +24,14 @@ export function SchedulePanel({ item, today }: { item: DayItem; today: string })
         <InfoRow label="날짜">
           <span className="font-bold">{formatKoreanDate(item.key)}</span>
           {dDay && (
-            <span className="ml-2 rounded-lg bg-brand px-2 py-[2px] text-[15px] font-bold text-white">{dDay}</span>
+            <span className="ml-2 rounded-lg bg-brand px-2 py-[2px] text-[15px] font-bold text-ink">{dDay}</span>
           )}
         </InfoRow>
         <InfoRow label="시간">
           <span className="font-bold">
             {session.startTime}–{session.endTime}
           </span>
-          <span className="block text-[15px] text-gray-600">
+          <span className="block text-[15px] text-sub">
             {session.durationMinutes}분 · {session.sessionHours}차시
           </span>
         </InfoRow>
@@ -45,14 +45,14 @@ export function SchedulePanel({ item, today }: { item: DayItem; today: string })
             {session.materials.map((m, i) => (
               <span
                 key={i}
-                className="rounded-full border border-green-200 bg-green-50 px-4 py-[7px] text-[16px] font-semibold text-green-700"
+                className="rounded-full border border-line bg-elev px-4 py-[7px] text-[16px] font-semibold text-gold"
               >
                 {m}
               </span>
             ))}
           </div>
         ) : (
-          <p className="text-[16px] text-gray-600">따로 챙길 준비물은 없어요.</p>
+          <p className="text-[16px] text-sub">따로 챙길 준비물은 없어요.</p>
         )}
       </Card>
 

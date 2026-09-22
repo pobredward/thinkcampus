@@ -47,34 +47,34 @@ function NoticesSection({ program }: { program: Program }) {
 }
 
 const styles = StyleSheet.create({
-  lead: { fontSize: 17, lineHeight: 27, color: '#1f2937' },
+  lead: { fontSize: 17, lineHeight: 27, color: '#d4d7dd' },
   noticeRow: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     padding: 20,
   },
   noticeNum: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#fef3c7',
+    backgroundColor: '#1e232d',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noticeNumText: { fontSize: 16, fontWeight: '800', color: '#92400e' },
-  noticeText: { flex: 1, paddingTop: 2, fontSize: 17, lineHeight: 26, color: '#111827' },
+  noticeNumText: { fontSize: 16, fontWeight: '800', color: '#d4b06a' },
+  noticeText: { flex: 1, paddingTop: 2, fontSize: 17, lineHeight: 26, color: '#f2f2f0' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
-    backgroundColor: '#f0fdf4',
+    borderColor: '#343a47',
+    backgroundColor: '#1e232d',
     paddingHorizontal: 16,
     paddingVertical: 7,
   },
-  chipText: { fontSize: 16, fontWeight: '600', color: '#15803d' },
+  chipText: { fontSize: 16, fontWeight: '600', color: '#d4b06a' },
 });

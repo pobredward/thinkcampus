@@ -1,11 +1,11 @@
 /**
- * 진도 바 — 회색 트랙(#e5e7eb) 위 파란 채움(#1d4ed8)
+ * 진도 바 — 따뜻한 회색 트랙 위 딥 골드 채움
  */
 export function ProgressBar({
   value,
   height = 8,
-  color = "#1d4ed8",
-  track = "#e5e7eb",
+  color = "#d4b06a",
+  track = "#262b36",
   className = "",
 }: {
   /** 0 ~ 1 */

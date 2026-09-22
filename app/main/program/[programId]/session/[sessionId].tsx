@@ -1,14 +1,14 @@
 /**
  * 회차 화면 — 회차 하나를 누르면 들어오는 곳 (웹 /main/program/[programId]/session/[sessionId] 와 같은 구성)
  *
- *   (수강 예정 프로그램: 회차별 내용 → 회차. 출결 탭 없이 일정·내용·Q&A, ← 회차별 내용)
- *   [파란 헤더]  ← 회차 목록 · 학생 · N회차 · 주제 · 상태 · 날짜
- *   [탭]        출결 | 일정 | 내용 | Q&A | 리포트(끝난 회차만)   ← 스크롤해도 위에 고정
+ *   (수강 예정 프로그램: 출결 탭 없이 일정·내용·Q&A)
+ *   [헤더]      상단 경로(홈 › 프로그램 › N회차) · 학생 · N회차 · 주제 · 상태 · 날짜
+ *   [탭]        출결 | 일정 | 내용 | Q&A | 리포트(끝난 회차만) — 글자만, 선택된 탭은 골드 밑줄 · 스크롤해도 위에 고정
  *   [탭 내용]
  *   [‹ 이전 회차 | 다음 회차 ›]  (좌우로 밀어도 이동)
  *
  * 선택한 탭은 params.tab 에 담는다. 탭 전환은 setParams, 회차 이동은 replace 라서
- * 뒤로가기 한 번이면 회차 목록으로 돌아간다.
+ * 뒤로가기 한 번(또는 상단 경로의 프로그램)이면 회차 목록으로 돌아간다.
  */
 
 import React, { useMemo, useRef } from 'react';
@@ -37,7 +37,6 @@ import {
   isDone,
   isProgramFinished,
   isSessionTab,
-  isUpcomingProgram,
   matchProgramReport,
   pickDummyAttendance,
   pickDummyReport,
@@ -47,7 +46,10 @@ import {
   type DayItem,
   type SessionTab,
 } from '../../../../../data/programView';
+import { Breadcrumbs } from '../../../../../components/ui/Breadcrumbs';
+import { faqHref, programHref, programParams, sessionCrumbs } from '../../../../../lib/crumbs';
 import { daysBetween, dDayLabel, formatKoreanDate, formatShortDate, todayKey } from '../../../../../lib/dates';
+import { C } from '../../../../../lib/theme';
 
 type Params = {
   programId: string;
@@ -56,6 +58,7 @@ type Params = {
   studentName?: string;
   programTitle?: string;
   sid?: string;
+  via?: string;
 };
 
 export default function SessionScreen() {
@@ -64,16 +67,10 @@ export default function SessionScreen() {
   const { programId, sessionId, studentName, sid } = params;
 
   // 화면 사이에 그대로 넘길 값 (탭 제외)
-  const passParams = {
-    ...(studentName ? { studentName } : {}),
-    ...(params.programTitle ? { programTitle: params.programTitle } : {}),
-    ...(sid ? { sid } : {}),
-  };
+  const passParams = programParams(params);
 
   const program = getDummyProgram(programId);
-  // 수강 예정 프로그램은 "회차별 내용" 안내 화면에서 들어온다 (출결 탭 없음)
-  const upcomingProgram = isUpcomingProgram(program);
-  const listLabel = upcomingProgram ? '회차별 내용' : '회차 목록';
+  const listLabel = '회차 목록';
   const attendance = useMemo(() => pickDummyAttendance(sid), [sid]);
   const items = useMemo(() => buildDayItems(program, attendance), [program, attendance]);
   const index = items.findIndex((d) => d.session.id === sessionId);
@@ -95,10 +92,7 @@ export default function SessionScreen() {
   const headerH = useRef(0);
 
   function goList() {
-    if (router.canGoBack()) router.back();
-    else if (upcomingProgram)
-      router.replace({ pathname: '/main/program/[programId]/guide/sessions', params: { programId, ...passParams } });
-    else router.replace({ pathname: '/main/program/[programId]', params: { programId, ...passParams } });
+    router.dismissTo(programHref(programId, params));
   }
 
   // 탭을 바꾸면 내용이 탭 바로 아래부터 보이도록
@@ -168,14 +162,19 @@ export default function SessionScreen() {
     >
       {/* 0: 헤더 */}
       <View
-        style={[styles.header, { paddingTop: insets.top + 10 }]}
+        style={[styles.header, { paddingTop: insets.top + 4 }]}
         onLayout={(e) => {
           headerH.current = e.nativeEvent.layout.height;
         }}
       >
-        <TouchableOpacity onPress={goList} style={styles.backBtn} hitSlop={8} accessibilityRole="button">
-          <Text style={styles.backText}>← {listLabel}</Text>
-        </TouchableOpacity>
+        <Breadcrumbs
+          items={sessionCrumbs({
+            programId,
+            programTitle: params.programTitle ?? program.title,
+            params,
+            sessionNumber: session.sessionNumber,
+          })}
+        />
         <Text style={styles.headerSub}>
           {studentName ? `${studentName} 학생 · ` : ''}
           <Text style={styles.headerSubStrong}>{session.sessionNumber}회차</Text>
@@ -188,8 +187,8 @@ export default function SessionScreen() {
             <Text style={[styles.badgeText, { color: badge.color }]}>{STATUS_LABEL[status]}</Text>
           </View>
           {!!dDay && (
-            <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Text style={[styles.badgeText, { color: '#ffffff' }]}>{dDay}</Text>
+            <View style={[styles.badge, { backgroundColor: C.elev }]}>
+              <Text style={[styles.badgeText, { color: C.goldSoft }]}>{dDay}</Text>
             </View>
           )}
           <Text style={styles.headerDate}>
@@ -206,12 +205,11 @@ export default function SessionScreen() {
             <Pressable
               key={t.id}
               accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
+              aria-selected={active}
               accessibilityLabel={t.title}
               onPress={() => selectTab(t.id)}
               style={[styles.tab, active && styles.tabActive]}
             >
-              <Text style={styles.tabIcon}>{t.icon}</Text>
               <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
             </Pressable>
           );
@@ -223,7 +221,13 @@ export default function SessionScreen() {
         {tab === 'attendance' && <AttendancePanel item={item} summary={summarize(items, program.totalSessions)} />}
         {tab === 'schedule' && <SchedulePanel item={item} today={today} />}
         {tab === 'content' && <ContentPanel session={session} />}
-        {tab === 'qna' && <QnaPanel key={session.id} session={session} />}
+        {tab === 'qna' && (
+          <QnaPanel
+            key={session.id}
+            session={session}
+            chatbotHref={faqHref({ from: 'session', programId, params, sessionId: session.id, sessionNumber: session.sessionNumber })}
+          />
+        )}
         {tab === 'report' && isDone(status) && (
           <ReportPanel
             item={item}
@@ -263,39 +267,35 @@ export default function SessionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: C.paper },
   content: { paddingBottom: 40 },
 
-  header: { backgroundColor: '#1d4ed8', paddingHorizontal: 20, paddingBottom: 20 },
-  backBtn: { alignSelf: 'flex-start', paddingVertical: 4, paddingRight: 8 },
-  backText: { fontSize: 16, fontWeight: '500', color: '#dbeafe' },
-  headerSub: { marginTop: 8, fontSize: 16, color: '#dbeafe' },
-  headerSubStrong: { fontWeight: '700', color: '#ffffff' },
-  headerTitle: { marginTop: 4, fontSize: 24, lineHeight: 32, fontWeight: '800', color: '#ffffff' },
+  header: { backgroundColor: C.bg, paddingHorizontal: 20, paddingBottom: 16 },
+  headerSub: { marginTop: 4, fontSize: 16, color: C.onInk },
+  headerSubStrong: { fontWeight: '700', color: C.white },
+  headerTitle: { marginTop: 4, fontSize: 24, lineHeight: 32, fontWeight: '800', color: C.white },
   headerMeta: { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  headerDate: { fontSize: 16, color: '#dbeafe' },
+  headerDate: { fontSize: 16, color: C.onInk },
   badge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
   badgeText: { fontSize: 15, fontWeight: '700' },
 
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: C.bg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: C.line,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingTop: 16,
+    paddingBottom: 13,
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: '#1d4ed8', backgroundColor: '#eff6ff' },
-  tabIcon: { fontSize: 22, lineHeight: 26 },
-  tabText: { fontSize: 17, fontWeight: '600', color: '#4b5563' },
-  tabTextActive: { fontWeight: '800', color: '#1d4ed8' },
+  tabActive: { borderBottomColor: C.gold },
+  tabText: { fontSize: 17, fontWeight: '600', color: C.sub },
+  tabTextActive: { fontWeight: '800', color: C.gold },
 
   panel: { paddingHorizontal: 16, paddingTop: 20, gap: 12 },
 
@@ -304,17 +304,17 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    borderColor: C.line,
+    backgroundColor: C.card,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
   navBtnRight: { alignItems: 'flex-end' },
   navDisabled: { opacity: 0.4 },
-  navLabel: { fontSize: 15, fontWeight: '700', color: '#4b5563' },
-  navValue: { fontSize: 16, color: '#111827' },
+  navLabel: { fontSize: 15, fontWeight: '700', color: '#9aa0ab' },
+  navValue: { fontSize: 16, color: C.text },
 
-  notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, backgroundColor: '#f8fafc' },
-  notFoundText: { fontSize: 17, color: '#374151' },
-  notFoundLink: { fontSize: 17, fontWeight: '700', color: '#1d4ed8' },
+  notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, backgroundColor: C.paper },
+  notFoundText: { fontSize: 17, color: C.text2 },
+  notFoundLink: { fontSize: 17, fontWeight: '700', color: C.gold },
 });

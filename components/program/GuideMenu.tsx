@@ -1,104 +1,99 @@
 /**
- * 프로그램 안내 버튼 묶음 (2열) — 수강 예정 첫 화면 · 수강 중 프로그램 화면에서 사용
- * 버튼 하나 = 독립된 안내 페이지 하나 (/main/program/[programId]/guide/<항목>)
+ * 수업 안내 목록 — 한 줄에 하나씩, 제목만 (부제·아이콘 없이 깔끔하게)
+ * 줄 하나 = 독립된 안내 페이지 하나 (/main/program/[programId]/guide/<항목>)
+ * 규정·지침에는 "필독" 배지가 붙는다.
  * (웹 components/program/GuideMenu.tsx 와 같은 구성)
  */
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GUIDE_SECTIONS, type GuideSection } from '../../data/programGuide';
+import { C } from '../../lib/theme';
 
 export function GuideMenu({
   sections,
   onOpen,
-  noticeCount,
-  onContact,
 }: {
   sections: GuideSection[];
   onOpen: (section: GuideSection) => void;
-  /** 공지사항 버튼에 "공지 N건" 표시 */
-  noticeCount?: number;
-  /** 있으면 마지막 칸에 "문의하기" 버튼 */
-  onContact?: () => void;
 }) {
   const items = GUIDE_SECTIONS.filter((s) => sections.includes(s.id));
 
   return (
-    <View style={styles.grid}>
-      {items.map((s) => (
-        <Tile
-          key={s.id}
-          icon={s.icon}
-          label={s.label}
-          desc={s.id === 'notices' && noticeCount ? `공지 ${noticeCount}건` : s.desc}
-          warn={s.id === 'rules'}
-          onPress={() => onOpen(s.id)}
-        />
+    <View style={styles.list}>
+      {items.map((s, i) => (
+        <View key={s.id} style={i > 0 && styles.divider}>
+          <MenuRow label={s.label} badge={s.badge} onPress={() => onOpen(s.id)} />
+        </View>
       ))}
-      {onContact && <Tile icon="🙋" label="문의하기" desc="챗봇·전화 상담" onPress={onContact} />}
     </View>
   );
 }
 
-function Tile({
-  icon,
-  label,
-  desc,
-  warn,
-  onPress,
-}: {
-  icon: string;
-  label: string;
-  desc: string;
-  warn?: boolean;
-  onPress: () => void;
-}) {
+/** 안내 한 줄 (버튼) — 다른 곳에서도 같은 모양으로 쓴다 */
+export function MenuRow({ label, badge, onPress }: { label: string; badge?: string; onPress: () => void }) {
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={0.6}
       accessibilityRole="button"
-      accessibilityLabel={label}
-      style={[styles.tile, warn && styles.tileWarn]}
+      accessibilityLabel={badge ? `${label} · ${badge}` : label}
+      style={styles.row}
     >
-      <Text style={styles.icon}>{icon}</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.label, warn && { color: '#b91c1c' }]} lineBreakStrategyIOS="hangul-word">
-          {label}
-        </Text>
-        <Text style={[styles.desc, warn && styles.descWarn]} lineBreakStrategyIOS="hangul-word">
-          {desc}
-        </Text>
-      </View>
+      <Text style={styles.label} numberOfLines={1}>
+        {label}
+      </Text>
+      {!!badge && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badge}</Text>
+        </View>
+      )}
+      <Text style={styles.chevron}>›</Text>
     </TouchableOpacity>
   );
 }
 
+/** 카드 한 장에 한 줄 — 골드 테두리로 따로 눈에 띄게 (예: 수업 규정·지침 · 필독) */
+export function MenuCard({ label, badge, onPress }: { label: string; badge?: string; onPress: () => void }) {
+  return (
+    <View style={styles.card}>
+      <MenuRow label={label} badge={badge} onPress={onPress} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tile: {
-    // 2열: (전체 - 간격 12) / 2
-    flexBasis: '47%',
-    flexGrow: 1,
-    minHeight: 76,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#ffffff',
+  list: {
+    overflow: 'hidden',
+    backgroundColor: C.card,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    shadowColor: '#111827',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: C.line,
   },
-  tileWarn: { borderColor: '#fecaca', backgroundColor: '#fef2f2' },
-  icon: { fontSize: 24 },
-  label: { fontSize: 16, lineHeight: 22, fontWeight: '800', color: '#111827' },
-  desc: { marginTop: 2, fontSize: 14, lineHeight: 19, color: '#6b7280' },
-  descWarn: { fontWeight: '600', color: '#dc2626' },
+  divider: { borderTopWidth: 1, borderTopColor: C.line },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  label: { flex: 1, fontSize: 18, lineHeight: 26, fontWeight: '700', color: C.text },
+  badge: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: C.goldBorder,
+    backgroundColor: C.goldLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  badgeText: { fontSize: 14, fontWeight: '700', color: C.gold, letterSpacing: 0.3 },
+  chevron: { fontSize: 22, lineHeight: 24, color: C.gold },
+  card: {
+    overflow: 'hidden',
+    backgroundColor: C.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: C.goldDim,
+  },
 });

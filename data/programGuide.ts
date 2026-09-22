@@ -1,7 +1,8 @@
 /**
  * 프로그램 안내 카테고리 — 안내 버튼(GuideMenu)과 안내 페이지 제목에 쓰인다
  *
- *   목적 · 회차별 내용 · 공지사항 · 수업 규정·지침 · 자주 묻는 질문
+ *   수업 규정·지침(필독 — 프로그램 화면 맨 위 카드) ·
+ *   일시 및 장소 · 프로그램 목적 및 내용 · 공지사항 · 자주 묻는 질문 (수업 안내 목록)
  *   페이지는 서로 독립: /main/program/[id]/guide/<id> (웹 guide/<id>/page.tsx · 모바일 guide/<id>.tsx)
  *   새 안내 추가 → 아래 목록에 한 줄 + 페이지 파일 하나
  *
@@ -11,25 +12,45 @@
 
 import type { Program, ProgramQnA, ProgramRule } from './dummyProgram';
 
-export type GuideSection = 'purpose' | 'sessions' | 'notices' | 'rules' | 'qna';
+export type GuideSection = 'schedule' | 'purpose' | 'notices' | 'rules' | 'qna';
 
 export const GUIDE_SECTIONS: {
   id: GuideSection;
-  icon: string;
-  /** 버튼·화면 제목 */
+  /** 버튼·화면 제목 — 부제 없이 제목만 (첫 화면은 최대한 깔끔하게) */
   label: string;
-  /** 버튼 아래 작은 설명 (한 줄) */
-  desc: string;
+  /** 제목 옆 작은 배지 (예: 필독) */
+  badge?: string;
 }[] = [
-  { id: 'purpose', icon: '🎯', label: '프로그램 목적', desc: '도입 취지·소개' },
-  { id: 'sessions', icon: '📚', label: '회차별 내용', desc: '날짜·주제·강사' },
-  { id: 'notices', icon: '📢', label: '공지사항', desc: '꼭 읽어 주세요' },
-  { id: 'rules', icon: '⚠️', label: '수업 규정·지침', desc: '꼭 지켜 주세요' },
-  { id: 'qna', icon: '💬', label: '자주 묻는 질문', desc: '준비물·픽업·간식' },
+  { id: 'schedule', label: '프로그램 일시 및 장소' },
+  { id: 'purpose', label: '프로그램 목적 및 내용' },
+  { id: 'notices', label: '공지사항' },
+  { id: 'rules', label: '수업 규정·지침', badge: '필독' },
+  { id: 'qna', label: '자주 묻는 질문' },
 ];
 
 export function guideSection(id: GuideSection) {
   return GUIDE_SECTIONS.find((s) => s.id === id)!;
+}
+
+/** 첫 화면 "수업 안내" 에 세로로 놓는 항목 (일시·장소는 그 위에 따로) */
+export const GUIDE_MENU_SECTIONS: GuideSection[] = ['schedule', 'purpose', 'notices', 'qna'];
+
+/** 프로그램 화면 맨 위에 따로 크게 두는 안내 (필독) */
+export const GUIDE_TOP_SECTION: GuideSection = 'rules';
+
+/**
+ * 상단 경로용 짧은 프로그램명 — 앞의 연도·"ThinkCampus" 를 뗀다
+ *   '2026 ThinkCampus 토요 창의융합' → '토요 창의융합'
+ */
+export function shortProgramTitle(title: string): string {
+  const t = title.replace(/^\s*\d{4}\s+/, '').replace(/^ThinkCampus\s+/i, '').trim();
+  return t || title;
+}
+
+/** 지도 앱(네이버 지도)에서 장소 찾기 */
+export function mapSearchUrl(program: Program): string {
+  const q = program.mapQuery ?? program.location;
+  return `https://map.naver.com/p/search/${encodeURIComponent(q)}`;
 }
 
 /** 기본 수업 규정 (지자체 기준 예시) */

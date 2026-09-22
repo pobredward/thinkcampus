@@ -2,9 +2,9 @@
 
 /**
  * 회차 화면 — 회차 번호를 누르면 들어오는 곳
- * (수강 예정 프로그램: 회차별 내용 → 회차. 출결 탭 없이 일정·내용·Q&A)
+ * (수강 예정 프로그램: 출결 탭 없이 일정·내용·Q&A)
  *
- *   [파란 헤더]  ← 회차 목록 · 학생 · N회차 · 주제 · 날짜 · 상태
+ *   [헤더]      상단 경로(홈 › 프로그램 › N회차) · 학생 · N회차 · 주제 · 날짜 · 상태
  *   [탭]        출결 | 일정 | 내용 | Q&A | 리포트(끝난 회차만)   ← 스크롤해도 위에 고정
  *   [탭 내용]
  *   [‹ 이전 회차 | 다음 회차 ›]  (좌우 스와이프도 가능)
@@ -28,7 +28,6 @@ import {
   isDone,
   isProgramFinished,
   isSessionTab,
-  isUpcomingProgram,
   matchProgramReport,
   pickDummyAttendance,
   pickDummyReport,
@@ -40,6 +39,8 @@ import {
   type SessionTab,
 } from "@/data/programView";
 import { useUpTo } from "@/hooks/useBack";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { faqHref, sessionCrumbs } from "@/lib/crumbs";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { daysBetween, dDayLabel, formatKoreanDate, formatShortDate, todayKey } from "@/lib/dates";
 
@@ -58,11 +59,9 @@ export default function SessionPage() {
     return p.toString();
   }, [sp]);
   const program = getDummyProgram(programId);
-  const upcomingProgram = isUpcomingProgram(program);
-  // 수강 예정 프로그램은 "회차별 내용" 안내 화면에서 들어온다
-  const listUrl = `/main/program/${programId}${upcomingProgram ? "/guide/sessions" : ""}${baseQs ? `?${baseQs}` : ""}`;
+  const listUrl = `/main/program/${programId}${baseQs ? `?${baseQs}` : ""}`;
   const goList = useUpTo(listUrl, { skip: SESSION_PATH });
-  const listLabel = upcomingProgram ? "회차별 내용" : "회차 목록";
+  const listLabel = "회차 목록";
 
   const sid = sp.get("sid");
   const attendance = useMemo(() => pickDummyAttendance(sid), [sid]);
@@ -140,8 +139,8 @@ export default function SessionPage() {
   if (!item || !tab) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-20">
-        <p className="text-[17px] text-gray-700">회차 정보를 찾을 수 없습니다.</p>
-        <button type="button" onClick={goList} className="tap text-[17px] font-bold text-brand">
+        <p className="text-[17px] text-fg2">회차 정보를 찾을 수 없습니다.</p>
+        <button type="button" onClick={goList} className="tap text-[17px] font-bold text-gold">
           ← {listLabel}으로
         </button>
       </div>
@@ -156,31 +155,36 @@ export default function SessionPage() {
     router.push(`/main/program/${programId}/report${baseQs ? `?${baseQs}` : ""}`);
 
   return (
-    <div className="flex flex-1 flex-col bg-[#f8fafc] pb-10" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <header ref={headerRef} className="no-print bg-brand px-5 pb-5" style={{ paddingTop: "calc(var(--sat) + 10px)" }}>
-        <button type="button" onClick={goList} className="tap -ml-1 py-1 pr-2 text-[16px] font-medium text-blue-100">
-          ← {listLabel}
-        </button>
-        <p className="mt-2 text-[16px] text-blue-100">
+    <div className="flex flex-1 flex-col bg-paper pb-10" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <header ref={headerRef} className="no-print px-5 pb-4" style={{ paddingTop: "calc(var(--sat) + 4px)" }}>
+        <Breadcrumbs
+          items={sessionCrumbs({
+            programId,
+            programTitle: sp.get("programTitle") ?? program.title,
+            sp,
+            sessionNumber: session.sessionNumber,
+          })}
+        />
+        <p className="mt-1 text-[16px] text-sub">
           {studentName ? `${studentName} 학생 · ` : ""}
-          <b className="text-white">{session.sessionNumber}회차</b>
+          <b className="text-fg">{session.sessionNumber}회차</b>
         </p>
-        <h1 className="mt-1 text-[24px] font-extrabold leading-[32px] text-white">{session.topic}</h1>
+        <h1 className="mt-1 text-[24px] font-extrabold leading-[32px] text-fg">{session.topic}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className={`rounded-lg px-[10px] py-[3px] text-[15px] font-bold ${STATUS_BADGE[status]}`}>
             {STATUS_LABEL[status]}
           </span>
           {dDay && (
-            <span className="rounded-lg bg-white/20 px-[10px] py-[3px] text-[15px] font-bold text-white">{dDay}</span>
+            <span className="rounded-lg bg-elev px-[10px] py-[3px] text-[15px] font-bold text-fg">{dDay}</span>
           )}
-          <span className="text-[16px] text-blue-100">
+          <span className="text-[16px] text-sub">
             {formatKoreanDate(item.key)} · {session.startTime}–{session.endTime}
           </span>
         </div>
       </header>
 
       {/* 탭 — 스크롤해도 위에 고정 */}
-      <div className="no-print sticky top-0 z-20 border-b border-gray-200 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+      <div className="no-print sticky top-0 z-20 border-b border-line bg-paper">
         <div role="tablist" aria-label="회차 정보" className="flex" onKeyDown={onTabKey}>
           {SESSION_TABS.filter((t) => tabs.includes(t.id)).map((t) => {
             const active = t.id === tab;
@@ -194,15 +198,10 @@ export default function SessionPage() {
                 aria-controls="session-panel"
                 tabIndex={active ? 0 : -1}
                 onClick={() => selectTab(t.id)}
-                className={`tap flex flex-1 flex-col items-center gap-[2px] border-b-[3px] pt-[10px] pb-[8px] text-center text-[17px] ${
-                  active
-                    ? "border-brand bg-brand-light font-extrabold text-brand"
-                    : "border-transparent font-semibold text-gray-600"
+                className={`tap flex-1 border-b-[3px] pt-[16px] pb-[13px] text-center text-[17px] ${
+                  active ? "border-gold font-extrabold text-gold" : "border-transparent font-semibold text-sub"
                 }`}
               >
-                <span aria-hidden="true" className="text-[22px] leading-[26px]">
-                  {t.icon}
-                </span>
                 {t.label}
               </button>
             );
@@ -219,7 +218,13 @@ export default function SessionPage() {
         {tab === "attendance" && <AttendancePanel item={item} summary={summarize(items, program.totalSessions)} />}
         {tab === "schedule" && <SchedulePanel item={item} today={today} />}
         {tab === "content" && <ContentPanel session={session} />}
-        {tab === "qna" && <QnaPanel key={session.id} session={session} />}
+        {tab === "qna" && (
+          <QnaPanel
+            key={session.id}
+            session={session}
+            chatbotHref={faqHref({ from: "session", programId, sp, sessionId: session.id, sessionNumber: session.sessionNumber })}
+          />
+        )}
         {tab === "report" && isDone(status) && (
           <ReportPanel
             item={item}
@@ -235,10 +240,10 @@ export default function SessionPage() {
           type="button"
           disabled={!prev}
           onClick={() => prev && goSession(prev)}
-          className="tap flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-4 text-left disabled:opacity-40"
+          className="tap flex-1 rounded-2xl border border-line bg-card px-4 py-4 text-left disabled:opacity-40"
         >
-          <span className="block text-[15px] font-bold text-gray-600">‹ 이전 회차</span>
-          <span className="block truncate text-[16px] text-gray-900">
+          <span className="block text-[15px] font-bold text-sub">‹ 이전 회차</span>
+          <span className="block truncate text-[16px] text-fg">
             {prev ? `${prev.session.sessionNumber}회차 · ${formatShortDate(prev.key)}` : "첫 수업"}
           </span>
         </button>
@@ -246,10 +251,10 @@ export default function SessionPage() {
           type="button"
           disabled={!next}
           onClick={() => next && goSession(next)}
-          className="tap flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-4 text-right disabled:opacity-40"
+          className="tap flex-1 rounded-2xl border border-line bg-card px-4 py-4 text-right disabled:opacity-40"
         >
-          <span className="block text-[15px] font-bold text-gray-600">다음 회차 ›</span>
-          <span className="block truncate text-[16px] text-gray-900">
+          <span className="block text-[15px] font-bold text-sub">다음 회차 ›</span>
+          <span className="block truncate text-[16px] text-fg">
             {next ? `${next.session.sessionNumber}회차 · ${formatShortDate(next.key)}` : "마지막 수업"}
           </span>
         </button>

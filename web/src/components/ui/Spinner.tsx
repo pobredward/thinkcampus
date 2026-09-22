@@ -3,7 +3,7 @@
  */
 export function Spinner({
   size = "small",
-  color = "#1d4ed8",
+  color = "#d4b06a",
   className = "",
 }: {
   size?: "small" | "large";

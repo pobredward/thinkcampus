@@ -89,7 +89,7 @@ export default function LoadingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 48,
@@ -102,13 +102,13 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 22,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   iconText: {
-    color: '#ffffff',
+    color: '#0c0e13',
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -1,
@@ -116,12 +116,12 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: '#f2f2f0',
     letterSpacing: -0.5,
   },
   tagline: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#9aa0ab',
     fontWeight: '400',
   },
   dotsRow: {
@@ -132,6 +132,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
   },
 });

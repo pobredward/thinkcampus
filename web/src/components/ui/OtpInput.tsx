@@ -28,7 +28,7 @@ export function OtpInput({
       aria-label="6자리 인증번호"
       value={value}
       onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
-      className="block w-[220px] border-b-2 border-brand bg-transparent pb-2 text-center text-[36px] font-bold tracking-[12px] text-gray-900 placeholder:text-gray-300"
+      className="block w-[220px] border-b-2 border-gold bg-transparent pb-2 text-center text-[36px] font-bold tracking-[12px] text-fg placeholder:text-faint"
     />
   );
 }

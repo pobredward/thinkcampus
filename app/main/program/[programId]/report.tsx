@@ -1,6 +1,7 @@
 /**
  * 프로그램 종합 학습 리포트
  * 진입: 회차 목록 아래 [종합 리포트 보기] · 회차 리포트 탭 (모든 회차가 끝난 뒤에만 열림)
+ * 상단 경로: 홈 › 프로그램 › 종합 리포트
  *
  * 해당 학생의 종합 리포트
  * - 종합 등급 & 총평
@@ -23,7 +24,7 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ProgramHeader } from '../../../../components/program/ProgramHeader';
 import { httpsCallable } from '@react-native-firebase/functions';
 import { functions } from '../../../../firebase';
@@ -34,6 +35,8 @@ import {
   type StudentReport,
   type ProgramReport,
 } from '../../../../data/dummyReport';
+import { getDummyProgram } from '../../../../data/programView';
+import { programCrumbs } from '../../../../lib/crumbs';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -45,18 +48,16 @@ export default function ProgramReportScreen() {
     studentName?: string;
     programTitle?: string;
     sid?: string;
+    via?: string;
   }>();
-  const { studentName } = params;
-  const goBack = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace({ pathname: '/main/program/[programId]', params });
-  };
+  const { studentName, programId } = params;
+  const programTitle = params.programTitle ?? getDummyProgram(programId).title;
   const header = (
     <ProgramHeader
       mode="report"
       studentName={studentName ?? ''}
-      programTitle={params.programTitle ?? ''}
-      onBack={goBack}
+      programTitle={programTitle}
+      crumbs={[...programCrumbs({ programId, programTitle, params }), { label: '종합 리포트' }]}
     />
   );
   const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
@@ -107,10 +108,9 @@ export default function ProgramReportScreen() {
 
   if (!isReportReady) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <View style={{ flex: 1, backgroundColor: '#0c0e13' }}>
         {header}
         <View style={styles.notReady}>
-          <Text style={styles.notReadyEmoji}>⏳</Text>
           <Text style={styles.notReadyTitle}>리포트 준비 중</Text>
           <Text style={styles.notReadyDesc}>
             캠프 종료 후 영업일 기준{'\n'}3~5일 내에 업로드됩니다.
@@ -124,13 +124,13 @@ export default function ProgramReportScreen() {
   const gradeBg = getGradeBg(report.totalGrade);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <View style={{ flex: 1, backgroundColor: '#0c0e13' }}>
       {header}
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1d4ed8" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#d4b06a" />
         }
       >
         {/* ── 종합 등급 카드 ───────────────── */}
@@ -153,15 +153,15 @@ export default function ProgramReportScreen() {
           {/* 강점·성장 분야 */}
           <View style={styles.areasRow}>
             <View style={styles.areaBox}>
-              <Text style={styles.areaLabel}>💪 강점 분야</Text>
+              <Text style={styles.areaLabel}>강점 분야</Text>
               {report.strengthAreas.map((a, i) => (
-                <Text key={i} style={[styles.areaItem, { color: '#1d4ed8' }]}>• {a}</Text>
+                <Text key={i} style={[styles.areaItem, { color: '#d4b06a' }]}>• {a}</Text>
               ))}
             </View>
             <View style={[styles.areaBox, styles.areaBoxRight]}>
-              <Text style={styles.areaLabel}>🚀 발전 분야</Text>
+              <Text style={styles.areaLabel}>발전 분야</Text>
               {report.growthAreas.map((a, i) => (
-                <Text key={i} style={[styles.areaItem, { color: '#d97706' }]}>• {a}</Text>
+                <Text key={i} style={[styles.areaItem, { color: '#9aa0ab' }]}>• {a}</Text>
               ))}
             </View>
           </View>
@@ -179,9 +179,9 @@ export default function ProgramReportScreen() {
             disabled={sharing}
           >
             {sharing ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color="#0c0e13" size="small" />
             ) : (
-              <Text style={styles.shareBtnText}>📤 리포트 공유하기</Text>
+              <Text style={styles.shareBtnText}>리포트 공유하기</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -226,7 +226,6 @@ function ProgramCard({
         onPress={onToggle}
         activeOpacity={0.8}
       >
-        <Text style={styles.programIcon}>{program.programIcon}</Text>
         <View style={styles.programHeaderInfo}>
           <Text style={styles.programName} numberOfLines={1}>{program.programName}</Text>
           <Text style={styles.programInstructor}>{program.instructorName}</Text>
@@ -306,7 +305,7 @@ function ProgramCard({
           {/* 다음 단계 */}
           {program.nextSteps.length > 0 && (
             <View style={styles.nextStepSection}>
-              <Text style={styles.nextStepLabel}>📌 향후 발전 방향</Text>
+              <Text style={styles.nextStepLabel}>향후 발전 방향</Text>
               {program.nextSteps.map((step, i) => (
                 <View key={i} style={styles.nextStepRow}>
                   <Text style={styles.nextStepNum}>{i + 1}</Text>
@@ -324,7 +323,7 @@ function ProgramCard({
 // ── 스타일 ─────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#0c0e13' },
   content: { paddingTop: 16, paddingBottom: 32 },
 
   notReady: {
@@ -333,19 +332,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 32,
     gap: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0c0e13',
   },
-  notReadyEmoji: { fontSize: 48 },
-  notReadyTitle: { fontSize: 20, fontWeight: '700', color: '#374151' },
-  notReadyDesc: { fontSize: 16, color: '#6b7280', textAlign: 'center', lineHeight: 25 },
+  notReadyTitle: { fontSize: 20, fontWeight: '700', color: '#d4d7dd' },
+  notReadyDesc: { fontSize: 16, color: '#9aa0ab', textAlign: 'center', lineHeight: 25 },
 
   overallCard: {
     marginHorizontal: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -359,8 +357,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  overallStudent: { fontSize: 14, color: '#6b7280', marginBottom: 4 },
-  overallType: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  overallStudent: { fontSize: 14, color: '#9aa0ab', marginBottom: 4 },
+  overallType: { fontSize: 16, fontWeight: '700', color: '#f2f2f0' },
   gradeBadge: {
     width: 52,
     height: 52,
@@ -375,8 +373,8 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 16,
   },
-  scoreValue: { fontSize: 40, fontWeight: '800', color: '#111827' },
-  scoreUnit: { fontSize: 16, color: '#6b7280' },
+  scoreValue: { fontSize: 40, fontWeight: '800', color: '#f2f2f0' },
+  scoreUnit: { fontSize: 16, color: '#9aa0ab' },
 
   areasRow: {
     flexDirection: 'row',
@@ -385,45 +383,45 @@ const styles = StyleSheet.create({
   },
   areaBox: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0c0e13',
     borderRadius: 10,
     padding: 10,
     gap: 4,
   },
-  areaBoxRight: { backgroundColor: '#fffbeb' },
-  areaLabel: { fontSize: 14, fontWeight: '700', color: '#374151', marginBottom: 2 },
+  areaBoxRight: { backgroundColor: '#1e232d' },
+  areaLabel: { fontSize: 14, fontWeight: '700', color: '#d4d7dd', marginBottom: 2 },
   areaItem: { fontSize: 14, fontWeight: '500' },
 
   commentBox: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#1e232d',
     borderRadius: 12,
     padding: 14,
     borderLeftWidth: 3,
-    borderLeftColor: '#1d4ed8',
+    borderLeftColor: '#d4b06a',
     marginBottom: 14,
   },
   commentLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#9aa0ab',
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginBottom: 6,
   },
-  commentText: { fontSize: 15, color: '#374151', lineHeight: 24 },
+  commentText: { fontSize: 15, color: '#d4d7dd', lineHeight: 24 },
 
   shareBtn: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     borderRadius: 12,
     paddingVertical: 13,
     alignItems: 'center',
   },
-  shareBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  shareBtnText: { color: '#0c0e13', fontSize: 16, fontWeight: '700' },
 
   sectionLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#6b7280',
+    color: '#9aa0ab',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     paddingHorizontal: 16,
@@ -434,10 +432,10 @@ const styles = StyleSheet.create({
   programCard: {
     marginHorizontal: 16,
     marginBottom: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     overflow: 'hidden',
   },
   programHeader: {
@@ -448,8 +446,8 @@ const styles = StyleSheet.create({
   },
   programIcon: { fontSize: 24 },
   programHeaderInfo: { flex: 1 },
-  programName: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  programInstructor: { fontSize: 14, color: '#6b7280', marginTop: 2 },
+  programName: { fontSize: 16, fontWeight: '700', color: '#f2f2f0' },
+  programInstructor: { fontSize: 14, color: '#9aa0ab', marginTop: 2 },
   programGrade: {
     width: 34,
     height: 34,
@@ -458,11 +456,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   programGradeText: { fontSize: 17, fontWeight: '800' },
-  toggleArrow: { fontSize: 14, color: '#6b7280', marginLeft: 2 },
+  toggleArrow: { fontSize: 14, color: '#9aa0ab', marginLeft: 2 },
 
   programBody: {
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: '#262b36',
     padding: 14,
     gap: 12,
   },
@@ -471,16 +469,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  programScore: { fontSize: 22, fontWeight: '800', color: '#111827' },
+  programScore: { fontSize: 22, fontWeight: '800', color: '#f2f2f0' },
   growthTag: {
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#1e232d',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
+    borderColor: '#343a47',
   },
-  growthTagText: { fontSize: 14, color: '#16a34a', fontWeight: '700' },
+  growthTagText: { fontSize: 14, color: '#d4b06a', fontWeight: '700' },
 
   // 역량 바
   compRow: {
@@ -488,11 +486,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  compLabel: { width: 80, fontSize: 14, color: '#374151' },
+  compLabel: { width: 80, fontSize: 14, color: '#d4d7dd' },
   compBarWrap: { flex: 1, position: 'relative' },
   compBg: {
     height: 8,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#343a47',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -506,57 +504,57 @@ const styles = StyleSheet.create({
     zIndex: 1,
     borderRadius: 1,
   },
-  compScore: { width: 34, fontSize: 14, fontWeight: '700', color: '#374151', textAlign: 'right' },
-  benchmarkNote: { fontSize: 14, color: '#6b7280', textAlign: 'right' },
+  compScore: { width: 34, fontSize: 14, fontWeight: '700', color: '#d4d7dd', textAlign: 'right' },
+  benchmarkNote: { fontSize: 14, color: '#9aa0ab', textAlign: 'right' },
 
   instructorComment: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#1e232d',
     borderRadius: 10,
     padding: 12,
     borderLeftWidth: 3,
-    borderLeftColor: '#6b7280',
+    borderLeftColor: '#343a47',
   },
   instructorCommentLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#9aa0ab',
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginBottom: 6,
   },
-  instructorCommentText: { fontSize: 15, color: '#374151', lineHeight: 23 },
+  instructorCommentText: { fontSize: 15, color: '#d4d7dd', lineHeight: 23 },
 
   tagSection: { gap: 6 },
-  tagSectionLabel: { fontSize: 14, fontWeight: '700', color: '#374151' },
+  tagSectionLabel: { fontSize: 14, fontWeight: '700', color: '#d4d7dd' },
   tagRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   tagDot: {
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     marginTop: 7,
   },
-  tagText: { flex: 1, fontSize: 14, color: '#374151', lineHeight: 22 },
+  tagText: { flex: 1, fontSize: 14, color: '#d4d7dd', lineHeight: 22 },
 
   nextStepSection: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#1e232d',
     borderRadius: 10,
     padding: 12,
     gap: 8,
   },
-  nextStepLabel: { fontSize: 14, fontWeight: '700', color: '#1d4ed8', marginBottom: 4 },
+  nextStepLabel: { fontSize: 14, fontWeight: '700', color: '#d4b06a', marginBottom: 4 },
   nextStepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   nextStepNum: {
     width: 22,
     height: 22,
     borderRadius: 11,
     overflow: 'hidden',
-    backgroundColor: '#1d4ed8',
-    color: '#fff',
+    backgroundColor: '#d4b06a',
+    color: '#0c0e13',
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
     lineHeight: 22,
   },
-  nextStepText: { flex: 1, fontSize: 14, color: '#1e40af', lineHeight: 22 },
+  nextStepText: { flex: 1, fontSize: 14, color: '#d4d7dd', lineHeight: 22 },
 });

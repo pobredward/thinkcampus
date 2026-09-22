@@ -9,6 +9,8 @@ export interface OnboardingSession {
   phone: string;
   customToken?: string;
   relation?: string;
+  /** 보호자 이름 — OTP 로그인 직후 계정 표시 이름으로 저장 */
+  guardianName?: string;
 }
 
 export function saveOnboardingSession(data: OnboardingSession): void {

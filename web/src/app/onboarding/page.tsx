@@ -60,20 +60,20 @@ export default function OnboardingStep1() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-white px-6 pb-10 pt-20">
+    <div className="flex flex-1 flex-col bg-card px-6 pb-10 pt-20">
       {/* 상단 헤더 */}
       <div className="mb-10 flex flex-col items-center">
-        <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[18px] bg-brand">
-          <span className="text-[24px] font-extrabold tracking-[-1px] text-white">TC</span>
+        <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[18px] bg-gold">
+          <span className="text-[24px] font-extrabold tracking-[-1px] text-ink">TC</span>
         </div>
-        <h1 className="text-[26px] font-bold tracking-[-0.5px] text-gray-900">ThinkCampus</h1>
-        <p className="mt-1 text-[16px] text-gray-500">학부모 전용 서비스</p>
+        <h1 className="text-[26px] font-bold tracking-[-0.5px] text-fg">ThinkCampus</h1>
+        <p className="mt-1 text-[16px] text-sub">학부모 전용 서비스</p>
       </div>
 
       {/* 안내 문구 */}
-      <div className="mb-8 rounded-xl bg-brand-light p-4">
-        <p className="mb-[6px] text-[16px] font-semibold text-brand">📌 등록코드 안내</p>
-        <p className="text-[15px] leading-[22px] text-gray-700">
+      <div className="mb-8 rounded-xl bg-elev p-4">
+        <p className="mb-[6px] text-[16px] font-semibold text-gold">등록코드 안내</p>
+        <p className="text-[15px] leading-[22px] text-fg2">
           캠퍼스 담당자에게 받은 등록코드를 입력해주세요.
           <br />
           자녀의 교육 일정과 피드백을 확인할 수 있습니다.
@@ -88,7 +88,7 @@ export default function OnboardingStep1() {
           void handleNext();
         }}
       >
-        <label htmlFor="code" className="mb-2 block text-[15px] font-semibold text-gray-700">
+        <label htmlFor="code" className="mb-2 block text-[15px] font-semibold text-fg2">
           등록코드
         </label>
         <input
@@ -105,11 +105,11 @@ export default function OnboardingStep1() {
           onChange={(e) => setRawCode(e.target.value.replace(/[^A-Z0-9]/gi, "").toUpperCase())}
           className={`block w-full rounded-[10px] border-[1.5px] p-[14px] text-center text-[24px] font-semibold tracking-[4px] ${
             isReady
-              ? "border-brand bg-brand-light text-brand"
-              : "border-gray-300 bg-gray-50 text-gray-900"
+              ? "border-gold bg-elev text-gold"
+              : "border-line2 bg-elev text-fg"
           }`}
         />
-        {isReady && <p className="mt-[6px] text-center text-[14px] text-brand">✓ 코드 확인 완료</p>}
+        {isReady && <p className="mt-[6px] text-center text-[14px] text-gold">✓ 코드 확인 완료</p>}
 
         {/* 다음 버튼 */}
         <PrimaryButton type="submit" disabled={!isReady} loading={loading} className="mt-6 mb-5">
@@ -117,15 +117,15 @@ export default function OnboardingStep1() {
         </PrimaryButton>
       </form>
 
-      <p className="text-center text-[15px] leading-[22px] text-gray-500">
+      <p className="text-center text-[15px] leading-[22px] text-sub">
         등록코드가 없으신가요?
         <br />
         자녀가 등록된 캠퍼스에 문의해주세요.
       </p>
 
       {/* 기존 학부모 로그인 */}
-      <Link href="/onboarding/login" className="tap mt-4 block py-2 text-center text-[16px] text-gray-500">
-        이미 등록하셨나요? <span className="font-bold text-brand">전화번호로 로그인</span>
+      <Link href="/onboarding/login" className="tap mt-4 block py-2 text-center text-[16px] text-sub">
+        이미 등록하셨나요? <span className="font-bold text-gold">전화번호로 로그인</span>
       </Link>
     </div>
   );

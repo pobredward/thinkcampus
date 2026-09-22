@@ -89,7 +89,7 @@ export default function OnboardingStep1() {
 
         {/* 안내 문구 */}
         <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>📌 등록코드 안내</Text>
+          <Text style={styles.infoTitle}>등록코드 안내</Text>
           <Text style={styles.infoDesc}>
             캠퍼스 담당자에게 받은 등록코드를 입력해주세요.{'\n'}
             자녀의 교육 일정과 피드백을 확인할 수 있습니다.
@@ -123,7 +123,7 @@ export default function OnboardingStep1() {
           disabled={!isReady || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#0c0e13" />
           ) : (
             <Text style={styles.buttonText}>다음</Text>
           )}
@@ -149,7 +149,7 @@ export default function OnboardingStep1() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#161a22' },
   content: {
     flexGrow: 1,
     paddingHorizontal: 24,
@@ -161,13 +161,13 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   logoText: {
-    color: '#fff',
+    color: '#0c0e13',
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: -1,
@@ -175,16 +175,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#111827',
+    color: '#f2f2f0',
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#9aa0ab',
     marginTop: 4,
   },
   infoBox: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#1e232d',
     borderRadius: 12,
     padding: 16,
     marginBottom: 32,
@@ -192,60 +192,60 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1d4ed8',
+    color: '#d4b06a',
     marginBottom: 6,
   },
   infoDesc: {
     fontSize: 15,
-    color: '#374151',
+    color: '#d4d7dd',
     lineHeight: 23,
   },
   inputSection: { marginBottom: 24 },
   label: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
+    color: '#d4d7dd',
     marginBottom: 8,
   },
   codeInput: {
     borderWidth: 1.5,
-    borderColor: '#d1d5db',
+    borderColor: '#343a47',
     borderRadius: 10,
     padding: 14,
     fontSize: 24,
-    color: '#111827',
+    color: '#f2f2f0',
     letterSpacing: 4,
     textAlign: 'center',
     fontWeight: '600',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#1e232d',
   },
   codeInputReady: {
-    borderColor: '#1d4ed8',
-    backgroundColor: '#eff6ff',
-    color: '#1d4ed8',
+    borderColor: '#d4b06a',
+    backgroundColor: '#1e232d',
+    color: '#d4b06a',
   },
   readyHint: {
     fontSize: 14,
-    color: '#1d4ed8',
+    color: '#d4b06a',
     marginTop: 6,
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 20,
   },
-  buttonDisabled: { backgroundColor: '#bfdbfe' },
+  buttonDisabled: { backgroundColor: '#343a47' },
   buttonText: {
-    color: '#fff',
+    color: '#0c0e13',
     fontSize: 17,
     fontWeight: '700',
   },
   helpText: {
     fontSize: 15,
-    color: '#6b7280',
+    color: '#9aa0ab',
     textAlign: 'center',
     lineHeight: 23,
   },
@@ -256,10 +256,10 @@ const styles = StyleSheet.create({
   },
   loginLinkText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#9aa0ab',
   },
   loginLinkBold: {
-    color: '#1d4ed8',
+    color: '#d4b06a',
     fontWeight: '700',
   },
 });

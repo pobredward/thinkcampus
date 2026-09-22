@@ -59,7 +59,7 @@ export default function AttendanceScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <View style={{ flex: 1, backgroundColor: '#0c0e13' }}>
 
       {/* ── 고정 헤더 ── */}
       <View style={[styles.fixedHeader, { paddingTop: insets.top + 12 }]}>
@@ -86,7 +86,7 @@ export default function AttendanceScreen() {
                   }}
                 >
                   <View style={[styles.childAvatar, isActive && styles.childAvatarActive]}>
-                    <Text style={[styles.childAvatarText, isActive && { color: '#fff' }]}>
+                    <Text style={[styles.childAvatarText, isActive && { color: '#f2f2f0' }]}>
                       {s.studentName.charAt(0)}
                     </Text>
                   </View>
@@ -107,7 +107,7 @@ export default function AttendanceScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1d4ed8" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#d4b06a" />
         }
       >
         {/* ── 요약 카드 ── */}
@@ -171,7 +171,7 @@ function SummaryCard({
         {/* 출석률 큰 숫자 */}
         <View style={styles.attendanceRateBox}>
           <Text style={[styles.attendanceRateNum, {
-            color: summary.attendanceRate >= 90 ? '#16a34a'
+            color: summary.attendanceRate >= 90 ? '#141a24'
               : summary.attendanceRate >= 70 ? '#d97706' : '#dc2626',
           }]}>
             {summary.attendanceRate}%
@@ -196,7 +196,7 @@ function SummaryCard({
               </Text>
             )}
             {d.status === 'upcoming' && (
-              <Text style={[styles.dotLabel, { color: '#6b7280' }]}>{d.num}</Text>
+              <Text style={[styles.dotLabel, { color: '#9aa0ab' }]}>{d.num}</Text>
             )}
           </View>
         ))}
@@ -208,7 +208,7 @@ function SummaryCard({
           label="출결 현황"
           value={`${summary.present + summary.late}/${summary.doneCount}`}
           sub={summary.absent > 0 ? `결석 ${summary.absent}회` : '결석 없음'}
-          subColor={summary.absent > 0 ? '#dc2626' : '#16a34a'}
+          subColor={summary.absent > 0 ? '#dc2626' : '#141a24'}
         />
         <View style={styles.metricDivider} />
         <MetricBox
@@ -222,7 +222,7 @@ function SummaryCard({
           label="과제 완료율"
           value={`${summary.homeworkRate}%`}
           sub={summary.homeworkRate >= 80 ? '우수' : '개선 필요'}
-          subColor={summary.homeworkRate >= 80 ? '#16a34a' : '#d97706'}
+          subColor={summary.homeworkRate >= 80 ? '#141a24' : '#d97706'}
         />
       </View>
 
@@ -238,18 +238,18 @@ function SummaryCard({
           {/* 출석 */}
           <View style={[styles.progressBarFill, {
             width: `${(summary.present / student.totalSessions) * 100}%`,
-            backgroundColor: '#16a34a',
+            backgroundColor: '#d4b06a',
           }]} />
           {/* 지각 */}
           <View style={[styles.progressBarFill, {
             width: `${(summary.late / student.totalSessions) * 100}%`,
-            backgroundColor: '#d97706',
+            backgroundColor: '#f2a65a',
             marginLeft: 0,
           }]} />
           {/* 결석 */}
           <View style={[styles.progressBarFill, {
             width: `${(summary.absent / student.totalSessions) * 100}%`,
-            backgroundColor: '#dc2626',
+            backgroundColor: '#f27d78',
           }]} />
         </View>
       </View>
@@ -302,7 +302,6 @@ function SessionCard({
         {/* 아이콘 + 정보 */}
         <View style={styles.sessionInfo}>
           <View style={styles.sessionTitleRow}>
-            <Text style={styles.sessionIcon}>{sess.programIcon}</Text>
             <Text style={[styles.sessionTopic, isUpcoming && styles.sessionTopicMuted]}>
               {sess.topic}
             </Text>
@@ -348,7 +347,7 @@ function SessionCard({
             {sess.homeworkDone !== null && (
               <View style={styles.hwChip}>
                 <Text style={[styles.hwChipText, {
-                  color: sess.homeworkDone ? '#16a34a' : '#dc2626',
+                  color: sess.homeworkDone ? '#141a24' : '#dc2626',
                 }]}>
                   {sess.homeworkDone ? '✓ 과제 완료' : '✗ 과제 미제출'}
                 </Text>
@@ -411,16 +410,16 @@ function SessionCard({
 
 const styles = StyleSheet.create({
   fixedHeader: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#0c0e13',
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#262b36',
     paddingHorizontal: 20,
     paddingBottom: 0,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: '#f2f2f0',
     paddingBottom: 12,
   },
 
@@ -432,37 +431,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 10,
     borderBottomWidth: 2, borderBottomColor: 'transparent',
   },
-  childTabActive: { borderBottomColor: '#1d4ed8' },
+  childTabActive: { borderBottomColor: '#d4b06a' },
   childAvatar: {
     width: 30, height: 30, borderRadius: 15,
-    backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#343a47', alignItems: 'center', justifyContent: 'center',
   },
-  childAvatarActive: { backgroundColor: '#1d4ed8' },
-  childAvatarText: { fontSize: 14, fontWeight: '700', color: '#374151' },
-  childName: { fontSize: 16, color: '#6b7280', fontWeight: '500' },
-  childNameActive: { color: '#1d4ed8', fontWeight: '700' },
-  childRate: { fontSize: 14, color: '#6b7280', marginTop: 1 },
+  childAvatarActive: { backgroundColor: '#d4b06a' },
+  childAvatarText: { fontSize: 14, fontWeight: '700', color: '#0c0e13' },
+  childName: { fontSize: 16, color: '#9aa0ab', fontWeight: '500' },
+  childNameActive: { color: '#d4b06a', fontWeight: '700' },
+  childRate: { fontSize: 14, color: '#9aa0ab', marginTop: 1 },
 
   scrollContent: { paddingTop: 16 },
 
   // 요약 카드
   summaryCard: {
     marginHorizontal: 20, marginBottom: 12,
-    backgroundColor: '#ffffff', borderRadius: 16,
-    padding: 18, borderWidth: 1, borderColor: '#e5e7eb',
+    backgroundColor: '#161a22', borderRadius: 16,
+    padding: 18, borderWidth: 1, borderColor: '#262b36',
   },
   summaryTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   summaryAvatar: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#1e232d', alignItems: 'center', justifyContent: 'center',
   },
-  summaryAvatarText: { fontSize: 20, fontWeight: '700', color: '#1d4ed8' },
-  summaryName: { fontSize: 17, fontWeight: '700', color: '#111827' },
-  summaryCampus: { fontSize: 14, color: '#6b7280', marginTop: 1 },
-  summaryPeriod: { fontSize: 14, color: '#6b7280', marginTop: 1 },
+  summaryAvatarText: { fontSize: 20, fontWeight: '700', color: '#d4b06a' },
+  summaryName: { fontSize: 17, fontWeight: '700', color: '#f2f2f0' },
+  summaryCampus: { fontSize: 14, color: '#9aa0ab', marginTop: 1 },
+  summaryPeriod: { fontSize: 14, color: '#9aa0ab', marginTop: 1 },
   attendanceRateBox: { alignItems: 'center' },
   attendanceRateNum: { fontSize: 28, fontWeight: '900' },
-  attendanceRateLabel: { fontSize: 14, color: '#6b7280', marginTop: 1 },
+  attendanceRateLabel: { fontSize: 14, color: '#9aa0ab', marginTop: 1 },
 
   // 도트 캘린더
   dotRow: {
@@ -471,28 +470,28 @@ const styles = StyleSheet.create({
   },
   dotItem: { alignItems: 'center', gap: 3 },
   dot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  dotUpcoming: { backgroundColor: '#f3f4f6', borderWidth: 1.5, borderColor: '#d1d5db', borderStyle: 'dashed' },
-  dotNum: { fontSize: 14, fontWeight: '700', color: '#6b7280' },
+  dotUpcoming: { backgroundColor: '#1e232d', borderWidth: 1.5, borderColor: '#343a47', borderStyle: 'dashed' },
+  dotNum: { fontSize: 14, fontWeight: '700', color: '#9aa0ab' },
   dotLabel: { fontSize: 14, fontWeight: '600' },
 
   // 3개 지표
   metricsRow: {
     flexDirection: 'row', marginBottom: 14,
-    backgroundColor: '#f8fafc', borderRadius: 12, padding: 12,
+    backgroundColor: '#0c0e13', borderRadius: 12, padding: 12,
   },
   metricBox: { flex: 1, alignItems: 'center' },
-  metricDivider: { width: 1, backgroundColor: '#e5e7eb', marginVertical: 4 },
-  metricLabel: { fontSize: 14, color: '#6b7280', fontWeight: '600', marginBottom: 4, textAlign: 'center' },
-  metricValue: { fontSize: 20, fontWeight: '800', color: '#111827', marginBottom: 2 },
+  metricDivider: { width: 1, backgroundColor: '#343a47', marginVertical: 4 },
+  metricLabel: { fontSize: 14, color: '#9aa0ab', fontWeight: '600', marginBottom: 4, textAlign: 'center' },
+  metricValue: { fontSize: 20, fontWeight: '800', color: '#f2f2f0', marginBottom: 2 },
   metricSub: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
 
   // 진행 바
   progressSection: {},
   progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
-  progressLabel: { fontSize: 14, color: '#6b7280' },
-  progressValue: { fontSize: 14, color: '#374151', fontWeight: '600' },
+  progressLabel: { fontSize: 14, color: '#9aa0ab' },
+  progressValue: { fontSize: 14, color: '#d4d7dd', fontWeight: '600' },
   progressBarBg: {
-    height: 8, backgroundColor: '#f3f4f6', borderRadius: 4,
+    height: 8, backgroundColor: '#1e232d', borderRadius: 4,
     overflow: 'hidden', flexDirection: 'row',
   },
   progressBarFill: { height: 8 },
@@ -504,25 +503,25 @@ const styles = StyleSheet.create({
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 14, color: '#6b7280' },
+  legendText: { fontSize: 14, color: '#9aa0ab' },
 
   // 섹션 제목
   sectionTitle: {
-    fontSize: 16, fontWeight: '700', color: '#111827',
+    fontSize: 16, fontWeight: '700', color: '#f2f2f0',
     marginHorizontal: 20, marginBottom: 4,
   },
   sectionHint: {
-    fontSize: 14, color: '#6b7280',
+    fontSize: 14, color: '#9aa0ab',
     marginHorizontal: 20, marginBottom: 10,
   },
 
   // 회차 카드
   sessionCard: {
     marginHorizontal: 20, marginBottom: 8,
-    backgroundColor: '#ffffff', borderRadius: 14,
-    borderWidth: 1, borderColor: '#e5e7eb', overflow: 'hidden',
+    backgroundColor: '#161a22', borderRadius: 14,
+    borderWidth: 1, borderColor: '#262b36', overflow: 'hidden',
   },
-  sessionCardUpcoming: { backgroundColor: '#f9fafb', borderColor: '#f3f4f6' },
+  sessionCardUpcoming: { backgroundColor: '#1e232d', borderColor: '#262b36' },
   sessionHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13,
   },
@@ -534,70 +533,70 @@ const styles = StyleSheet.create({
   sessionInfo: { flex: 1 },
   sessionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
   sessionIcon: { fontSize: 16 },
-  sessionTopic: { fontSize: 16, fontWeight: '600', color: '#111827', flex: 1 },
-  sessionTopicMuted: { color: '#6b7280' },
-  sessionDate: { fontSize: 14, color: '#6b7280' },
+  sessionTopic: { fontSize: 16, fontWeight: '600', color: '#f2f2f0', flex: 1 },
+  sessionTopicMuted: { color: '#9aa0ab' },
+  sessionDate: { fontSize: 14, color: '#9aa0ab' },
   sessionRight: { alignItems: 'flex-end', gap: 4 },
   statusBadge: {
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
   },
   statusBadgeText: { fontSize: 14, fontWeight: '700' },
-  chevron: { fontSize: 20, color: '#6b7280' },
-  chevronOpen: { transform: [{ rotate: '90deg' }], color: '#1d4ed8' },
+  chevron: { fontSize: 20, color: '#9aa0ab' },
+  chevronOpen: { transform: [{ rotate: '90deg' }], color: '#d4b06a' },
 
   // 확장 영역
   sessionExpanded: {
-    borderTopWidth: 1, borderTopColor: '#f3f4f6', padding: 14,
+    borderTopWidth: 1, borderTopColor: '#262b36', padding: 14,
   },
   expandedMetaRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12,
   },
   expandedMeta: { flex: 1 },
-  expandedMetaLabel: { fontSize: 14, fontWeight: '600', color: '#6b7280', marginBottom: 4 },
+  expandedMetaLabel: { fontSize: 14, fontWeight: '600', color: '#9aa0ab', marginBottom: 4 },
   participationBarBg: {
-    height: 6, backgroundColor: '#f3f4f6', borderRadius: 3,
+    height: 6, backgroundColor: '#1e232d', borderRadius: 3,
     overflow: 'hidden', marginBottom: 3,
   },
   participationBarFill: { height: 6, borderRadius: 3 },
   participationScore: { fontSize: 14, fontWeight: '600' },
   hwChip: {
-    backgroundColor: '#f9fafb', borderRadius: 8,
+    backgroundColor: '#1e232d', borderRadius: 8,
     paddingHorizontal: 9, paddingVertical: 5,
-    borderWidth: 1, borderColor: '#e5e7eb',
+    borderWidth: 1, borderColor: '#262b36',
   },
   hwChipText: { fontSize: 14, fontWeight: '700' },
 
   feedbackBox: {
-    backgroundColor: '#f8fafc', borderRadius: 10, padding: 12, marginBottom: 10,
+    backgroundColor: '#0c0e13', borderRadius: 10, padding: 12, marginBottom: 10,
   },
   feedbackLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 },
   feedbackIcon: { fontSize: 15 },
-  feedbackLabel: { fontSize: 14, fontWeight: '700', color: '#374151' },
-  feedbackText: { fontSize: 15, color: '#374151', lineHeight: 23 },
+  feedbackLabel: { fontSize: 14, fontWeight: '700', color: '#d4d7dd' },
+  feedbackText: { fontSize: 15, color: '#d4d7dd', lineHeight: 23 },
 
   highlightBox: {
-    backgroundColor: '#f0fdf4', borderRadius: 10, padding: 12,
-    marginBottom: 8, borderWidth: 1, borderColor: '#bbf7d0',
+    backgroundColor: '#1e232d', borderRadius: 10, padding: 12,
+    marginBottom: 8, borderWidth: 1, borderColor: '#343a47',
   },
-  highlightLabel: { fontSize: 14, fontWeight: '700', color: '#166534', marginBottom: 7 },
+  highlightLabel: { fontSize: 14, fontWeight: '700', color: '#d4b06a', marginBottom: 7 },
   bulletRow: { flexDirection: 'row', gap: 7, marginBottom: 4, alignItems: 'flex-start' },
   bulletGreen: {
-    width: 5, height: 5, borderRadius: 3, backgroundColor: '#22c55e', marginTop: 5,
+    width: 5, height: 5, borderRadius: 3, backgroundColor: '#d4b06a', marginTop: 5,
   },
-  highlightText: { flex: 1, fontSize: 14, color: '#166534', lineHeight: 20 },
+  highlightText: { flex: 1, fontSize: 14, color: '#d4b06a', lineHeight: 20 },
 
   improvementBox: {
-    backgroundColor: '#eff6ff', borderRadius: 10, padding: 12,
-    borderWidth: 1, borderColor: '#bfdbfe',
+    backgroundColor: '#1e232d', borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: '#343a47',
   },
-  improvementLabel: { fontSize: 14, fontWeight: '700', color: '#1e40af', marginBottom: 7 },
+  improvementLabel: { fontSize: 14, fontWeight: '700', color: '#d4b06a', marginBottom: 7 },
   bulletBlue: {
-    width: 5, height: 5, borderRadius: 3, backgroundColor: '#60a5fa', marginTop: 5,
+    width: 5, height: 5, borderRadius: 3, backgroundColor: '#7c8390', marginTop: 5,
   },
-  improvementText: { flex: 1, fontSize: 14, color: '#1e40af', lineHeight: 20 },
+  improvementText: { flex: 1, fontSize: 14, color: '#d4b06a', lineHeight: 20 },
 
   upcomingNotice: {
     paddingHorizontal: 13, paddingBottom: 10,
   },
-  upcomingNoticeText: { fontSize: 14, color: '#6b7280', fontStyle: 'italic' },
+  upcomingNoticeText: { fontSize: 14, color: '#9aa0ab', fontStyle: 'italic' },
 });

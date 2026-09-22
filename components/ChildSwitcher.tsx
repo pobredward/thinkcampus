@@ -10,7 +10,7 @@ import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-nativ
 import { BottomSheet } from './ui/BottomSheet';
 import type { Child } from '../hooks/useChildren';
 
-const AVATAR_COLORS = ['#2563eb', '#059669', '#7c3aed', '#d97706', '#db2777'];
+const AVATAR_COLORS = ['#141a24', '#2b3342', '#0f1218', '#4a5263', '#737b8c'];
 
 export function childAvatarColor(index: number): string {
   return AVATAR_COLORS[index % AVATAR_COLORS.length];
@@ -68,7 +68,7 @@ export function ChildSwitcher({
               <Pressable
                 key={c.studentId}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: isSel }}
+                aria-selected={isSel}
                 onPress={() => {
                   onSelect(c.studentId);
                   setOpen(false);
@@ -115,8 +115,8 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderColor: '#343a47',
+    backgroundColor: '#161a22',
     paddingVertical: 4,
     paddingLeft: 4,
     paddingRight: 10,
@@ -125,15 +125,15 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     alignItems: 'center',
     justifyContent: 'center',
   },
   triggerInitial: { fontSize: 15, fontWeight: '800' },
-  triggerName: { maxWidth: 84, fontSize: 15, fontWeight: '700', color: '#ffffff' },
-  triggerChevron: { fontSize: 14, color: '#dbeafe' },
+  triggerName: { maxWidth: 84, fontSize: 15, fontWeight: '700', color: '#f2f2f0' },
+  triggerChevron: { fontSize: 14, color: '#9aa0ab' },
 
-  sheetDesc: { fontSize: 15, color: '#6b7280', marginBottom: 16, marginTop: -4 },
+  sheetDesc: { fontSize: 15, color: '#9aa0ab', marginBottom: 16, marginTop: -4 },
   list: { gap: 8, paddingBottom: 8 },
   option: {
     flexDirection: 'row',
@@ -141,11 +141,11 @@ const styles = StyleSheet.create({
     gap: 12,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    borderColor: '#262b36',
+    backgroundColor: '#161a22',
     padding: 14,
   },
-  optionSelected: { borderColor: '#1d4ed8', backgroundColor: '#eff6ff' },
+  optionSelected: { borderColor: '#d4b06a', backgroundColor: '#1e232d' },
   optionAvatar: {
     width: 44,
     height: 44,
@@ -153,18 +153,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optionInitial: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
-  optionName: { fontSize: 17, fontWeight: '700', color: '#111827' },
-  optionSuffix: { fontSize: 15, fontWeight: '500', color: '#6b7280' },
-  optionMeta: { fontSize: 14, color: '#6b7280', marginTop: 2 },
+  optionInitial: { fontSize: 18, fontWeight: '800', color: '#f2f2f0' },
+  optionName: { fontSize: 17, fontWeight: '700', color: '#f2f2f0' },
+  optionSuffix: { fontSize: 15, fontWeight: '500', color: '#9aa0ab' },
+  optionMeta: { fontSize: 14, color: '#9aa0ab', marginTop: 2 },
   checkOn: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkMark: { fontSize: 14, fontWeight: '800', color: '#ffffff', lineHeight: 18 },
-  checkOff: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#d1d5db' },
+  checkMark: { fontSize: 14, fontWeight: '800', color: '#0c0e13', lineHeight: 18 },
+  checkOff: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#343a47' },
 });

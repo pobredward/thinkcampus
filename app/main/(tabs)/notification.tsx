@@ -77,16 +77,16 @@ const DUMMY_NOTIFICATIONS: Notification[] = [
   },
 ];
 
-function getTypeInfo(type: NotifType): { emoji: string; color: string; bg: string; label: string } {
+function getTypeInfo(type: NotifType): { label: string } {
   switch (type) {
     case 'attendance':
-      return { emoji: '📋', color: '#1d4ed8', bg: '#eff6ff', label: '출결' };
+      return { label: '출결' };
     case 'notice':
-      return { emoji: '📢', color: '#d97706', bg: '#fffbeb', label: '공지' };
+      return { label: '공지' };
     case 'report':
-      return { emoji: '📊', color: '#7c3aed', bg: '#f5f3ff', label: '리포트' };
+      return { label: '리포트' };
     case 'schedule':
-      return { emoji: '📅', color: '#059669', bg: '#ecfdf5', label: '일정' };
+      return { label: '일정' };
   }
 }
 
@@ -107,7 +107,7 @@ export default function NotificationScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <View style={{ flex: 1, backgroundColor: '#0c0e13' }}>
       {/* 고정 헤더 */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
@@ -130,7 +130,6 @@ export default function NotificationScreen() {
       >
         {notifications.length === 0 && (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyEmoji}>🔔</Text>
             <Text style={styles.emptyText}>새 알림이 없습니다</Text>
           </View>
         )}
@@ -149,9 +148,8 @@ export default function NotificationScreen() {
 
               {/* 상단 행 */}
               <View style={styles.cardTop}>
-                <View style={[styles.typeBadge, { backgroundColor: info.bg }]}>
-                  <Text style={styles.typeEmoji}>{info.emoji}</Text>
-                  <Text style={[styles.typeLabel, { color: info.color }]}>{info.label}</Text>
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeLabel}>{info.label}</Text>
                 </View>
                 <Text style={styles.cardDate}>{notif.date}</Text>
               </View>
@@ -171,11 +169,11 @@ export default function NotificationScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#0c0e13',
     paddingHorizontal: 20,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#262b36',
   },
   headerRow: {
     flexDirection: 'row',
@@ -183,18 +181,18 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 6,
   },
-  headerTitle: { fontSize: 24, fontWeight: '700', color: '#111827' },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: '#f2f2f0' },
   unreadBadge: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     borderRadius: 10,
     paddingHorizontal: 7,
     paddingVertical: 2,
     minWidth: 20,
     alignItems: 'center',
   },
-  unreadBadgeText: { fontSize: 14, color: '#fff', fontWeight: '700' },
+  unreadBadgeText: { fontSize: 14, color: '#0c0e13', fontWeight: '700' },
   markAllBtn: { alignSelf: 'flex-start' },
-  markAllText: { fontSize: 15, color: '#1d4ed8', fontWeight: '500' },
+  markAllText: { fontSize: 15, color: '#d4b06a', fontWeight: '500' },
 
   content: { paddingTop: 12, paddingHorizontal: 16 },
 
@@ -203,21 +201,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  emptyEmoji: { fontSize: 40 },
-  emptyText: { fontSize: 16, color: '#6b7280' },
+  emptyText: { fontSize: 16, color: '#9aa0ab' },
 
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderRadius: 14,
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     position: 'relative',
   },
   cardUnread: {
-    borderColor: '#bfdbfe',
-    backgroundColor: '#fafcff',
+    borderColor: '#4a3e22',
+    backgroundColor: '#161a22',
   },
   unreadDot: {
     position: 'absolute',
@@ -226,7 +223,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
   },
   cardTop: {
     flexDirection: 'row',
@@ -235,29 +232,26 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 8,
+    borderRadius: 6,
+    backgroundColor: '#1e232d',
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  typeEmoji: { fontSize: 15 },
-  typeLabel: { fontSize: 14, fontWeight: '700' },
-  cardDate: { paddingRight: 16, fontSize: 14, color: '#6b7280' },
+  typeLabel: { fontSize: 14, fontWeight: '700', color: '#d4d7dd' },
+  cardDate: { paddingRight: 16, fontSize: 14, color: '#9aa0ab' },
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#d4d7dd',
     marginBottom: 4,
   },
   cardTitleUnread: {
-    color: '#111827',
+    color: '#f2f2f0',
     fontWeight: '700',
   },
   cardBody: {
     fontSize: 15,
-    color: '#6b7280',
+    color: '#9aa0ab',
     lineHeight: 23,
   },
 });

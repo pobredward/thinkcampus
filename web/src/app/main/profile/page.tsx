@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * 내 정보 탭 (모바일 app/main/profile.tsx)
- * - 보호자 정보 확인
+ * 내 정보 탭 (모바일 app/main/(tabs)/profile/index.tsx)
+ * - 보호자 정보 확인 — 이름(홈 인사말에 쓰임, [이름 수정]) · 전화번호
  * - 자녀 목록 + 보호자 초대
  * - 로그아웃 · 회원 탈퇴(/main/profile/withdraw)
  */
@@ -15,19 +15,23 @@ import { Spinner } from "@/components/ui/Spinner";
 import { TextField } from "@/components/ui/TextField";
 import { useChildren } from "@/hooks/useChildren";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { GuardianNameSheet } from "@/components/GuardianNameSheet";
 import { errMessage } from "@/lib/errors";
 import { getFns } from "@/lib/firebase";
 import { DEMO_BLOCKED, DEMO_MODE, DEMO_NOTICE_TITLE } from "@/lib/demo";
 import { e164ToLocal } from "@/lib/phone";
 import { useAuth } from "@/providers/AuthProvider";
 import { useDialog } from "@/providers/DialogProvider";
+import { useToast } from "@/providers/ToastProvider";
 
 const RELATION_PRESETS = ["부(아빠)", "조모(할머니)", "조부(할아버지)", "이모", "삼촌", "기타"];
 
 export default function ProfileScreen() {
   usePageTitle("내 정보");
   const dialog = useDialog();
-  const { user, signOut } = useAuth();
+  const toast = useToast();
+  const { user, signOut, guardianName, saveGuardianName } = useAuth();
+  const [nameSheet, setNameSheet] = useState(false);
   const { children, loading } = useChildren({ activeOnly: true });
   const [signingOut, setSigningOut] = useState(false);
 
@@ -109,55 +113,72 @@ export default function ProfileScreen() {
   const formattedPhone = e164ToLocal(user?.phoneNumber);
 
   return (
-    <div className="flex flex-1 flex-col bg-[#f8fafc] pb-10">
+    <div className="flex flex-1 flex-col bg-paper pb-10">
       {/* 헤더 */}
       <div
-        className="border-b border-gray-100 bg-white px-5 pb-4"
+        className="border-b border-line bg-paper px-5 pb-4"
         style={{ paddingTop: "calc(var(--sat) + 20px)" }}
       >
-        <h1 className="text-[24px] font-bold text-gray-900">내 정보</h1>
+        <h1 className="text-[24px] font-bold text-fg">내 정보</h1>
       </div>
 
-      {/* 보호자 정보 카드 */}
-      <div className="mx-5 mt-4 flex items-center gap-[14px] rounded-[14px] border border-gray-200 bg-white p-4">
-        <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[26px] bg-blue-100">
-          <span className="text-[14px] font-semibold text-brand">보호자</span>
+      {/* 보호자 정보 카드 — 이름(없으면 입력 안내) · 전화번호 · [이름 수정] */}
+      <div className="mx-5 mt-4 flex items-center gap-[14px] rounded-[14px] border border-line bg-card p-4">
+        <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[26px] bg-elev">
+          <span className="text-[14px] font-semibold text-gold">보호자</span>
         </div>
-        <div>
-          <p className="text-[20px] font-bold text-gray-900">{formattedPhone}</p>
-          <p className="mt-[2px] text-[15px] text-gray-500">학부모 계정</p>
+        <div className="min-w-0 flex-1">
+          {guardianName ? (
+            <p className="truncate text-[20px] font-bold text-fg">{guardianName}</p>
+          ) : (
+            <p className="text-[17px] font-semibold text-sub">이름을 입력해 주세요</p>
+          )}
+          <p className="mt-[2px] text-[15px] text-sub">{formattedPhone}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (DEMO_MODE) {
+              void dialog.alert(DEMO_NOTICE_TITLE, DEMO_BLOCKED.guardianName);
+              return;
+            }
+            setNameSheet(true);
+          }}
+          className="tap shrink-0 rounded-lg border border-line bg-elev px-3 py-[9px]"
+        >
+          <span className="text-[15px] font-semibold text-gold">{guardianName ? "이름 수정" : "이름 입력"}</span>
+        </button>
       </div>
 
       {/* 자녀 목록 */}
-      <h2 className="px-5 pb-2 pt-5 text-[15px] font-semibold uppercase tracking-[0.5px] text-gray-500">
+      <h2 className="px-5 pb-2 pt-5 text-[15px] font-semibold uppercase tracking-[0.5px] text-sub">
         연결된 자녀
       </h2>
 
       {loading ? (
         <div className="mt-4 flex justify-center">
-          <Spinner color="#1d4ed8" />
+          <Spinner />
         </div>
       ) : children.length === 0 ? (
-        <div className="mx-5 flex flex-col items-center rounded-[14px] border border-gray-200 bg-white p-5">
-          <p className="text-[16px] text-gray-500">연결된 자녀가 없습니다</p>
+        <div className="mx-5 flex flex-col items-center rounded-[14px] border border-line bg-card p-5">
+          <p className="text-[16px] text-sub">연결된 자녀가 없습니다</p>
         </div>
       ) : (
         children.map((child) => (
           <div
             key={child.enrollmentId}
-            className="mx-5 mb-2 flex items-center justify-between rounded-[14px] border border-gray-200 bg-white p-4"
+            className="mx-5 mb-2 flex items-center justify-between rounded-[14px] border border-line bg-card p-4"
           >
             <div>
-              <p className="text-[16px] font-bold text-gray-900">{child.studentName}</p>
-              <p className="mt-[3px] text-[14px] text-gray-500">
+              <p className="text-[16px] font-bold text-fg">{child.studentName}</p>
+              <p className="mt-[3px] text-[14px] text-sub">
                 {child.campusName}
                 {child.relation ? ` · ${child.relation}` : ""}
               </p>
             </div>
             <button
               type="button"
-              className="tap shrink-0 rounded-lg border border-blue-200 bg-brand-light px-3 py-[7px]"
+              className="tap shrink-0 rounded-lg border border-line bg-elev px-3 py-[7px]"
               onClick={() => {
                 setInvitePhone("");
                 setInviteRelation("");
@@ -168,46 +189,46 @@ export default function ProfileScreen() {
                 });
               }}
             >
-              <span className="text-[14px] font-semibold text-brand">보호자 초대</span>
+              <span className="text-[14px] font-semibold text-gold">보호자 초대</span>
             </button>
           </div>
         ))
       )}
 
       {/* 메뉴 */}
-      <h2 className="mt-6 px-5 pb-2 pt-5 text-[15px] font-semibold uppercase tracking-[0.5px] text-gray-500">
+      <h2 className="mt-6 px-5 pb-2 pt-5 text-[15px] font-semibold uppercase tracking-[0.5px] text-sub">
         설정
       </h2>
-      <div className="mx-5 overflow-hidden rounded-[14px] border border-gray-200 bg-white">
+      <div className="mx-5 overflow-hidden rounded-[14px] border border-line bg-card">
         <button
           type="button"
           className="tap flex w-full items-center justify-between px-4 py-[14px] text-left"
         >
-          <span className="text-[16px] text-gray-900">앱 정보</span>
-          <span className="text-[20px] text-gray-500">›</span>
+          <span className="text-[16px] text-fg">앱 정보</span>
+          <span className="text-[20px] text-sub">›</span>
         </button>
-        <div className="mx-4 h-px bg-gray-100" />
+        <div className="mx-4 h-px bg-elev" />
         <button
           type="button"
           className="tap flex w-full items-center justify-between px-4 py-[14px] text-left"
         >
-          <span className="text-[16px] text-gray-900">문의하기</span>
-          <span className="text-[20px] text-gray-500">›</span>
+          <span className="text-[16px] text-fg">문의하기</span>
+          <span className="text-[20px] text-sub">›</span>
         </button>
-        <div className="mx-4 h-px bg-gray-100" />
+        <div className="mx-4 h-px bg-elev" />
         <button
           type="button"
           className="tap flex w-full items-center justify-between px-4 py-[14px] text-left"
         >
-          <span className="text-[16px] text-gray-900">개인정보 처리방침</span>
-          <span className="text-[20px] text-gray-500">›</span>
+          <span className="text-[16px] text-fg">개인정보 처리방침</span>
+          <span className="text-[20px] text-sub">›</span>
         </button>
       </div>
 
       {/* 로그아웃 */}
       <button
         type="button"
-        className={`tap mx-5 mt-5 flex items-center justify-center rounded-[14px] border border-[#fecdd3] bg-[#fff1f2] py-[15px] ${
+        className={`tap mx-5 mt-5 flex items-center justify-center rounded-[14px] border border-danger-border bg-danger-bg py-[15px] ${
           signingOut ? "opacity-50" : ""
         }`}
         onClick={handleSignOut}
@@ -216,29 +237,41 @@ export default function ProfileScreen() {
         {signingOut ? (
           <Spinner color="#dc2626" />
         ) : (
-          <span className="text-[16px] font-semibold text-red-600">로그아웃</span>
+          <span className="text-[16px] font-semibold text-danger">로그아웃</span>
         )}
       </button>
 
       {/* 회원 탈퇴 — 눈에 덜 띄게 */}
       <Link
         href="/main/profile/withdraw"
-        className="tap mx-auto mt-6 px-4 py-2 text-[15px] text-gray-500 underline underline-offset-4"
+        className="tap mx-auto mt-6 px-4 py-2 text-[15px] text-sub underline underline-offset-4"
       >
         회원 탈퇴
       </Link>
 
+      {/* 보호자 이름 입력·수정 */}
+      <GuardianNameSheet
+        open={nameSheet}
+        initialName={guardianName ?? ""}
+        onClose={() => setNameSheet(false)}
+        onSave={async (raw) => {
+          await saveGuardianName(raw);
+          setNameSheet(false);
+          toast.show("이름을 저장했어요");
+        }}
+      />
+
       {/* 보호자 초대 모달 */}
       <BottomSheet open={inviteModal.visible} onClose={closeInviteModal} title="보호자 초대">
         <div className="pb-6">
-          <p className="mb-5 text-[15px] leading-[22px] text-gray-500">
-            <span className="font-bold text-gray-900">{inviteModal.studentName}</span>
+          <p className="mb-5 text-[15px] leading-[22px] text-sub">
+            <span className="font-bold text-fg">{inviteModal.studentName}</span>
             {"의 다른 보호자를 초대합니다."}
             <br />
             추가된 번호로 앱에 로그인하면 자동으로 연결됩니다.
           </p>
 
-          <p className="mb-2 text-[15px] font-semibold text-gray-700">관계</p>
+          <p className="mb-2 text-[15px] font-semibold text-fg2">관계</p>
           <div className="mb-[10px] flex flex-wrap gap-2" role="group" aria-label="관계 선택">
             {RELATION_PRESETS.map((r) => {
               const active = inviteRelation === r;
@@ -250,8 +283,8 @@ export default function ProfileScreen() {
                   onClick={() => setInviteRelation(r)}
                   className={`tap rounded-[20px] border px-3 py-[6px] text-[15px] ${
                     active
-                      ? "border-brand bg-brand-light font-semibold text-brand"
-                      : "border-gray-200 bg-gray-50 text-gray-700"
+                      ? "border-gold bg-elev font-semibold text-gold"
+                      : "border-line bg-elev text-fg2"
                   }`}
                 >
                   {r}
@@ -267,7 +300,7 @@ export default function ProfileScreen() {
             className="mb-[14px] py-3!"
           />
 
-          <label htmlFor="invite-phone" className="mb-2 block text-[15px] font-semibold text-gray-700">
+          <label htmlFor="invite-phone" className="mb-2 block text-[15px] font-semibold text-fg2">
             전화번호
           </label>
           <TextField
@@ -291,9 +324,9 @@ export default function ProfileScreen() {
             disabled={inviteLoading}
           >
             {inviteLoading ? (
-              <Spinner color="#fff" />
+              <Spinner color="#0c0e13" />
             ) : (
-              <span className="text-[16px] font-bold text-white">초대 추가</span>
+              <span className="text-[16px] font-bold text-ink">초대 추가</span>
             )}
           </button>
           <button
@@ -301,7 +334,7 @@ export default function ProfileScreen() {
             className="tap flex w-full items-center justify-center py-[10px]"
             onClick={closeInviteModal}
           >
-            <span className="text-[16px] text-gray-500">닫기</span>
+            <span className="text-[16px] text-sub">닫기</span>
           </button>
         </div>
       </BottomSheet>

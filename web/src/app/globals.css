@@ -13,11 +13,40 @@
   /* 앱 프레임 */
   --width-frame: 480px;
 
-  /* 브랜드 */
-  --color-brand: #1d4ed8; /* blue-700 */
-  --color-brand-light: #eff6ff; /* blue-50 */
-  --color-brand-border: #bfdbfe; /* blue-200 */
-  --color-brand-disabled: #bfdbfe;
+  /* 미드나잇 — 완전 다크 바탕 + 골드 가는 선 (2026-09-21 시안 E)
+     바탕(paper) → 카드(card) → 카드 안 면(elev) 순으로 조금씩 밝아진다. 카드는 그림자 대신 1px 선.
+     골드는 강조·다음 수업·활성 상태에만, 빨강은 결석·필수 규정·삭제, 주황은 지각에만.
+     모바일(RN) lib/theme.ts 와 같은 값 */
+  --color-paper: #0c0e13; /* 화면 바탕 */
+  --color-card: #161a22; /* 카드 */
+  --color-card2: #11141a; /* 카드보다 가라앉은 면 (끝난 회차, 잠긴 리포트) */
+  --color-elev: #1e232d; /* 카드 안에서 살짝 올라온 면 (배지, 선택지, 입력) */
+  --color-line: #262b36; /* 기본 선 */
+  --color-line2: #343a47; /* 조금 더 진한 선 · 진행 막대 바탕 · 비활성 면 */
+
+  --color-fg: #f2f2f0; /* 본문 글자 */
+  --color-fg2: #d4d7dd; /* 본문 (조금 옅게) */
+  --color-sub: #9aa0ab; /* 보조 글자 */
+  --color-faint: #7c8390; /* 가장 옅은 글자 (14px 에서도 4.5:1 이상) */
+  --color-ink: #0c0e13; /* 골드 위 글자 */
+
+  --color-gold: #d4b06a; /* 골드 — 강조 글자·선·채움 */
+  --color-gold-soft: #d4b06a;
+  --color-gold-light: #2a2417; /* 골드 틴트 면 */
+  --color-gold-border: #4a3e22;
+  --color-gold-dim: #6e5b34; /* 골드 가는 테두리 */
+
+  --color-danger: #f27d78; /* 결석 · 필수 규정 · 삭제 */
+  --color-danger-bg: #2a1719;
+  --color-danger-border: #4a2326;
+  --color-late: #f2a65a; /* 지각 */
+  --color-late-bg: #2a2015;
+
+  /* 예전 이름 (호환) */
+  --color-brand: #d4b06a; /* 주요 버튼·활성 = 골드 */
+  --color-brand-light: #1e232d;
+  --color-brand-border: #343a47;
+  --color-brand-disabled: #3a3f4b;
 }
 
 :root {
@@ -29,6 +58,7 @@
 @layer base {
   html {
     height: 100%;
+    color-scheme: dark;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
   }
@@ -36,8 +66,8 @@
   body {
     min-height: 100%;
     margin: 0;
-    background: #e5e7eb;
-    color: #111827;
+    background: #05060a;
+    color: #f2f2f0;
     font-family: var(--font-sans);
     font-feature-settings: "tnum";
     overscroll-behavior-y: none;
@@ -54,14 +84,14 @@
   max-width: var(--width-frame);
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #0c0e13;
   display: flex;
   flex-direction: column;
 }
 
 @media (min-width: 481px) {
   #app-frame {
-    box-shadow: 0 0 0 1px #d1d5db, 0 20px 60px rgba(17, 24, 39, 0.12);
+    box-shadow: 0 0 0 1px #262b36, 0 24px 70px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -85,7 +115,16 @@
   }
   input::placeholder,
   textarea::placeholder {
-    color: #9ca3af;
+    color: #7c8390;
+  }
+  input:focus-visible,
+  textarea:focus-visible {
+    border-color: #d4b06a;
+  }
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid #d4b06a;
+    outline-offset: 2px;
   }
 }
 

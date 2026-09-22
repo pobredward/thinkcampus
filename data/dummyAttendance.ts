@@ -57,19 +57,19 @@ export function getStatusLabel(s: AttendanceStatus): string {
 
 export function getStatusColor(s: AttendanceStatus): string {
   switch (s) {
-    case 'present':  return '#16a34a';
-    case 'late':     return '#d97706';
-    case 'absent':   return '#dc2626';
-    case 'upcoming': return '#6b7280';
+    case 'present':  return '#d4b06a';
+    case 'late':     return '#f2a65a';
+    case 'absent':   return '#f27d78';
+    case 'upcoming': return '#9aa0ab';
   }
 }
 
 export function getStatusBg(s: AttendanceStatus): string {
   switch (s) {
-    case 'present':  return '#f0fdf4';
-    case 'late':     return '#fffbeb';
-    case 'absent':   return '#fff1f2';
-    case 'upcoming': return '#f9fafb';
+    case 'present':  return '#2a2417';
+    case 'late':     return '#2a2015';
+    case 'absent':   return '#2a1719';
+    case 'upcoming': return '#1e232d';
   }
 }
 
@@ -81,10 +81,10 @@ export function getParticipationLabel(score: number): string {
 }
 
 export function getParticipationColor(score: number): string {
-  if (score >= 90) return '#7c3aed';
-  if (score >= 75) return '#1d4ed8';
-  if (score >= 55) return '#0369a1';
-  return '#6b7280';
+  if (score >= 90) return '#d4b06a';
+  if (score >= 75) return '#e0c184';
+  if (score >= 55) return '#9aa0ab';
+  return '#7c8390';
 }
 
 // ── 더미 데이터: 김민준 ───────────────────────────────────

@@ -30,7 +30,7 @@ export default function ProgramListScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1d4ed8" />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#d4b06a" />
       }
     >
       {/* 헤더 */}
@@ -121,25 +121,27 @@ export default function ProgramListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#0c0e13' },
   content: { paddingBottom: 32 },
 
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#262b36',
   },
-  headerTitle: { fontSize: 24, fontWeight: '700', color: '#111827' },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: '#f2f2f0' },
 
   banner: {
     marginHorizontal: 20,
     marginTop: 16,
     marginBottom: 4,
     borderRadius: 16,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#161a22',
+    borderWidth: 1,
+    borderColor: '#262b36',
     overflow: 'hidden',
   },
   bannerInner: {
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
   },
   bannerCategory: {
     fontSize: 14,
-    color: '#dbeafe',
+    color: '#9aa0ab',
     fontWeight: '600',
     letterSpacing: 1,
     textTransform: 'uppercase',
@@ -156,12 +158,12 @@ const styles = StyleSheet.create({
   bannerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#f2f2f0',
     marginBottom: 4,
   },
   bannerSub: {
     fontSize: 15,
-    color: '#dbeafe',
+    color: '#9aa0ab',
     marginBottom: 14,
   },
   bannerChips: {
@@ -171,30 +173,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   bannerChip: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#1e232d',
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   bannerChipText: {
     fontSize: 14,
-    color: '#ffffff',
+    color: '#f2f2f0',
     fontWeight: '600',
   },
   bannerPeriod: {
     fontSize: 14,
-    color: '#dbeafe',
+    color: '#9aa0ab',
     marginBottom: 4,
   },
   bannerLocation: {
     fontSize: 14,
-    color: '#dbeafe',
+    color: '#9aa0ab',
   },
 
   sectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6b7280',
+    color: '#9aa0ab',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
@@ -205,13 +207,13 @@ const styles = StyleSheet.create({
   sessionCard: {
     marginHorizontal: 20,
     marginBottom: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderRadius: 14,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
   },
   sessionLeft: {
     marginRight: 14,
@@ -220,40 +222,40 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#1e232d',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sessionBadgeNum: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#1d4ed8',
+    color: '#d4b06a',
     lineHeight: 20,
   },
   sessionBadgeLabel: {
     fontSize: 14,
-    color: '#2563eb',
+    color: '#d4b06a',
     fontWeight: '600',
   },
   sessionBody: { flex: 1 },
   sessionDate: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#9aa0ab',
     marginBottom: 3,
   },
   sessionTopic: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: '#f2f2f0',
     marginBottom: 3,
   },
   sessionInstructor: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#9aa0ab',
   },
   arrow: {
     fontSize: 22,
-    color: '#d1d5db',
+    color: '#7c8390',
     marginLeft: 8,
   },
 });

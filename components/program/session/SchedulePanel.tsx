@@ -16,7 +16,7 @@ export function SchedulePanel({ item, today }: { item: DayItem; today: string })
     <>
       <PanelTitle>프로그램 일정</PanelTitle>
       {status === 'cancelled' && (
-        <Note tone="amber">
+        <Note>
           이 회차는 휴강이에요{session.cancelReason ? ` (${session.cancelReason})` : ''}.
           {session.makeUpDate ? ` 보강은 ${session.makeUpDate}에 진행돼요.` : ''}
         </Note>
@@ -76,17 +76,17 @@ export function SchedulePanel({ item, today }: { item: DayItem; today: string })
 
 const styles = StyleSheet.create({
   dateRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
-  dday: { backgroundColor: '#1d4ed8', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
-  ddayText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
+  dday: { backgroundColor: '#d4b06a', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
+  ddayText: { fontSize: 15, fontWeight: '700', color: '#0c0e13' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
-    backgroundColor: '#f0fdf4',
+    borderColor: '#343a47',
+    backgroundColor: '#1e232d',
     paddingHorizontal: 16,
     paddingVertical: 7,
   },
-  chipText: { fontSize: 16, fontWeight: '600', color: '#15803d' },
-  none: { fontSize: 16, color: '#4b5563' },
+  chipText: { fontSize: 16, fontWeight: '600', color: '#d4b06a' },
+  none: { fontSize: 16, color: '#9aa0ab' },
 });

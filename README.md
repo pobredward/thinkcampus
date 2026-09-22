@@ -13,25 +13,25 @@ thinkcampus/
 │   ├── _layout.tsx              # 루트 레이아웃
 │   ├── index.tsx                # 로그인 여부 확인 → /onboarding 또는 /main
 │   ├── goodbye.tsx              # 회원 탈퇴 완료 안내
-│   ├── onboarding/              # 등록코드 → 생년월일·관계·전화번호 → OTP, 전화번호 로그인
+│   ├── onboarding/              # 등록코드 → 생년월일·관계·보호자 이름·전화번호 → OTP, 전화번호 로그인
 │   └── main/                    # Stack: 하단 탭 위에 상세 화면을 쌓는다 (뒤로가기가 항상 들어온 순서대로)
 │       ├── (tabs)/              # 하단 탭: 홈 / 알림 / 내 정보
-│       │   ├── index.tsx        # 홈 (규정·지침 버튼 · 수강 중 · 수강 예정 · FAQ · 맨 아래 이전 수강 이력 버튼)
+│       │   ├── index.tsx        # 홈 (상단 경로 [홈] + 자녀 전환 · 인사말 "환영합니다, 보호자 이름 학부모님" · 수강 중 · 수강 예정(숨김) · FAQ · 맨 아래 이전 수강 이력 버튼)
 │       │   ├── notification.tsx
-│       │   └── profile/         # 내 정보 · withdraw(회원 탈퇴)
+│       │   └── profile/         # 내 정보(보호자 이름 수정) · withdraw(회원 탈퇴)
 │       ├── history.tsx          # 이전 수강 이력
 │       ├── faq/                 # FAQ + 챗봇 (tab=chatbot 으로 챗봇부터)
 │       └── program/
 │           ├── index.tsx                        # 프로그램 전체 회차 일정
 │           └── [programId]/
-│               ├── index.tsx                    # 수강 중: 수업 안내 버튼 → 회차 버튼(한 줄에 3개, 출결은 눌러서) → 종합 리포트
-│               │                                #   (수강 예정이면 요약 + 안내 버튼 6개 — components/program/UpcomingProgram)
-│               ├── guide/{purpose,sessions,notices,rules,qna}.tsx  # 안내 페이지 (각각 독립, 공통 틀은 components/program/GuideScreen)
+│               ├── index.tsx                    # 상단 경로 → [수업 규정·지침 · 필독] → 수업 안내(일시 및 장소 · 목적 및 내용 · 공지사항 · 자주 묻는 질문) → 회차별 수업(N회차만, 3열) → 종합 리포트
+│               │                                #   (수강 예정도 같은 구성 — components/program/UpcomingProgram)
+│               ├── guide/{schedule,purpose,notices,rules,qna}.tsx  # 안내 페이지 (각각 독립, 공통 틀은 components/program/GuideScreen · schedule = 일시 + 장소·오시는 길)
 │               ├── session/[sessionId].tsx      # 회차 화면: 출결 · 일정 · 내용 · Q&A · 리포트 (수강 예정은 일정·내용·Q&A)
 │               └── report.tsx                   # 종합 리포트 (모든 회차가 끝난 뒤)
-├── components/              # ChildSwitcher · program/(헤더 · GuideMenu 안내 버튼 · GuideScreen 안내 페이지 틀 · UpcomingProgram · 회차 탭 패널) · ui/(BottomSheet · ProgressBar)
-├── hooks/                   # useAuthUser · useChildren · useSelectedChild
-├── lib/                     # dates · errors · contact
+├── components/              # ChildSwitcher · GuardianNamePrompt(이름 없는 계정에 홈에서 한 번) · program/(헤더 · GuideMenu 안내 목록 · SectionHeading · SessionGrid · GuideScreen · UpcomingProgram · AskChatbot · 회차 탭 패널) · ui/(Breadcrumbs 상단 경로 · BottomSheet · ProgressBar)
+├── hooks/                   # useAuthUser · useChildren · useSelectedChild · useGuardianName(보호자 이름 읽기·저장)
+├── lib/                     # dates · errors · contact · crumbs(화면별 상단 경로) · guardianName(보호자 이름 규칙·인사말) · theme(색 토큰 — 미드나잇: 다크 바탕 + 골드, 웹 globals.css 와 같은 값)
 ├── data/                    # 더미 데이터(웹 web/src/data 와 같은 내용) · programView · programGuide(안내 항목·기본 규정·기본 Q&A)
 ├── web/                     # Next.js 웹 버전 (web/README.md)
 ├── firebase.ts              # @react-native-firebase 인스턴스 export
@@ -44,6 +44,10 @@ thinkcampus/
 ```
 
 화면 기준(학부모용): 글자 최소 14 · 본문 16 이상 · 제목 18~24.
+
+상단 경로: 모든 상세 화면 맨 위에 `홈 › 토요 창의융합 › 3회차` 처럼 지금 위치를 한 줄로 보여 준다(지금 화면은 골드, 누르는 높이 44). 앞 단계를 누르면 `router.dismissTo` 로 쌓인 화면 중 그 화면까지 돌아가고, 없으면(알림·링크로 바로 들어온 경우) 지금 화면을 그 화면으로 바꾼다. 화면별 경로는 `lib/crumbs.ts` 한곳에서 정한다(웹 `web/src/lib/crumbs.ts` 와 같은 구조). 홈도 맨 위에 `🏠 홈` 한 줄(자녀 2명 이상이면 같은 줄 오른쪽에 자녀 전환).
+
+보호자 이름: 가입 화면(자녀 정보 확인)에서 받아 OTP 로그인 직후 계정 표시 이름(Firebase Auth displayName)에 저장한다 — 서버 함수 변경 없음. 홈 인사말은 "환영합니다, OOO 학부모님"(자녀 이름 아님). 이름이 없는 계정(예전 가입 · 초대받은 보호자)은 홈에서 한 번 물어보고, 내 정보에서 언제든 바꿀 수 있다.
 
 ---
 

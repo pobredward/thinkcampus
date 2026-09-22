@@ -62,19 +62,19 @@ export function getGrade(score: number): 'S' | 'A' | 'B' | 'C' {
 
 export function getGradeColor(grade: 'S' | 'A' | 'B' | 'C'): string {
   switch (grade) {
-    case 'S': return '#7c3aed';
-    case 'A': return '#1d4ed8';
-    case 'B': return '#0369a1';
-    case 'C': return '#6b7280';
+    case 'S': return '#d4b06a';
+    case 'A': return '#e0c184';
+    case 'B': return '#9aa0ab';
+    case 'C': return '#7c8390';
   }
 }
 
 export function getGradeBg(grade: 'S' | 'A' | 'B' | 'C'): string {
   switch (grade) {
-    case 'S': return '#f5f3ff';
-    case 'A': return '#eff6ff';
-    case 'B': return '#f0f9ff';
-    case 'C': return '#f9fafb';
+    case 'S': return '#2a2417';
+    case 'A': return '#2a2417';
+    case 'B': return '#1e232d';
+    case 'C': return '#1e232d';
   }
 }
 

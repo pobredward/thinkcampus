@@ -57,7 +57,7 @@ const ALL_REPORTS = [DUMMY_REPORT, DUMMY_CHILD2];
 // ── PDF HTML 빌더 ─────────────────────────────────────────
 function buildPdfHtml(report: StudentReport): string {
   const gradeColorMap: Record<string, string> = {
-    S: '#7c3aed', A: '#1d4ed8', B: '#0369a1', C: '#6b7280',
+    S: '#d4b06a', A: '#e0c184', B: '#9aa0ab', C: '#7c8390',
   };
   const programRows = report.programs.map((p) => {
     const color = gradeColorMap[p.grade];
@@ -87,14 +87,14 @@ function buildPdfHtml(report: StudentReport): string {
           <span style="font-size:20px;font-weight:700;color:${color};">${p.overallScore}점</span>
         </div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
-          <thead><tr style="background:#f8fafc;">
+          <thead><tr style="background:#f6f6f4;">
             <th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb;">역량</th>
             <th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb;">점수</th>
             <th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb;">비교</th>
           </tr></thead>
           <tbody>${compRows}</tbody>
         </table>
-        <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:8px;">
+        <div style="background:#f6f6f4;border-radius:8px;padding:12px;margin-bottom:8px;">
           <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:4px;">강사 총평</div>
           <div style="font-size:13px;color:#374151;line-height:1.7;">${p.instructorComment}</div>
         </div>
@@ -106,30 +106,30 @@ function buildPdfHtml(report: StudentReport): string {
   return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/>
   <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,Arial,sans-serif;padding:28px;color:#111827;}</style>
   </head><body>
-  <div style="background:#1d4ed8;border-radius:14px;padding:24px;margin-bottom:24px;color:#fff;">
-    <div style="font-size:12px;color:#bfdbfe;margin-bottom:4px;">ThinkCampus 학습 리포트</div>
+  <div style="background:#141a24;border-radius:14px;padding:24px;margin-bottom:24px;color:#fff;">
+    <div style="font-size:12px;color:#d9dbe0;margin-bottom:4px;">ThinkCampus 학습 리포트</div>
     <div style="font-size:26px;font-weight:900;margin-bottom:4px;">${report.studentName} 학생</div>
-    <div style="font-size:13px;color:#bfdbfe;">${report.campusName} · ${report.campPeriod}</div>
+    <div style="font-size:13px;color:#d9dbe0;">${report.campusName} · ${report.campPeriod}</div>
     <div style="display:flex;gap:12px;margin-top:16px;">
       <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 20px;text-align:center;">
         <div style="font-size:32px;font-weight:900;">${report.totalGrade}</div>
-        <div style="font-size:11px;color:#bfdbfe;">종합 등급</div>
+        <div style="font-size:11px;color:#d9dbe0;">종합 등급</div>
       </div>
       <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 20px;text-align:center;">
         <div style="font-size:32px;font-weight:900;">${report.totalScore}</div>
-        <div style="font-size:11px;color:#bfdbfe;">종합 점수</div>
+        <div style="font-size:11px;color:#d9dbe0;">종합 점수</div>
       </div>
     </div>
   </div>
-  <div style="background:#f8fafc;border-radius:10px;padding:16px;margin-bottom:20px;border:1px solid #e5e7eb;">
+  <div style="background:#f6f6f4;border-radius:10px;padding:16px;margin-bottom:20px;border:1px solid #e5e7eb;">
     <div style="font-size:13px;font-weight:700;margin-bottom:6px;">${report.personalityType}</div>
     <div style="font-size:13px;color:#374151;line-height:1.7;">${report.personalityDesc}</div>
   </div>
-  <div style="background:#f8fafc;border-radius:10px;padding:16px;margin-bottom:24px;border:1px solid #e5e7eb;">
+  <div style="background:#f6f6f4;border-radius:10px;padding:16px;margin-bottom:24px;border:1px solid #e5e7eb;">
     <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:8px;">담임 강사 종합 총평</div>
     <div style="font-size:14px;color:#374151;line-height:1.8;">${report.overallComment}</div>
   </div>
-  <div style="font-size:17px;font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #1d4ed8;">프로그램별 상세 평가</div>
+  <div style="font-size:17px;font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #141a24;">프로그램별 상세 평가</div>
   ${programRows}
   <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;color:#9ca3af;font-size:12px;">
     발급일: ${report.issueDate} · ThinkCampus 공식 리포트
@@ -213,40 +213,40 @@ export default function ReportScreen() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-[#f8fafc] pb-8">
+    <div className="flex flex-1 flex-col bg-paper pb-8">
       {/* ── 고정 헤더 ── */}
       <div
-        className="no-print sticky top-0 z-10 border-b border-gray-100 bg-white px-5"
+        className="no-print sticky top-0 z-10 border-b border-line bg-card px-5"
         style={{ paddingTop: "calc(var(--sat) + 12px)" }}
       >
         <div className="flex items-center justify-between pb-3">
-          <h1 className="text-[24px] font-bold text-gray-900">학습 리포트</h1>
+          <h1 className="text-[24px] font-bold text-fg">학습 리포트</h1>
           {/* 공유 · PDF 버튼 */}
           <div className="flex gap-2">
             <button
               type="button"
-              className="tap flex min-w-[36px] items-center justify-center rounded-lg border border-gray-200 px-3 py-[7px]"
+              className="tap flex min-w-[36px] items-center justify-center rounded-lg border border-line px-3 py-[7px]"
               onClick={handleShare}
               disabled={shareLoading}
               aria-busy={shareLoading}
             >
               {shareLoading ? (
-                <Spinner size="small" color="#1d4ed8" />
+                <Spinner size="small" />
               ) : (
-                <span className="text-[15px] font-medium text-gray-700">🔗 링크 공유</span>
+                <span className="text-[15px] font-medium text-fg2">🔗 링크 공유</span>
               )}
             </button>
             <button
               type="button"
-              className="tap flex min-w-[36px] items-center justify-center rounded-lg border border-brand bg-brand px-3 py-[7px]"
+              className="tap flex min-w-[36px] items-center justify-center rounded-lg border border-gold bg-brand px-3 py-[7px]"
               onClick={handlePdf}
               disabled={pdfLoading}
               aria-busy={pdfLoading}
             >
               {pdfLoading ? (
-                <Spinner size="small" color="#fff" />
+                <Spinner size="small" color="#0c0e13" />
               ) : (
-                <span className="text-[15px] font-bold text-white">PDF</span>
+                <span className="text-[15px] font-bold text-fg">PDF</span>
               )}
             </button>
           </div>
@@ -263,7 +263,7 @@ export default function ReportScreen() {
                   type="button"
                   aria-pressed={isActive}
                   className={`tap flex shrink-0 items-center gap-2 border-b-2 px-[14px] py-[10px] ${
-                    isActive ? "border-brand" : "border-transparent"
+                    isActive ? "border-gold" : "border-transparent"
                   }`}
                   onClick={() => {
                     setSelectedIdx(i);
@@ -272,18 +272,18 @@ export default function ReportScreen() {
                 >
                   <span
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-[14px] ${
-                      isActive ? "bg-brand" : "bg-gray-200"
+                      isActive ? "bg-brand" : "bg-line2"
                     }`}
                   >
                     <span
-                      className={`text-[14px] font-bold ${isActive ? "text-white" : "text-gray-700"}`}
+                      className={`text-[14px] font-bold ${isActive ? "text-fg" : "text-fg2"}`}
                     >
                       {r.studentName.charAt(0)}
                     </span>
                   </span>
                   <span
                     className={`text-[16px] ${
-                      isActive ? "font-bold text-brand" : "font-medium text-gray-500"
+                      isActive ? "font-bold text-gold" : "font-medium text-sub"
                     }`}
                   >
                     {r.studentName}
@@ -309,17 +309,17 @@ export default function ReportScreen() {
       {/* ── 스크롤 콘텐츠 ── */}
       <div className="flex flex-col pt-4">
         {/* 종합 헤더 카드 */}
-        <div className="mx-5 mb-3 rounded-2xl border border-gray-200 bg-white p-[18px]">
+        <div className="mx-5 mb-3 rounded-2xl border border-line bg-card p-[18px]">
           <div className="mb-[14px] flex items-center gap-3">
-            <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[23px] bg-blue-100">
-              <span className="text-[22px] font-bold text-brand">
+            <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[23px] bg-elev">
+              <span className="text-[22px] font-bold text-gold">
                 {report.studentName.charAt(0)}
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold text-gray-900">{report.studentName} 학생</p>
-              <p className="mt-px text-[14px] text-gray-500">{report.campusName}</p>
-              <p className="mt-px text-[14px] text-gray-500">{report.campPeriod}</p>
+              <p className="text-[17px] font-bold text-fg">{report.studentName} 학생</p>
+              <p className="mt-px text-[14px] text-sub">{report.campusName}</p>
+              <p className="mt-px text-[14px] text-sub">{report.campPeriod}</p>
             </div>
             <div
               className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[13px]"
@@ -333,12 +333,12 @@ export default function ReportScreen() {
 
           {/* 종합 점수 바 */}
           <div className="mb-[5px] flex justify-between">
-            <span className="text-[14px] text-gray-500">종합 점수</span>
+            <span className="text-[14px] text-sub">종합 점수</span>
             <span className="text-[15px] font-bold" style={{ color: gradeColor }}>
               {report.totalScore}점
             </span>
           </div>
-          <div className="mb-[14px] h-[7px] overflow-hidden rounded-[4px] bg-gray-100">
+          <div className="mb-[14px] h-[7px] overflow-hidden rounded-[4px] bg-elev">
             <div
               className="h-[7px] rounded-[4px]"
               style={{ width: `${report.totalScore}%`, backgroundColor: gradeColor }}
@@ -346,45 +346,45 @@ export default function ReportScreen() {
           </div>
 
           {/* 성향 유형 */}
-          <div className="rounded-[10px] border border-gray-200 bg-[#f8fafc] p-3">
-            <p className="mb-1 text-[15px] font-bold text-gray-900">{report.personalityType}</p>
-            <p className="text-[14px] leading-[21px] text-gray-700">{report.personalityDesc}</p>
+          <div className="rounded-[10px] border border-line bg-paper p-3">
+            <p className="mb-1 text-[15px] font-bold text-fg">{report.personalityType}</p>
+            <p className="text-[14px] leading-[21px] text-fg2">{report.personalityDesc}</p>
           </div>
         </div>
 
         {/* 강점 / 발전 */}
         <div className="mx-5 mb-3 flex gap-[10px]">
-          <div className="min-w-0 flex-1 rounded-[14px] border border-green-200 bg-green-50 p-[13px]">
-            <p className="mb-2 text-[14px] font-bold text-[#166534]">강점 분야</p>
+          <div className="min-w-0 flex-1 rounded-[14px] border border-line bg-elev p-[13px]">
+            <p className="mb-2 text-[14px] font-bold text-fg">강점 분야</p>
             {report.strengthAreas.map((s, i) => (
               <div key={i} className="mb-[5px] flex items-center gap-[6px]">
-                <span className="h-[5px] w-[5px] shrink-0 rounded-[3px] bg-green-500" />
-                <span className="flex-1 text-[14px] text-green-600">{s}</span>
+                <span className="h-[5px] w-[5px] shrink-0 rounded-[3px] bg-gold" />
+                <span className="flex-1 text-[14px] text-gold">{s}</span>
               </div>
             ))}
           </div>
-          <div className="min-w-0 flex-1 rounded-[14px] border border-blue-200 bg-blue-50 p-[13px]">
-            <p className="mb-2 text-[14px] font-bold text-[#1e40af]">발전 권장</p>
+          <div className="min-w-0 flex-1 rounded-[14px] border border-line bg-elev p-[13px]">
+            <p className="mb-2 text-[14px] font-bold text-fg">발전 권장</p>
             {report.growthAreas.map((s, i) => (
               <div key={i} className="mb-[5px] flex items-center gap-[6px]">
-                <span className="h-[5px] w-[5px] shrink-0 rounded-[3px] bg-blue-400" />
-                <span className="flex-1 text-[14px] text-brand">{s}</span>
+                <span className="h-[5px] w-[5px] shrink-0 rounded-[3px] bg-gold" />
+                <span className="flex-1 text-[14px] text-gold">{s}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* 담임 총평 */}
-        <div className="mx-5 mb-3 rounded-[14px] border border-gray-200 bg-white p-4">
-          <p className="mb-2 text-[14px] font-bold uppercase tracking-[0.5px] text-gray-500">
+        <div className="mx-5 mb-3 rounded-[14px] border border-line bg-card p-4">
+          <p className="mb-2 text-[14px] font-bold uppercase tracking-[0.5px] text-sub">
             담임 강사 종합 총평
           </p>
-          <p className="text-[15px] leading-[22px] text-gray-700">{report.overallComment}</p>
+          <p className="text-[15px] leading-[22px] text-fg2">{report.overallComment}</p>
         </div>
 
         {/* 프로그램별 상세 */}
-        <h2 className="mx-5 mb-1 text-[16px] font-bold text-gray-900">프로그램별 상세 평가</h2>
-        <p className="mx-5 mb-[10px] text-[14px] text-gray-500">
+        <h2 className="mx-5 mb-1 text-[16px] font-bold text-fg">프로그램별 상세 평가</h2>
+        <p className="mx-5 mb-[10px] text-[14px] text-sub">
           항목을 탭하면 역량 상세를 펼칩니다.
         </p>
 
@@ -399,7 +399,7 @@ export default function ReportScreen() {
 
         {/* 발급 정보 */}
         <div className="mx-5 mt-2 flex flex-col items-center">
-          <p className="text-[14px] text-gray-500">
+          <p className="text-[14px] text-sub">
             발급일 {report.issueDate} · ThinkCampus 공식 리포트
           </p>
         </div>
@@ -423,7 +423,7 @@ function ProgramCard({
   const gradeBg = getGradeBg(prog.grade);
 
   return (
-    <div className="mx-5 mb-2 overflow-hidden rounded-[14px] border border-gray-200 bg-white">
+    <div className="mx-5 mb-2 overflow-hidden rounded-[14px] border border-line bg-card">
       {/* 헤더 */}
       <button
         type="button"
@@ -431,10 +431,9 @@ function ProgramCard({
         aria-expanded={expanded}
         className="tap flex w-full items-center gap-[10px] p-[14px] text-left"
       >
-        <span className="text-[22px]">{prog.programIcon}</span>
         <span className="block min-w-0 flex-1">
-          <span className="block text-[16px] font-bold text-gray-900">{prog.programName}</span>
-          <span className="mt-px block text-[14px] text-gray-500">
+          <span className="block text-[16px] font-bold text-fg">{prog.programName}</span>
+          <span className="mt-px block text-[14px] text-sub">
             강사 {prog.instructorName} · 출석 {prog.attendance}%
           </span>
         </span>
@@ -454,7 +453,7 @@ function ProgramCard({
         </span>
         <span
           className={`ml-[2px] inline-block text-[22px] transition-transform duration-200 ${
-            expanded ? "rotate-90 text-brand" : "text-gray-500"
+            expanded ? "rotate-90 text-gold" : "text-sub"
           }`}
         >
           ›
@@ -463,27 +462,27 @@ function ProgramCard({
 
       {/* 점수 바 + 성장 칩 */}
       <div className="flex items-center gap-[10px] px-[14px] pb-3">
-        <div className="h-[5px] flex-1 overflow-hidden rounded-[3px] bg-gray-100">
+        <div className="h-[5px] flex-1 overflow-hidden rounded-[3px] bg-elev">
           <div
             className="h-[5px] rounded-[3px]"
             style={{ width: `${prog.overallScore}%`, backgroundColor: gradeColor }}
           />
         </div>
-        <div className="shrink-0 rounded-lg bg-green-50 px-[7px] py-[3px]">
-          <span className="text-[14px] font-bold text-green-600">+{prog.growthIndex}↑</span>
+        <div className="shrink-0 rounded-lg bg-elev px-[7px] py-[3px]">
+          <span className="text-[14px] font-bold text-gold">+{prog.growthIndex}↑</span>
         </div>
       </div>
 
       {/* 확장 영역 */}
       <Collapse open={expanded}>
-        <div className="border-t border-gray-100 p-[14px]">
+        <div className="border-t border-line p-[14px]">
           {/* 성장 before/after */}
           <div className="mb-[14px] flex items-center gap-[10px]">
             <div className="flex flex-col items-center">
-              <span className="mb-[2px] text-[14px] text-gray-500">캠프 전</span>
-              <span className="text-[20px] font-extrabold text-gray-700">{prog.preScore}점</span>
+              <span className="mb-[2px] text-[14px] text-sub">캠프 전</span>
+              <span className="text-[20px] font-extrabold text-fg2">{prog.preScore}점</span>
             </div>
-            <span className="text-[17px] text-gray-500">→</span>
+            <span className="text-[17px] text-sub">→</span>
             <div className="flex flex-col items-center">
               <span className="mb-[2px] text-[14px]" style={{ color: gradeColor }}>
                 캠프 후
@@ -503,7 +502,7 @@ function ProgramCard({
           </div>
 
           {/* 역량 항목 */}
-          <p className="mb-[10px] text-[14px] font-bold uppercase tracking-[0.5px] text-gray-500">
+          <p className="mb-[10px] text-[14px] font-bold uppercase tracking-[0.5px] text-sub">
             역량별 평가
           </p>
           {prog.competencies.map((c, i) => (
@@ -511,33 +510,33 @@ function ProgramCard({
           ))}
 
           {/* 강사 총평 */}
-          <div className="mt-3 mb-2 rounded-[10px] bg-[#f8fafc] p-3">
-            <p className="mb-[5px] text-[14px] font-bold text-gray-700">강사 총평</p>
-            <p className="text-[15px] leading-[22px] text-gray-700">{prog.instructorComment}</p>
+          <div className="mt-3 mb-2 rounded-[10px] bg-paper p-3">
+            <p className="mb-[5px] text-[14px] font-bold text-fg2">강사 총평</p>
+            <p className="text-[15px] leading-[22px] text-fg2">{prog.instructorComment}</p>
           </div>
 
           {/* 인상적이었던 점 */}
           {prog.highlights.length > 0 && (
-            <div className="mb-2 rounded-[10px] border border-[#fde68a] bg-amber-50 p-3">
-              <p className="mb-[7px] text-[14px] font-bold text-[#92400e]">인상적이었던 점</p>
+            <div className="mb-2 rounded-[10px] border border-line bg-elev p-3">
+              <p className="mb-[7px] text-[14px] font-bold text-fg2">인상적이었던 점</p>
               {prog.highlights.map((h, i) => (
                 <div key={i} className="mb-1 flex gap-[5px]">
-                  <span className="mt-[2px] text-[14px] text-[#f59e0b]">★</span>
-                  <p className="flex-1 text-[14px] leading-[20px] text-[#78350f]">{h}</p>
+                  <span className="mt-[2px] text-[14px] text-faint">★</span>
+                  <p className="flex-1 text-[14px] leading-[20px] text-fg2">{h}</p>
                 </div>
               ))}
             </div>
           )}
 
           {/* 향후 발전 방향 */}
-          <div className="rounded-[10px] border border-blue-200 bg-blue-50 p-3">
-            <p className="mb-[7px] text-[14px] font-bold text-[#1e40af]">향후 발전 방향</p>
+          <div className="rounded-[10px] border border-line bg-elev p-3">
+            <p className="mb-[7px] text-[14px] font-bold text-fg">향후 발전 방향</p>
             {prog.nextSteps.map((s, i) => (
               <div key={i} className="mb-[5px] flex items-start gap-2">
-                <span className="mt-px flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[9px] bg-brand">
-                  <span className="text-[14px] font-bold text-white">{i + 1}</span>
+                <span className="mt-px flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[9px] bg-gold">
+                  <span className="text-[14px] font-bold text-ink">{i + 1}</span>
                 </span>
-                <p className="flex-1 text-[14px] leading-[20px] text-[#1e40af]">{s}</p>
+                <p className="flex-1 text-[14px] leading-[20px] text-fg">{s}</p>
               </div>
             ))}
           </div>
@@ -552,18 +551,18 @@ function CompRow({ comp, color }: { comp: CompetencyScore; color: string }) {
   return (
     <div className="mb-[10px]">
       <div className="mb-[3px]">
-        <p className="text-[15px] font-semibold text-gray-700">{comp.label}</p>
-        <p className="text-[14px] text-gray-500">{comp.description}</p>
+        <p className="text-[15px] font-semibold text-fg2">{comp.label}</p>
+        <p className="text-[14px] text-sub">{comp.description}</p>
       </div>
       <div className="flex items-center gap-[6px]">
-        <div className="relative h-[7px] flex-1 overflow-hidden rounded-[4px] bg-gray-100">
+        <div className="relative h-[7px] flex-1 overflow-hidden rounded-[4px] bg-elev">
           <div
             className="h-[7px] rounded-[4px]"
             style={{ width: `${comp.score}%`, backgroundColor: color }}
           />
           {/* 또래 평균선 */}
           <div
-            className="absolute -top-px -bottom-px w-[2px] bg-[#f59e0b]"
+            className="absolute -top-px -bottom-px w-[2px] bg-line2"
             style={{ left: `${comp.benchmark}%` }}
           />
         </div>
@@ -575,7 +574,7 @@ function CompRow({ comp, color }: { comp: CompetencyScore; color: string }) {
         </span>
         <span
           className="min-w-[28px] text-[14px] font-semibold"
-          style={{ color: diff >= 0 ? "#16a34a" : "#dc2626" }}
+          style={{ color: diff >= 0 ? "#d4b06a" : "#f27d78" }}
         >
           {diff >= 0 ? `+${diff}` : `${diff}`}
         </span>

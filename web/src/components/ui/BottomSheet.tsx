@@ -34,26 +34,26 @@ export function BottomSheet({
 
   return (
     <div
-      className="no-print fixed inset-0 z-[900] flex items-end justify-center bg-black/40"
+      className="no-print fixed inset-0 z-[900] flex items-end justify-center bg-black/70"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="tc-fade-up w-full max-w-[480px] rounded-t-[20px] bg-white px-5 pt-3"
+        className="tc-fade-up w-full max-w-[480px] rounded-t-[20px] bg-card px-5 pt-3"
         style={{ paddingBottom: "calc(var(--sab) + 20px)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-200" aria-hidden="true" />
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line2" aria-hidden="true" />
         {title && (
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-[20px] font-bold text-gray-900">{title}</p>
+            <p className="text-[20px] font-bold text-fg">{title}</p>
             <button
               type="button"
               onClick={onClose}
               aria-label="닫기"
-              className="tap flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-[17px] text-gray-500"
+              className="tap flex h-8 w-8 items-center justify-center rounded-full bg-elev text-[17px] text-sub"
             >
               ✕
             </button>

@@ -1,6 +1,7 @@
 /**
- * 온보딩 Step 2 — 생년월일 / 관계 / 전화번호 입력 → redeemCode
+ * 온보딩 Step 2 — 생년월일 / 관계 / 보호자 이름 / 전화번호 입력 → redeemCode (웹 app/onboarding/verify/page.tsx)
  * redeemCode 성공 시 Step 3 (OTP) 또는 기존계정 완료로 이동
+ * 보호자 이름은 서버로 보내지 않고, OTP 로그인 직후 계정 표시 이름으로 저장한다 (lib/guardianName.ts)
  */
 
 import React, { useState } from 'react';
@@ -20,7 +21,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { httpsCallable } from '@react-native-firebase/functions';
 import { signInWithCustomToken } from '@react-native-firebase/auth';
 import { auth, functions } from '../../firebase';
+import { saveGuardianName } from '../../hooks/useGuardianName';
 import { errMessage } from '../../lib/errors';
+import { GUARDIAN_NAME_MAX, guardianNameError, normalizeGuardianName } from '../../lib/guardianName';
 
 const RELATION_PRESETS = ['모(엄마)', '부(아빠)', '조모(할머니)', '조부(할아버지)', '기타'];
 
@@ -34,10 +37,13 @@ export default function OnboardingVerify() {
   const [birthDate, setBirthDate] = useState('');
   const [phone, setPhone] = useState('');
   const [relation, setRelation] = useState('');
+  const [guardianName, setGuardianName] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const nameError = guardianNameError(guardianName);
   const isReady =
-    birthDate.length === 8 && phone.length >= 10 && relation.trim().length > 0;
+    birthDate.length === 8 && phone.length >= 10 && relation.trim().length > 0 && nameError === null;
 
   async function handleSubmit() {
     setLoading(true);
@@ -48,6 +54,11 @@ export default function OnboardingVerify() {
 
       if (data.existingUser) {
         // 기존 계정 → 이 기기에서 로그인돼 있으면 메인, 아니면 전화번호 로그인으로
+        // 지금 그 계정으로 로그인해 있고 이름이 없으면 입력한 이름을 넣어 둔다
+        const current = auth.currentUser;
+        if (current && !current.displayName && current.phoneNumber === `+82${phone.replace(/^0/, '')}`) {
+          await saveGuardianName(guardianName).catch(() => undefined);
+        }
         Alert.alert('등록 완료', '기존 계정에 자녀가 연결되었습니다.', [
           {
             text: '확인',
@@ -58,7 +69,7 @@ export default function OnboardingVerify() {
         // 신규 계정 → OTP 인증 화면으로
         router.push({
           pathname: '/onboarding/otp',
-          params: { phone, customToken: data.customToken },
+          params: { phone, customToken: data.customToken, guardianName: normalizeGuardianName(guardianName) },
         });
       }
     } catch (e) {
@@ -106,7 +117,7 @@ export default function OnboardingVerify() {
             <Text style={styles.previewLabel}>캠퍼스</Text>
             <Text style={styles.previewValue}>{campusName}</Text>
           </View>
-          <View style={[styles.previewRow, { borderTopWidth: 1, borderTopColor: '#f3f4f6' }]}>
+          <View style={[styles.previewRow, { borderTopWidth: 1, borderTopColor: '#262b36' }]}>
             <Text style={styles.previewLabel}>학생</Text>
             <Text style={styles.previewValue}>{maskedStudentName}</Text>
           </View>
@@ -151,6 +162,33 @@ export default function OnboardingVerify() {
           />
         </View>
 
+        {/* 보호자 이름 — OTP 로그인 직후 계정 표시 이름으로 저장 (홈 인사말) */}
+        <View style={styles.field}>
+          <Text style={styles.label} nativeID="guardianNameLabel">
+            보호자 이름
+          </Text>
+          <TextInput
+            style={[styles.input, nameTouched && !!nameError && styles.inputError]}
+            placeholder="예: 홍길동"
+            placeholderTextColor="#9ca3af"
+            value={guardianName}
+            onChangeText={setGuardianName}
+            onBlur={() => setNameTouched(true)}
+            maxLength={GUARDIAN_NAME_MAX}
+            autoComplete="name"
+            textContentType="name"
+            accessibilityLabel="보호자 이름"
+            aria-labelledby="guardianNameLabel"
+          />
+          {nameTouched && nameError ? (
+            <Text style={styles.errorHint} accessibilityRole="alert">
+              {nameError}
+            </Text>
+          ) : (
+            <Text style={styles.hint}>홈에서 &quot;OOO 학부모님&quot;으로 인사드려요.</Text>
+          )}
+        </View>
+
         {/* 보호자 전화번호 */}
         <View style={styles.field}>
           <Text style={styles.label}>보호자 전화번호</Text>
@@ -174,7 +212,7 @@ export default function OnboardingVerify() {
           disabled={!isReady || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#0c0e13" />
           ) : (
             <Text style={styles.buttonText}>인증번호 받기</Text>
           )}
@@ -185,7 +223,7 @@ export default function OnboardingVerify() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#161a22' },
   content: {
     flexGrow: 1,
     paddingHorizontal: 24,
@@ -193,7 +231,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   backBtn: { marginBottom: 16 },
-  backText: { fontSize: 16, color: '#1d4ed8', fontWeight: '500' },
+  backText: { fontSize: 16, color: '#d4b06a', fontWeight: '500' },
   stepRow: {
     flexDirection: 'row',
     gap: 6,
@@ -203,20 +241,20 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#343a47',
   },
-  stepDotActive: { backgroundColor: '#1d4ed8', width: 24 },
+  stepDotActive: { backgroundColor: '#d4b06a', width: 24 },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: '#f2f2f0',
     marginBottom: 20,
   },
   previewBox: {
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#1e232d',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
+    borderColor: '#343a47',
     marginBottom: 24,
     overflow: 'hidden',
   },
@@ -226,26 +264,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  previewLabel: { fontSize: 15, color: '#6b7280' },
-  previewValue: { fontSize: 15, fontWeight: '600', color: '#111827' },
+  previewLabel: { fontSize: 15, color: '#9aa0ab' },
+  previewValue: { fontSize: 15, fontWeight: '600', color: '#f2f2f0' },
   field: { marginBottom: 20 },
   label: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
+    color: '#d4d7dd',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1.5,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 17,
-    color: '#111827',
-    backgroundColor: '#f9fafb',
+    color: '#f2f2f0',
+    backgroundColor: '#1e232d',
   },
-  hint: { fontSize: 14, color: '#6b7280', marginTop: 6 },
+  hint: { fontSize: 14, color: '#9aa0ab', marginTop: 6 },
+  errorHint: { fontSize: 14, color: '#f27d78', marginTop: 6 },
+  inputError: { borderColor: '#f27d78' },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -254,22 +294,22 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#1e232d',
   },
-  chipActive: { borderColor: '#1d4ed8', backgroundColor: '#eff6ff' },
-  chipText: { fontSize: 15, color: '#374151' },
-  chipTextActive: { color: '#1d4ed8', fontWeight: '600' },
+  chipActive: { borderColor: '#d4b06a', backgroundColor: '#1e232d' },
+  chipText: { fontSize: 15, color: '#d4d7dd' },
+  chipTextActive: { color: '#d4b06a', fontWeight: '600' },
   button: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
   },
-  buttonDisabled: { backgroundColor: '#bfdbfe' },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  buttonDisabled: { backgroundColor: '#343a47' },
+  buttonText: { color: '#0c0e13', fontSize: 17, fontWeight: '700' },
 });

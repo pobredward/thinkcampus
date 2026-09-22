@@ -37,7 +37,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   if (!user) return <LoadingScreen />;
 
   return (
-    <div className="flex min-h-dvh flex-1 flex-col bg-[#f8fafc]">
+    <div className="flex min-h-dvh flex-1 flex-col bg-paper">
       <div className="flex flex-1 flex-col">{children}</div>
       <TabBar />
     </div>

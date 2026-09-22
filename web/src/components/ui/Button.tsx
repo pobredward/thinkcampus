@@ -3,7 +3,7 @@
 import { Spinner } from "./Spinner";
 
 /**
- * 파란 기본 버튼 — 모바일 앱의 `styles.button` (#1d4ed8, radius 12, py 16) 과 동일
+ * 기본 버튼 — 골드 채움 + 잉크 글자 (모바일 앱의 `styles.button` 과 동일)
  */
 export function PrimaryButton({
   children,
@@ -26,11 +26,11 @@ export function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={isDisabled}
-      className={`tap flex w-full items-center justify-center rounded-xl py-4 text-[17px] font-bold text-white ${
-        isDisabled ? "bg-brand-disabled" : "bg-brand"
+      className={`tap flex w-full items-center justify-center rounded-xl py-4 text-[17px] font-bold ${
+        isDisabled ? "bg-brand-disabled text-faint" : "bg-gold text-ink"
       } ${className}`}
     >
-      {loading ? <Spinner color="#fff" /> : children}
+      {loading ? <Spinner color="#0c0e13" /> : children}
     </button>
   );
 }

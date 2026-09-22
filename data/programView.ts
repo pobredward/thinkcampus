@@ -91,11 +91,11 @@ export const STATUS_LABEL: Record<DayStatus, string> = {
 };
 
 export const STATUS_BADGE: Record<DayStatus, string> = {
-  present: "bg-green-50 text-green-700",
-  late: "bg-amber-50 text-amber-700",
-  absent: "bg-red-50 text-red-600",
-  upcoming: "bg-brand-light text-brand",
-  cancelled: "bg-gray-100 text-gray-600",
+  present: "bg-gold-light text-gold",
+  late: "bg-late-bg text-late",
+  absent: "bg-danger-bg text-danger",
+  upcoming: "bg-elev text-fg2",
+  cancelled: "bg-elev text-sub",
 };
 
 export function isDone(status: DayStatus): boolean {

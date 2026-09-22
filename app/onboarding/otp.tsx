@@ -20,6 +20,7 @@ import { signInWithPhoneNumber, signInWithCustomToken } from '@react-native-fire
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { httpsCallable } from '@react-native-firebase/functions';
 import { auth, functions } from '../../firebase';
+import { saveGuardianName } from '../../hooks/useGuardianName';
 import { otpErrorMessage, smsErrorMessage } from '../../lib/errors';
 
 function toE164Korea(raw: string): string {
@@ -30,9 +31,10 @@ function toE164Korea(raw: string): string {
 }
 
 export default function OnboardingOtp() {
-  const { phone, customToken } = useLocalSearchParams<{
+  const { phone, customToken, guardianName } = useLocalSearchParams<{
     phone: string;
     customToken: string;
+    guardianName?: string;
   }>();
 
   const [otp, setOtp] = useState('');
@@ -112,6 +114,11 @@ export default function OnboardingOtp() {
         await signInWithCustomToken(auth, customToken);
       }
 
+      // 2-1) 가입 화면에서 받은 보호자 이름을 계정 표시 이름으로 (실패해도 로그인은 계속 — 홈에서 다시 물어봄)
+      if (guardianName) {
+        await saveGuardianName(guardianName).catch(() => undefined);
+      }
+
       // 3) 초대받은 보호자인 경우 자동 연결 (allowedGuardianPhoneHashes 기반)
       try {
         const linkFn = httpsCallable(functions, 'linkGuardianByPhone');
@@ -156,7 +163,7 @@ export default function OnboardingOtp() {
         <View style={styles.otpWrap}>
           {sending ? (
             <View style={styles.sendingBox}>
-              <ActivityIndicator color="#1d4ed8" />
+              <ActivityIndicator color="#d4b06a" />
               <Text style={styles.sendingText}>인증번호 발송 중…</Text>
             </View>
           ) : (
@@ -195,7 +202,7 @@ export default function OnboardingOtp() {
           disabled={otp.length !== 6 || loading || sending}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#0c0e13" />
           ) : (
             <Text style={styles.buttonText}>인증 완료</Text>
           )}
@@ -208,56 +215,56 @@ export default function OnboardingOtp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     paddingHorizontal: 24,
     paddingTop: 60,
   },
   backBtn: { marginBottom: 16 },
-  backText: { fontSize: 16, color: '#1d4ed8', fontWeight: '500' },
+  backText: { fontSize: 16, color: '#d4b06a', fontWeight: '500' },
   stepRow: { flexDirection: 'row', gap: 6, marginBottom: 32 },
-  stepDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#e5e7eb' },
-  stepDotActive: { backgroundColor: '#1d4ed8', width: 24 },
+  stepDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#343a47' },
+  stepDotActive: { backgroundColor: '#d4b06a', width: 24 },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: '#f2f2f0',
     marginBottom: 12,
   },
   desc: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#9aa0ab',
     lineHeight: 26,
     marginBottom: 40,
   },
-  phoneHighlight: { color: '#111827', fontWeight: '600' },
+  phoneHighlight: { color: '#f2f2f0', fontWeight: '600' },
   otpWrap: { alignItems: 'center', marginBottom: 24 },
   sendingBox: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  sendingText: { color: '#6b7280', fontSize: 16 },
+  sendingText: { color: '#9aa0ab', fontSize: 16 },
   otpInput: {
     fontSize: 36,
     fontWeight: '700',
     letterSpacing: 12,
-    color: '#111827',
+    color: '#f2f2f0',
     borderBottomWidth: 2,
-    borderBottomColor: '#1d4ed8',
+    borderBottomColor: '#d4b06a',
     paddingBottom: 8,
     textAlign: 'center',
     width: 220,
   },
   resend: {
     fontSize: 16,
-    color: '#1d4ed8',
+    color: '#d4b06a',
     textAlign: 'center',
     marginBottom: 40,
     textDecorationLine: 'underline',
   },
-  resendDisabled: { color: '#6b7280', textDecorationLine: 'none' },
+  resendDisabled: { color: '#9aa0ab', textDecorationLine: 'none' },
   button: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  buttonDisabled: { backgroundColor: '#bfdbfe' },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  buttonDisabled: { backgroundColor: '#343a47' },
+  buttonText: { color: '#0c0e13', fontSize: 17, fontWeight: '700' },
 });

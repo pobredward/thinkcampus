@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { C } from '../../../lib/theme';
 
 /** 한글이 단어 중간에서 끊기지 않게 (iOS) */
 export function Body({ style, children }: { style?: StyleProp<TextStyle>; children: React.ReactNode }) {
@@ -25,11 +26,11 @@ export function PanelTitle({ children }: { children: React.ReactNode }) {
 
 export function Card({
   title,
-  icon,
   children,
   style,
 }: {
   title?: string;
+  /** 예전 호출 호환용 — 아이콘(이모지)은 쓰지 않는다. 제목만 깔끔하게 */
   icon?: string;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -37,12 +38,9 @@ export function Card({
   return (
     <View style={[s.card, style]}>
       {!!title && (
-        <View style={s.cardTitleRow}>
-          {!!icon && <Text style={s.cardIcon}>{icon}</Text>}
-          <Text style={s.cardTitle} accessibilityRole="header">
-            {title}
-          </Text>
-        </View>
+        <Text style={s.cardTitle} accessibilityRole="header">
+          {title}
+        </Text>
       )}
       {children}
     </View>
@@ -112,9 +110,9 @@ export function Numbered({ items }: { items: string[] }) {
   );
 }
 
-export function Note({ children, tone = 'gray' }: { children: React.ReactNode; tone?: 'gray' | 'blue' | 'amber' }) {
-  const bg = tone === 'blue' ? '#eff6ff' : tone === 'amber' ? '#fffbeb' : '#f9fafb';
-  const color = tone === 'gray' ? '#374151' : '#1f2937';
+export function Note({ children, tone = 'gray' }: { children: React.ReactNode; tone?: 'gray' | 'blue' }) {
+  const bg = C.elev;
+  const color = tone === 'gray' ? C.fg2 : C.fg;
   return (
     <View style={[s.note, { backgroundColor: bg }]}>
       <Body style={[s.noteText, { color }]}>{children}</Body>
@@ -124,39 +122,37 @@ export function Note({ children, tone = 'gray' }: { children: React.ReactNode; t
 
 export const panelStyles = StyleSheet.create({
   bold: { fontWeight: '700' },
-  sub: { fontSize: 15, color: '#4b5563' },
+  sub: { fontSize: 15, color: '#9aa0ab' },
 });
 
 const s = StyleSheet.create({
-  panelTitle: { paddingHorizontal: 4, paddingBottom: 4, fontSize: 20, fontWeight: '800', color: '#111827' },
+  panelTitle: { paddingHorizontal: 4, paddingBottom: 4, fontSize: 20, fontWeight: '800', color: '#f2f2f0' },
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: C.line,
     padding: 20,
   },
-  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  cardIcon: { fontSize: 18 },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  cardTitle: { marginBottom: 12, fontSize: 18, fontWeight: '700', color: C.text, letterSpacing: -0.2 },
   infoRow: { flexDirection: 'row', gap: 12, paddingVertical: 12 },
-  infoRowDivider: { borderTopWidth: 1, borderTopColor: '#f3f4f6' },
-  infoLabel: { width: 64, paddingTop: 1, fontSize: 16, color: '#6b7280' },
-  infoValue: { fontSize: 17, lineHeight: 25, color: '#111827' },
+  infoRowDivider: { borderTopWidth: 1, borderTopColor: '#262b36' },
+  infoLabel: { width: 76, paddingTop: 1, fontSize: 16, color: '#9aa0ab' },
+  infoValue: { fontSize: 17, lineHeight: 25, color: '#f2f2f0' },
   bulletRow: { flexDirection: 'row', gap: 10 },
   bulletDot: { width: 8, height: 8, borderRadius: 4, marginTop: 9 },
-  bulletText: { flex: 1, fontSize: 16, lineHeight: 25, color: '#1f2937' },
+  bulletText: { flex: 1, fontSize: 16, lineHeight: 25, color: '#d4d7dd' },
   numRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   numBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#eff6ff',
+    backgroundColor: C.inkLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numText: { fontSize: 15, fontWeight: '700', color: '#1d4ed8' },
-  numBody: { flex: 1, paddingTop: 1, fontSize: 16, lineHeight: 25, color: '#1f2937' },
+  numText: { fontSize: 15, fontWeight: '700', color: C.gold },
+  numBody: { flex: 1, paddingTop: 1, fontSize: 16, lineHeight: 25, color: '#d4d7dd' },
   note: { borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16 },
   noteText: { fontSize: 16, lineHeight: 25 },
 });

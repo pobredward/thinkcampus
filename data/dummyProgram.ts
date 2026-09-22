@@ -88,6 +88,16 @@ export interface Program {
   purpose?: string;           // 도입 취지 — 지자체가 이 프로그램을 운영하는 이유
   rules?: ProgramRule[];      // 수업 규정·지침 (없으면 기본 규정 — programGuide.ts)
   faq?: ProgramQnA[];         // 이 프로그램만의 Q&A (기본 Q&A 앞에 붙는다)
+
+  // ── 일시 및 장소 → 오시는 길 ──
+  mapQuery?: string;               // 지도 앱에서 찾을 이름 (예: '강남구 청소년수련관')
+  directions?: ProgramDirection[]; // 오시는 길 안내 (대중교통 · 주차 · 도착하면 · 데려갈 때 …)
+}
+
+/** 오시는 길 한 줄 — 대중교통이 정해지면 { label: '대중교통', text: '…' } 을 맨 앞에 추가 */
+export interface ProgramDirection {
+  label: string;
+  text: string;
 }
 
 export interface ProgramRule {
@@ -129,6 +139,13 @@ export const DUMMY_PROGRAM: Program = {
   location: '강남구 청소년수련관 3층 301호',
   targetGrade: '초등 3~6학년',
   maxStudents: 20,
+
+  mapQuery: '강남구 청소년수련관',
+  directions: [
+    { label: '주차', text: '수련관 주차는 2시간 무료예요. 1층 안내데스크에서 차량을 등록해 주세요.' },
+    { label: '도착하면', text: '수업 10분 전(9:50)까지 3층 301호 교실 앞으로 와 주세요. 선생님이 출석을 확인하고 맞이해요.' },
+    { label: '데려갈 때', text: '수업이 끝나면 선생님이 1층 로비까지 함께 내려가 보호자께 인계해요.' },
+  ],
 
   host: '강남구청 교육지원과 · 씽크캠퍼스 운영',
   purpose:

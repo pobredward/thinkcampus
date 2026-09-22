@@ -204,7 +204,7 @@ export default function LoginScreen() {
               disabled={!isPhoneReady || sending}
             >
               {sending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#0c0e13" />
               ) : (
                 <Text style={styles.buttonText}>인증번호 받기</Text>
               )}
@@ -262,7 +262,7 @@ export default function LoginScreen() {
               disabled={otp.length !== 6 || loading}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#0c0e13" />
               ) : (
                 <Text style={styles.buttonText}>로그인</Text>
               )}
@@ -277,61 +277,61 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     paddingHorizontal: 24,
     paddingTop: 60,
   },
   backBtn: { marginBottom: 16 },
-  backText: { fontSize: 16, color: '#1d4ed8', fontWeight: '500' },
+  backText: { fontSize: 16, color: '#d4b06a', fontWeight: '500' },
 
   logoRow: { alignItems: 'center', marginBottom: 32 },
   logoBadge: {
     width: 56, height: 56, borderRadius: 16,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     alignItems: 'center', justifyContent: 'center',
   },
-  logoText: { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -1 },
+  logoText: { color: '#0c0e13', fontSize: 22, fontWeight: '800', letterSpacing: -1 },
 
   title: {
-    fontSize: 26, fontWeight: '700', color: '#111827', marginBottom: 10,
+    fontSize: 26, fontWeight: '700', color: '#f2f2f0', marginBottom: 10,
   },
   desc: {
-    fontSize: 16, color: '#6b7280', lineHeight: 26, marginBottom: 36,
+    fontSize: 16, color: '#9aa0ab', lineHeight: 26, marginBottom: 36,
   },
-  phoneHighlight: { color: '#111827', fontWeight: '600' },
+  phoneHighlight: { color: '#f2f2f0', fontWeight: '600' },
 
   field: { marginBottom: 24 },
-  label: { fontSize: 15, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  label: { fontSize: 15, fontWeight: '600', color: '#d4d7dd', marginBottom: 8 },
   input: {
-    borderWidth: 1.5, borderColor: '#e5e7eb',
+    borderWidth: 1.5, borderColor: '#262b36',
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 20, color: '#111827', letterSpacing: 1,
-    backgroundColor: '#f9fafb',
+    fontSize: 20, color: '#f2f2f0', letterSpacing: 1,
+    backgroundColor: '#1e232d',
   },
-  inputReady: { borderColor: '#1d4ed8', backgroundColor: '#eff6ff' },
+  inputReady: { borderColor: '#d4b06a', backgroundColor: '#1e232d' },
 
   otpWrap: { alignItems: 'center', marginBottom: 24 },
   otpInput: {
     fontSize: 36, fontWeight: '700', letterSpacing: 12,
-    color: '#111827',
-    borderBottomWidth: 2, borderBottomColor: '#1d4ed8',
+    color: '#f2f2f0',
+    borderBottomWidth: 2, borderBottomColor: '#d4b06a',
     paddingBottom: 8, textAlign: 'center', width: 220,
   },
 
   resend: {
-    fontSize: 16, color: '#1d4ed8', textAlign: 'center',
+    fontSize: 16, color: '#d4b06a', textAlign: 'center',
     marginBottom: 36, textDecorationLine: 'underline',
   },
-  resendDisabled: { color: '#6b7280', textDecorationLine: 'none' },
+  resendDisabled: { color: '#9aa0ab', textDecorationLine: 'none' },
 
   button: {
-    backgroundColor: '#1d4ed8', borderRadius: 12,
+    backgroundColor: '#d4b06a', borderRadius: 12,
     paddingVertical: 16, alignItems: 'center', marginBottom: 16,
   },
-  buttonDisabled: { backgroundColor: '#bfdbfe' },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  buttonDisabled: { backgroundColor: '#343a47' },
+  buttonText: { color: '#0c0e13', fontSize: 17, fontWeight: '700' },
 
   registerLink: { paddingVertical: 8, alignItems: 'center' },
-  registerLinkText: { fontSize: 16, color: '#6b7280' },
-  registerLinkBold: { color: '#1d4ed8', fontWeight: '700' },
+  registerLinkText: { fontSize: 16, color: '#9aa0ab' },
+  registerLinkBold: { color: '#d4b06a', fontWeight: '700' },
 });

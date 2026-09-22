@@ -1,5 +1,5 @@
 /**
- * 진도 바 — 회색 트랙(#e5e7eb) 위 파란 채움(#1d4ed8)
+ * 진도 바 — 어두운 트랙(#262b36) 위 골드 채움(#d4b06a) (웹 components/ui/ProgressBar.tsx 와 같은 값)
  */
 
 import React from 'react';
@@ -8,8 +8,8 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 export function ProgressBar({
   value,
   height = 8,
-  color = '#1d4ed8',
-  track = '#e5e7eb',
+  color = '#9a7b2f',
+  track = '#262b36',
   style,
 }: {
   /** 0 ~ 1 */

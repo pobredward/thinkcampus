@@ -123,7 +123,7 @@ export default function LoginScreen() {
 
   return (
     <form
-      className="flex flex-1 flex-col bg-white px-6 pb-10 pt-[60px]"
+      className="flex flex-1 flex-col bg-card px-6 pb-10 pt-[60px]"
       onSubmit={(e) => {
         e.preventDefault();
         void (step === "phone" ? sendOtp() : handleConfirm());
@@ -140,28 +140,28 @@ export default function LoginScreen() {
             goBack();
           }
         }}
-        className="tap mb-4 self-start text-[16px] font-medium text-brand"
+        className="tap mb-4 self-start text-[16px] font-medium text-gold"
       >
         ← 이전
       </button>
 
       {/* 로고 */}
       <div className="mb-8 flex justify-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand">
-          <span className="text-[22px] font-extrabold tracking-[-1px] text-white">TC</span>
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gold">
+          <span className="text-[22px] font-extrabold tracking-[-1px] text-ink">TC</span>
         </div>
       </div>
 
       {step === "phone" ? (
         /* ── 전화번호 입력 단계 ── */
         <>
-          <h1 className="mb-[10px] text-[26px] font-bold text-gray-900">전화번호로 로그인</h1>
-          <p className="mb-9 text-[16px] leading-[26px] text-gray-500">
+          <h1 className="mb-[10px] text-[26px] font-bold text-fg">전화번호로 로그인</h1>
+          <p className="mb-9 text-[16px] leading-[26px] text-sub">
             등록 시 사용한 보호자 전화번호를 입력해주세요.
           </p>
 
           <div className="mb-6">
-            <label htmlFor="phone" className="mb-2 block text-[15px] font-semibold text-gray-700">
+            <label htmlFor="phone" className="mb-2 block text-[15px] font-semibold text-fg2">
               보호자 전화번호
             </label>
             <input
@@ -174,8 +174,8 @@ export default function LoginScreen() {
               autoFocus
               value={formatPhone(rawPhone)}
               onChange={(e) => setRawPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
-              className={`block w-full rounded-xl border-[1.5px] px-4 py-[14px] text-[20px] tracking-[1px] text-gray-900 ${
-                isPhoneReady ? "border-brand bg-brand-light" : "border-gray-200 bg-gray-50"
+              className={`block w-full rounded-xl border-[1.5px] px-4 py-[14px] text-[20px] tracking-[1px] text-fg ${
+                isPhoneReady ? "border-gold bg-elev" : "border-line bg-elev"
               }`}
             />
           </div>
@@ -187,17 +187,17 @@ export default function LoginScreen() {
           <button
             type="button"
             onClick={() => router.replace("/onboarding")}
-            className="tap py-2 text-center text-[16px] text-gray-500"
+            className="tap py-2 text-center text-[16px] text-sub"
           >
-            처음 등록하시나요? <span className="font-bold text-brand">등록코드 입력</span>
+            처음 등록하시나요? <span className="font-bold text-gold">등록코드 입력</span>
           </button>
         </>
       ) : (
         /* ── OTP 입력 단계 ── */
         <>
-          <h1 className="mb-[10px] text-[26px] font-bold text-gray-900">인증번호 입력</h1>
-          <p className="mb-9 text-[16px] leading-[26px] text-gray-500">
-            <span className="font-semibold text-gray-900">{maskedPhone}</span>
+          <h1 className="mb-[10px] text-[26px] font-bold text-fg">인증번호 입력</h1>
+          <p className="mb-9 text-[16px] leading-[26px] text-sub">
+            <span className="font-semibold text-fg">{maskedPhone}</span>
             <br />
             으로 발송된 6자리 인증번호를 입력해주세요.
           </p>
@@ -212,7 +212,7 @@ export default function LoginScreen() {
             onClick={() => void handleResend()}
             disabled={countdown > 0 || sending}
             className={`tap mb-9 text-center text-[16px] ${
-              countdown > 0 ? "text-gray-500" : "text-brand underline"
+              countdown > 0 ? "text-sub" : "text-gold underline"
             }`}
           >
             {sending ? "재발송 중…" : countdown > 0 ? `재발송 (${countdown}초 후)` : "인증번호 재발송"}

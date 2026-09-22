@@ -30,7 +30,7 @@ function PurposeSection({ program }: { program: Program }) {
           {!!program.features?.length && (
             <View style={styles.features}>
               <Text style={styles.featuresTitle}>이런 점이 좋아요</Text>
-              <Bullets items={program.features} color="#1d4ed8" />
+              <Bullets items={program.features} color="#d4b06a" />
             </View>
           )}
         </Card>
@@ -61,7 +61,7 @@ function PurposeSection({ program }: { program: Program }) {
 }
 
 const styles = StyleSheet.create({
-  lead: { fontSize: 17, lineHeight: 27, color: '#1f2937' },
-  features: { marginTop: 16, borderRadius: 16, backgroundColor: '#eff6ff', padding: 16 },
-  featuresTitle: { marginBottom: 8, fontSize: 16, fontWeight: '700', color: '#1d4ed8' },
+  lead: { fontSize: 17, lineHeight: 27, color: '#d4d7dd' },
+  features: { marginTop: 16, borderRadius: 16, backgroundColor: '#1e232d', padding: 16 },
+  featuresTitle: { marginBottom: 8, fontSize: 16, fontWeight: '700', color: '#d4b06a' },
 });

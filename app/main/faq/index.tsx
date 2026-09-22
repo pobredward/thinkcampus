@@ -2,6 +2,7 @@
  * FAQ + 챗봇 화면
  * - FAQ 탭: 아코디언 (콜센터 카드 없음)
  * - 챗봇 탭: 버튼 가지치기 방식 (답 못 찾을 때만 콜센터 안내)
+ * - 상단 경로: 홈 › 고객 지원 (회차 Q&A 에서 오면 홈 › 프로그램 › N회차 › 고객 지원, 자주 묻는 질문에서 오면 … › 자주 묻는 질문 › 고객 지원)
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -20,9 +21,12 @@ import {
   FlatList,
   TextInput,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Breadcrumbs } from '../../../components/ui/Breadcrumbs';
 import { DUMMY_FAQS } from '../../../data/dummyProgram';
+import { getDummyProgram } from '../../../data/programView';
+import { faqCrumbs } from '../../../lib/crumbs';
 import { CALL_CENTER_PHONE, CALL_CENTER_TEL } from '../../../lib/contact';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -48,7 +52,7 @@ interface BotNode {
 const BOT_TREE: BotNode[] = [
   {
     id: 'register',
-    label: '📋 자녀 등록 / 등록코드',
+    label: '자녀 등록 / 등록코드',
     children: [
       {
         id: 'reg-code',
@@ -69,7 +73,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: 'guardian',
-    label: '👨‍👩‍👧 다른 보호자 초대',
+    label: '다른 보호자 초대',
     children: [
       {
         id: 'guardian-invite',
@@ -86,7 +90,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: 'attendance',
-    label: '📋 출결 / 피드백 확인',
+    label: '출결 / 피드백 확인',
     children: [
       {
         id: 'att-check',
@@ -108,7 +112,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: 'report',
-    label: '📊 학습 리포트',
+    label: '학습 리포트',
     children: [
       {
         id: 'report-when',
@@ -118,13 +122,13 @@ const BOT_TREE: BotNode[] = [
       {
         id: 'report-share',
         label: '리포트를 다른 사람과 공유하고 싶어요',
-        answer: '"리포트" 탭에서 공유 버튼(🔗)을 탭하면 임시 링크가 생성됩니다. 링크는 7일 후 만료됩니다.',
+        answer: '"리포트" 탭에서 "리포트 공유하기" 버튼을 누르면 임시 링크가 생성됩니다. 링크는 7일 후 만료됩니다.',
       },
     ],
   },
   {
     id: 'program',
-    label: '📚 프로그램 / 수업 일정',
+    label: '프로그램 / 수업 일정',
     children: [
       {
         id: 'prog-schedule',
@@ -140,7 +144,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: 'login',
-    label: '🔑 로그인 / 인증',
+    label: '로그인 / 인증',
     children: [
       {
         id: 'login-otp',
@@ -157,7 +161,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: 'error',
-    label: '⚠️ 앱 오류 / 기타 문의',
+    label: '앱 오류 / 기타 문의',
     answer: '앱을 완전히 종료 후 재시작해보세요. 최신 버전으로 업데이트되어 있는지도 확인해주세요.\n\n문제가 계속된다면 콜센터로 연락해주세요.',
     showCallCenter: true,
   },
@@ -213,26 +217,32 @@ type TabType = 'faq' | 'chatbot';
 export default function FaqScreen() {
   const insets = useSafeAreaInsets();
   // tab=chatbot 으로 들어오면 챗봇 탭부터 (회차 Q&A 의 "챗봇에게 묻기")
-  const params = useLocalSearchParams<{ tab?: string; from?: string }>();
+  const params = useLocalSearchParams<{
+    tab?: string;
+    from?: string;
+    programId?: string;
+    sessionId?: string;
+    sn?: string;
+    studentName?: string;
+    programTitle?: string;
+    sid?: string;
+    via?: string;
+  }>();
   const [activeTab, setActiveTab] = useState<TabType>(params.tab === 'chatbot' ? 'chatbot' : 'faq');
   // 숨김 탭 화면은 한 번 열리면 유지되므로, 다시 들어올 때 주소의 탭을 반영
   useEffect(() => {
     setActiveTab(params.tab === 'chatbot' ? 'chatbot' : 'faq');
   }, [params.tab]);
-  const backLabel = params.from === 'session' ? '← 회차로' : params.from ? '← 이전' : '← 홈';
+  const crumbs = faqCrumbs(params, (id) => getDummyProgram(id).title);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <View style={{ flex: 1, backgroundColor: '#0c0e13' }}>
       {/* 헤더 */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/main'))}
-          style={styles.backBtn}
-          accessibilityRole="button"
-        >
-          <Text style={styles.backText}>{backLabel}</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>고객 지원</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
+        <Breadcrumbs items={crumbs} />
+        <Text style={styles.headerTitle} accessibilityRole="header">
+          고객 지원
+        </Text>
         <Text style={styles.headerSub}>궁금한 내용을 빠르게 해결해드립니다.</Text>
 
         <View style={styles.tabRow}>
@@ -243,7 +253,7 @@ export default function FaqScreen() {
               onPress={() => setActiveTab(t)}
             >
               <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>
-                {t === 'faq' ? '📋  자주 묻는 질문' : '🤖  챗봇 상담'}
+                {t === 'faq' ? '자주 묻는 질문' : '챗봇 상담'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -310,7 +320,7 @@ const INITIAL_MESSAGES: ChatMsg[] = [
   {
     id: 'bot-welcome',
     role: 'bot',
-    text: '안녕하세요! ThinkCampus 챗봇입니다 🎓\n무엇을 도와드릴까요?',
+    text: '안녕하세요, ThinkCampus 챗봇입니다.\n무엇을 도와드릴까요?',
     options: BOT_TREE,
   },
 ];
@@ -369,7 +379,7 @@ function ChatbotTab({ insets }: { insets: ReturnType<typeof useSafeAreaInsets> }
             {
               id: `call-${Date.now()}`,
               role: 'bot',
-              text: `📞 콜센터: ${CALL_CENTER_PHONE}\n평일 09:00~18:00`,
+              text: `상담 전화 ${CALL_CENTER_PHONE}\n평일 09:00~18:00 · 누르면 전화가 연결돼요`,
             },
           ]);
         }
@@ -390,7 +400,7 @@ function ChatbotTab({ insets }: { insets: ReturnType<typeof useSafeAreaInsets> }
       const botMsg: ChatMsg = {
         id: `b-${Date.now()}`,
         role: 'bot',
-        text: '죄송합니다, 해당 내용을 찾지 못했습니다.\n아래 항목을 선택하거나 콜센터로 문의해주세요.',
+        text: '죄송합니다, 해당 내용을 찾지 못했습니다.\n아래 상담 전화로 문의해 주세요.',
       };
       setMessages((prev) => [...prev, botMsg]);
 
@@ -400,7 +410,7 @@ function ChatbotTab({ insets }: { insets: ReturnType<typeof useSafeAreaInsets> }
         {
           id: `call-${Date.now()}`,
           role: 'bot',
-          text: `📞 콜센터: ${CALL_CENTER_PHONE}\n평일 09:00~18:00`,
+          text: `상담 전화 ${CALL_CENTER_PHONE}\n평일 09:00~18:00 · 누르면 전화가 연결돼요`,
         },
         {
           id: `restart-${Date.now()}`,
@@ -455,7 +465,7 @@ function ChatbotTab({ insets }: { insets: ReturnType<typeof useSafeAreaInsets> }
         const callMsg: ChatMsg = {
           id: `call-${Date.now()}`,
           role: 'bot',
-          text: `📞 콜센터: ${CALL_CENTER_PHONE}\n평일 09:00~18:00`,
+          text: `상담 전화 ${CALL_CENTER_PHONE}\n평일 09:00~18:00 · 누르면 전화가 연결돼요`,
           options: undefined,
         };
         setMessages((prev) => [...prev, callMsg]);
@@ -551,13 +561,13 @@ function ChatBubble({
   onCall: () => void;
 }) {
   const isBot = msg.role === 'bot';
-  const isCallMsg = msg.text.startsWith('📞 콜센터');
+  const isCallMsg = msg.text.startsWith('상담 전화 ');
 
   if (isBot) {
     return (
       <View style={styles.botRow}>
         <View style={[styles.botAvatar, isCallMsg && styles.botAvatarCall]}>
-          <Text style={styles.botAvatarText}>{isCallMsg ? '📞' : 'TC'}</Text>
+          <Text style={styles.botAvatarText}>TC</Text>
         </View>
         <View style={styles.botBubbleWrap}>
           {/* 텍스트 말풍선 */}
@@ -617,39 +627,37 @@ function ChatBubble({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#0c0e13',
     paddingHorizontal: 20,
     paddingBottom: 0,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#262b36',
   },
-  backBtn: { marginBottom: 10 },
-  backText: { fontSize: 16, color: '#1d4ed8', fontWeight: '500' },
-  headerTitle: { fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 2 },
-  headerSub: { fontSize: 15, color: '#6b7280', marginBottom: 14 },
+  headerTitle: { marginTop: 4, fontSize: 24, fontWeight: '700', color: '#f2f2f0', marginBottom: 2 },
+  headerSub: { fontSize: 15, color: '#9aa0ab', marginBottom: 14 },
 
   tabRow: { flexDirection: 'row' },
   tab: {
     flex: 1, paddingVertical: 12, alignItems: 'center',
     borderBottomWidth: 2, borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: '#1d4ed8' },
-  tabText: { fontSize: 15, color: '#6b7280', fontWeight: '600' },
-  tabTextActive: { color: '#1d4ed8' },
+  tabActive: { borderBottomColor: '#d4b06a' },
+  tabText: { fontSize: 15, color: '#9aa0ab', fontWeight: '600' },
+  tabTextActive: { color: '#d4b06a' },
 
   tabContent: { paddingTop: 16 },
 
   // FAQ
   faqSection: {
     marginHorizontal: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     overflow: 'hidden',
     marginBottom: 14,
   },
-  faqItem: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  faqItem: { borderBottomWidth: 1, borderBottomColor: '#262b36' },
   faqQuestion: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', padding: 16,
@@ -660,24 +668,24 @@ const styles = StyleSheet.create({
   },
   faqIndex: {
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+    backgroundColor: '#1e232d', alignItems: 'center', justifyContent: 'center', marginTop: 1,
   },
-  faqIndexText: { fontSize: 14, fontWeight: '800', color: '#1d4ed8' },
-  faqQText: { flex: 1, fontSize: 16, color: '#374151', lineHeight: 25, fontWeight: '500' },
-  faqQTextOpen: { color: '#1d4ed8', fontWeight: '700' },
-  faqChevron: { fontSize: 22, color: '#6b7280' },
-  faqChevronOpen: { transform: [{ rotate: '90deg' }], color: '#1d4ed8' },
+  faqIndexText: { fontSize: 14, fontWeight: '800', color: '#d4b06a' },
+  faqQText: { flex: 1, fontSize: 16, color: '#d4d7dd', lineHeight: 25, fontWeight: '500' },
+  faqQTextOpen: { color: '#d4b06a', fontWeight: '700' },
+  faqChevron: { fontSize: 22, color: '#9aa0ab' },
+  faqChevronOpen: { transform: [{ rotate: '90deg' }], color: '#d4b06a' },
   faqAnswer: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
     paddingHorizontal: 16, paddingBottom: 16, paddingTop: 4,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0c0e13',
   },
   faqABadge: {
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+    backgroundColor: '#1e232d', alignItems: 'center', justifyContent: 'center', marginTop: 1,
   },
-  faqABadgeText: { fontSize: 14, fontWeight: '800', color: '#16a34a' },
-  faqAText: { flex: 1, fontSize: 16, color: '#374151', lineHeight: 25 },
+  faqABadgeText: { fontSize: 14, fontWeight: '800', color: '#d4b06a' },
+  faqAText: { flex: 1, fontSize: 16, color: '#d4d7dd', lineHeight: 25 },
 
   // 챗봇
   chatContent: { paddingTop: 16, paddingHorizontal: 14 },
@@ -688,32 +696,32 @@ const styles = StyleSheet.create({
   },
   botAvatar: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#d4b06a',
     alignItems: 'center', justifyContent: 'center',
     marginTop: 2, flexShrink: 0,
   },
-  botAvatarCall: { backgroundColor: '#16a34a' },
-  botAvatarText: { fontSize: 14, fontWeight: '800', color: '#fff' },
+  botAvatarCall: { backgroundColor: '#d4b06a' },
+  botAvatarText: { fontSize: 14, fontWeight: '800', color: '#0c0e13' },
 
   botBubbleWrap: { flex: 1, maxWidth: '90%' },
   botBubble: {
-    backgroundColor: '#ffffff', borderRadius: 16, borderTopLeftRadius: 4,
-    padding: 12, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 8,
+    backgroundColor: '#161a22', borderRadius: 16, borderTopLeftRadius: 4,
+    padding: 12, borderWidth: 1, borderColor: '#262b36', marginBottom: 8,
   },
   botBubbleCall: {
-    backgroundColor: '#f0fdf4', borderColor: '#bbf7d0',
+    backgroundColor: '#1e232d', borderColor: '#343a47',
   },
-  botText: { fontSize: 16, color: '#111827', lineHeight: 24 },
-  botTextCall: { color: '#15803d', fontWeight: '600' },
+  botText: { fontSize: 16, color: '#f2f2f0', lineHeight: 24 },
+  botTextCall: { color: '#d4b06a', fontWeight: '600' },
 
   // 선택지 버튼 (활성)
   optionsWrap: { gap: 6 },
   optionBtn: {
-    backgroundColor: '#eff6ff',
-    borderRadius: 10, borderWidth: 1, borderColor: '#bfdbfe',
+    backgroundColor: '#1e232d',
+    borderRadius: 10, borderWidth: 1, borderColor: '#343a47',
     paddingHorizontal: 14, paddingVertical: 10,
   },
-  optionText: { fontSize: 15, color: '#1d4ed8', fontWeight: '600' },
+  optionText: { fontSize: 15, color: '#d4b06a', fontWeight: '600' },
 
   // 선택지 버튼 (비활성 — 사용 후)
   optionsWrapUsed: { gap: 4 },
@@ -721,43 +729,43 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 8,
   },
-  optionTextUsed: { fontSize: 14, color: '#d1d5db' },
+  optionTextUsed: { fontSize: 14, color: '#7c8390' },
 
   // 사용자 버블
   userRow: { alignItems: 'flex-end', marginBottom: 14 },
   userBubble: {
-    backgroundColor: '#1d4ed8', borderRadius: 16, borderBottomRightRadius: 4,
+    backgroundColor: '#d4b06a', borderRadius: 16, borderBottomRightRadius: 4,
     paddingHorizontal: 14, paddingVertical: 10,
     maxWidth: '75%',
   },
-  userText: { fontSize: 16, color: '#ffffff', lineHeight: 24 },
+  userText: { fontSize: 16, color: '#0c0e13', lineHeight: 24 },
 
   // 입력창
   inputBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1, borderTopColor: '#f3f4f6',
+    backgroundColor: '#161a22',
+    borderTopWidth: 1, borderTopColor: '#262b36',
   },
   inputField: {
-    flex: 1, backgroundColor: '#f9fafb',
+    flex: 1, backgroundColor: '#1e232d',
     borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9,
-    fontSize: 16, color: '#111827',
-    borderWidth: 1, borderColor: '#e5e7eb',
+    fontSize: 16, color: '#f2f2f0',
+    borderWidth: 1, borderColor: '#262b36',
     maxHeight: 44,
   },
   sendBtn: {
-    backgroundColor: '#1d4ed8', borderRadius: 20,
+    backgroundColor: '#d4b06a', borderRadius: 20,
     paddingHorizontal: 16, paddingVertical: 9,
   },
-  sendBtnDisabled: { backgroundColor: '#bfdbfe' },
-  sendBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  sendBtnDisabled: { backgroundColor: '#343a47' },
+  sendBtnText: { fontSize: 16, fontWeight: '700', color: '#0c0e13' },
 
   // 타이핑 인디케이터
   typingBubble: {
-    backgroundColor: '#ffffff', borderRadius: 16, borderTopLeftRadius: 4,
+    backgroundColor: '#161a22', borderRadius: 16, borderTopLeftRadius: 4,
     paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#e5e7eb',
+    borderWidth: 1, borderColor: '#262b36',
   },
-  typingDot: { fontSize: 14, color: '#6b7280', letterSpacing: 2 },
+  typingDot: { fontSize: 14, color: '#9aa0ab', letterSpacing: 2 },
 });

@@ -8,7 +8,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useBack } from "@/hooks/useBack";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { getDummyProgram } from "@/data/programView";
+import { faqCrumbs } from "@/lib/crumbs";
 import { Collapse } from "@/components/ui/Collapse";
 import { DUMMY_FAQS } from "@/data/dummyProgram";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -32,7 +34,7 @@ interface BotNode {
 const BOT_TREE: BotNode[] = [
   {
     id: "register",
-    label: "📋 자녀 등록 / 등록코드",
+    label: "자녀 등록 / 등록코드",
     children: [
       {
         id: "reg-code",
@@ -56,7 +58,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: "guardian",
-    label: "👨‍👩‍👧 다른 보호자 초대",
+    label: "다른 보호자 초대",
     children: [
       {
         id: "guardian-invite",
@@ -75,7 +77,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: "attendance",
-    label: "📋 출결 / 피드백 확인",
+    label: "출결 / 피드백 확인",
     children: [
       {
         id: "att-check",
@@ -100,7 +102,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: "report",
-    label: "📊 학습 리포트",
+    label: "학습 리포트",
     children: [
       {
         id: "report-when",
@@ -112,13 +114,13 @@ const BOT_TREE: BotNode[] = [
         id: "report-share",
         label: "리포트를 다른 사람과 공유하고 싶어요",
         answer:
-          '"리포트" 탭에서 공유 버튼(🔗)을 탭하면 임시 링크가 생성됩니다. 링크는 7일 후 만료됩니다.',
+          '"리포트" 탭에서 "리포트 공유하기" 버튼을 누르면 임시 링크가 생성됩니다. 링크는 7일 후 만료됩니다.',
       },
     ],
   },
   {
     id: "program",
-    label: "📚 프로그램 / 수업 일정",
+    label: "프로그램 / 수업 일정",
     children: [
       {
         id: "prog-schedule",
@@ -135,7 +137,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: "login",
-    label: "🔑 로그인 / 인증",
+    label: "로그인 / 인증",
     children: [
       {
         id: "login-otp",
@@ -154,7 +156,7 @@ const BOT_TREE: BotNode[] = [
   },
   {
     id: "error",
-    label: "⚠️ 앱 오류 / 기타 문의",
+    label: "앱 오류 / 기타 문의",
     answer:
       "앱을 완전히 종료 후 재시작해보세요. 최신 버전으로 업데이트되어 있는지도 확인해주세요.\n\n문제가 계속된다면 콜센터로 연락해주세요.",
     showCallCenter: true,
@@ -215,26 +217,22 @@ type TabType = "faq" | "chatbot";
 
 export default function FaqScreen() {
   usePageTitle("FAQ");
-  const goBack = useBack("/main");
   // ?tab=chatbot 으로 들어오면 챗봇 탭부터 (회차 Q&A 의 "챗봇에게 묻기")
   const sp = useSearchParams();
   const initialTab: TabType = sp.get("tab") === "chatbot" ? "chatbot" : "faq";
-  const from = sp.get("from");
-  const backLabel = from === "session" ? "← 회차로" : from ? "← 이전" : "← 홈";
+  const crumbs = faqCrumbs(sp, (id) => getDummyProgram(id).title);
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   return (
-    <div className="flex flex-1 flex-col bg-[#f8fafc]">
+    <div className="flex flex-1 flex-col bg-paper">
       {/* 헤더 */}
       <div
-        className="sticky top-0 z-10 flex flex-col border-b border-gray-100 bg-white px-5 pb-0"
-        style={{ paddingTop: "calc(var(--sat) + 12px)" }}
+        className="sticky top-0 z-10 flex flex-col border-b border-line bg-paper px-5 pb-0"
+        style={{ paddingTop: "calc(var(--sat) + 4px)" }}
       >
-        <button type="button" onClick={goBack} className="tap mb-[10px] self-start">
-          <span className="text-[16px] font-medium text-brand">{backLabel}</span>
-        </button>
-        <h1 className="mb-[2px] text-[24px] font-bold text-gray-900">고객 지원</h1>
-        <p className="mb-[14px] text-[15px] text-gray-500">궁금한 내용을 빠르게 해결해드립니다.</p>
+        <Breadcrumbs items={crumbs} />
+        <h1 className="mb-[2px] mt-1 text-[24px] font-bold text-fg">고객 지원</h1>
+        <p className="mb-[14px] text-[15px] text-sub">궁금한 내용을 빠르게 해결해드립니다.</p>
 
         <div role="tablist" className="flex">
           {(["faq", "chatbot"] as TabType[]).map((t) => {
@@ -247,15 +245,15 @@ export default function FaqScreen() {
                 aria-selected={active}
                 onClick={() => setActiveTab(t)}
                 className={`tap flex flex-1 items-center justify-center border-b-2 py-3 ${
-                  active ? "border-brand" : "border-transparent"
+                  active ? "border-gold" : "border-transparent"
                 }`}
               >
                 <span
                   className={`whitespace-pre text-[15px] font-semibold ${
-                    active ? "text-brand" : "text-gray-500"
+                    active ? "text-gold" : "text-sub"
                   }`}
                 >
-                  {t === "faq" ? "📋  자주 묻는 질문" : "🤖  챗봇 상담"}
+                  {t === "faq" ? "자주 묻는 질문" : "챗봇 상담"}
                 </span>
               </button>
             );
@@ -279,11 +277,11 @@ function FaqTab() {
 
   return (
     <div className="flex flex-col pt-4 pb-8">
-      <div className="mx-5 mb-[14px] overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="mx-5 mb-[14px] overflow-hidden rounded-2xl border border-line bg-card">
         {DUMMY_FAQS.map((faq) => {
           const isOpen = openId === faq.id;
           return (
-            <div key={faq.id} className="border-b border-gray-100">
+            <div key={faq.id} className="border-b border-line">
               <button
                 type="button"
                 onClick={() => toggle(faq.id)}
@@ -291,12 +289,12 @@ function FaqTab() {
                 className="tap flex w-full items-center justify-between p-4 text-left"
               >
                 <span className="flex min-w-0 flex-1 items-start gap-[10px] pr-2">
-                  <span className="mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[11px] bg-blue-50">
-                    <span className="text-[14px] font-extrabold text-brand">Q</span>
+                  <span className="mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[11px] bg-elev">
+                    <span className="text-[14px] font-extrabold text-gold">Q</span>
                   </span>
                   <span
                     className={`flex-1 text-[16px] leading-[25px] ${
-                      isOpen ? "font-bold text-brand" : "font-medium text-gray-700"
+                      isOpen ? "font-bold text-gold" : "font-medium text-fg2"
                     }`}
                   >
                     {faq.question}
@@ -304,7 +302,7 @@ function FaqTab() {
                 </span>
                 <span
                   className={`inline-block text-[22px] ${
-                    isOpen ? "rotate-90 text-brand" : "text-gray-500"
+                    isOpen ? "rotate-90 text-gold" : "text-sub"
                   }`}
                 >
                   ›
@@ -312,11 +310,11 @@ function FaqTab() {
               </button>
 
               <Collapse open={isOpen}>
-                <div className="flex items-start gap-[10px] bg-[#f8fafc] px-4 pt-1 pb-4">
-                  <span className="mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[11px] bg-[#dcfce7]">
-                    <span className="text-[14px] font-extrabold text-green-600">A</span>
+                <div className="flex items-start gap-[10px] bg-paper px-4 pt-1 pb-4">
+                  <span className="mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[11px] bg-elev">
+                    <span className="text-[14px] font-extrabold text-sub">A</span>
                   </span>
-                  <p className="flex-1 text-[16px] leading-[25px] text-gray-700">{faq.answer}</p>
+                  <p className="flex-1 text-[16px] leading-[25px] text-fg2">{faq.answer}</p>
                 </div>
               </Collapse>
             </div>
@@ -333,7 +331,7 @@ const INITIAL_MESSAGES: ChatMsg[] = [
   {
     id: "bot-welcome",
     role: "bot",
-    text: "안녕하세요! ThinkCampus 챗봇입니다 🎓\n무엇을 도와드릴까요?",
+    text: "안녕하세요, ThinkCampus 챗봇입니다.\n무엇을 도와드릴까요?",
     options: BOT_TREE,
   },
 ];
@@ -391,7 +389,7 @@ function ChatbotTab() {
             {
               id: msgId("call"),
               role: "bot",
-              text: `📞 콜센터: ${CALL_CENTER_PHONE}\n평일 09:00~18:00`,
+              text: `상담 전화 ${CALL_CENTER_PHONE}\n평일 09:00~18:00 · 누르면 전화가 연결돼요`,
             },
           ]);
         }
@@ -412,7 +410,7 @@ function ChatbotTab() {
       const botMsg: ChatMsg = {
         id: msgId("b"),
         role: "bot",
-        text: "죄송합니다, 해당 내용을 찾지 못했습니다.\n아래 항목을 선택하거나 콜센터로 문의해주세요.",
+        text: "죄송합니다, 해당 내용을 찾지 못했습니다.\n아래 상담 전화로 문의해 주세요.",
       };
       setMessages((prev) => [...prev, botMsg]);
 
@@ -422,7 +420,7 @@ function ChatbotTab() {
         {
           id: msgId("call"),
           role: "bot",
-          text: `📞 콜센터: ${CALL_CENTER_PHONE}\n평일 09:00~18:00`,
+          text: `상담 전화 ${CALL_CENTER_PHONE}\n평일 09:00~18:00 · 누르면 전화가 연결돼요`,
         },
         {
           id: msgId("restart"),
@@ -477,7 +475,7 @@ function ChatbotTab() {
         const callMsg: ChatMsg = {
           id: msgId("call"),
           role: "bot",
-          text: `📞 콜센터: ${CALL_CENTER_PHONE}\n평일 09:00~18:00`,
+          text: `상담 전화 ${CALL_CENTER_PHONE}\n평일 09:00~18:00 · 누르면 전화가 연결돼요`,
           options: undefined,
         };
         setMessages((prev) => [...prev, callMsg]);
@@ -516,11 +514,11 @@ function ChatbotTab() {
 
         {isTyping && (
           <div className="mb-[14px] flex items-start gap-2">
-            <div className="mt-[2px] flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-brand">
-              <span className="text-[14px] font-extrabold text-white">TC</span>
+            <div className="mt-[2px] flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-gold">
+              <span className="text-[14px] font-extrabold text-ink">TC</span>
             </div>
-            <div className="rounded-2xl rounded-tl-[4px] border border-gray-200 bg-white px-[14px] py-3">
-              <span className="whitespace-pre text-[14px] tracking-[2px] text-gray-500">
+            <div className="rounded-2xl rounded-tl-[4px] border border-line bg-card px-[14px] py-3">
+              <span className="whitespace-pre text-[14px] tracking-[2px] text-sub">
                 ●  ●  ●
               </span>
             </div>
@@ -541,7 +539,7 @@ function ChatbotTab() {
           e.preventDefault();
           void handleSendText();
         }}
-        className="sticky z-10 flex items-center gap-2 border-t border-gray-100 bg-white px-[14px] py-[10px]"
+        className="sticky z-10 flex items-center gap-2 border-t border-line bg-card px-[14px] py-[10px]"
         style={{ bottom: TABBAR_OFFSET }}
       >
         <input
@@ -552,16 +550,16 @@ function ChatbotTab() {
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           disabled={isTyping}
-          className="max-h-[44px] min-w-0 flex-1 rounded-[22px] border border-gray-200 bg-gray-50 px-[14px] py-[9px] text-[16px] text-gray-900"
+          className="max-h-[44px] min-w-0 flex-1 rounded-[22px] border border-line bg-elev px-[14px] py-[9px] text-[16px] text-fg"
         />
         <button
           type="submit"
           disabled={sendDisabled}
           className={`tap shrink-0 rounded-[20px] px-4 py-[9px] ${
-            sendDisabled ? "bg-blue-200" : "bg-brand"
+            sendDisabled ? "bg-line2" : "bg-gold"
           }`}
         >
-          <span className="text-[16px] font-bold text-white">전송</span>
+          <span className={`text-[16px] font-bold ${sendDisabled ? "text-faint" : "text-ink"}`}>전송</span>
         </button>
       </form>
     </div>
@@ -580,18 +578,18 @@ function ChatBubble({
   onCall: () => void;
 }) {
   const isBot = msg.role === "bot";
-  const isCallMsg = msg.text.startsWith("📞 콜센터");
+  const isCallMsg = msg.text.startsWith("상담 전화 ");
 
   if (isBot) {
     const bubble = (
       <div
         className={`mb-2 rounded-2xl rounded-tl-[4px] border p-3 ${
-          isCallMsg ? "border-green-200 bg-green-50" : "border-gray-200 bg-white"
+          isCallMsg ? "border-line bg-elev" : "border-line bg-card"
         }`}
       >
         <p
           className={`whitespace-pre-line break-words text-[16px] leading-[24px] ${
-            isCallMsg ? "font-semibold text-[#15803d]" : "text-gray-900"
+            isCallMsg ? "font-semibold text-gold" : "text-fg"
           }`}
         >
           {msg.text}
@@ -603,10 +601,10 @@ function ChatBubble({
       <div className="mb-[14px] flex items-start gap-2">
         <div
           className={`mt-[2px] flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl ${
-            isCallMsg ? "bg-green-600" : "bg-brand"
+            "bg-gold"
           }`}
         >
-          <span className="text-[14px] font-extrabold text-white">{isCallMsg ? "📞" : "TC"}</span>
+          <span className="text-[14px] font-extrabold text-ink">TC</span>
         </div>
         <div className="min-w-0 max-w-[90%] flex-1">
           {/* 텍스트 말풍선 */}
@@ -626,9 +624,9 @@ function ChatBubble({
                   key={opt.id}
                   type="button"
                   onClick={() => onSelect(opt)}
-                  className="tap rounded-[10px] border border-blue-200 bg-blue-50 px-[14px] py-[10px] text-left"
+                  className="tap rounded-[10px] border border-line bg-elev px-[14px] py-[10px] text-left"
                 >
-                  <span className="text-[15px] font-semibold text-brand">{opt.label}</span>
+                  <span className="text-[15px] font-semibold text-gold">{opt.label}</span>
                 </button>
               ))}
             </div>
@@ -639,7 +637,7 @@ function ChatBubble({
             <div className="flex flex-col gap-1">
               {msg.options.map((opt) => (
                 <div key={opt.id} className="rounded-[10px] px-[14px] py-2">
-                  <span className="text-[14px] text-gray-300">{opt.label}</span>
+                  <span className="text-[14px] text-faint">{opt.label}</span>
                 </div>
               ))}
             </div>
@@ -652,8 +650,8 @@ function ChatBubble({
   // 사용자 버블
   return (
     <div className="mb-[14px] flex flex-col items-end">
-      <div className="max-w-[75%] rounded-2xl rounded-br-[4px] bg-brand px-[14px] py-[10px]">
-        <p className="whitespace-pre-line break-words text-[16px] leading-[24px] text-white">
+      <div className="max-w-[75%] rounded-2xl rounded-br-[4px] bg-gold px-[14px] py-[10px]">
+        <p className="whitespace-pre-line break-words text-[16px] leading-[24px] text-ink">
           {msg.text}
         </p>
       </div>

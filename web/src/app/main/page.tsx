@@ -1,20 +1,23 @@
 "use client";
 
 /**
- * 홈 화면 (학부모 허브) (모바일 app/main/index.tsx)
+ * 홈 화면 (학부모 허브) (모바일 app/main/(tabs)/index.tsx)
  *
  * 구조 (40~50대 학부모 기준 — 첫 화면은 단순하게, 크게):
- *   1. 환영 인사 + 학부모 이름
- *   2. ⚠️ 프로그램 이수 규정·지침 버튼 ("반드시 지켜 주세요")
- *   3. 현재 수강 중 프로그램 카드 (탭하면 → 회차 번호 화면)
- *   4. 수강 예정 프로그램 카드 (탭하면 → 요약 + 안내 버튼) — 지금은 숨김 (SHOW_UPCOMING_ON_HOME)
- *   5. FAQ 진입 카드
- *   6. 이전 수강 이력 — 맨 아래 작은 버튼 (→ /main/history)
+ *   0. 상단 경로 "홈" (다른 화면과 같은 줄) — 자녀 2명 이상이면 같은 줄 오른쪽에 자녀 전환
+ *   1. 환영 인사 한 줄 "환영합니다, OOO 학부모님" — 보호자 이름(lib/guardianName.ts). 자녀 이름은 전환 버튼·카드에 있으니 넣지 않는다
+ *      보호자 이름이 없는 계정이면 "학부모님" + 이름을 묻는 카드(GuardianNamePrompt) 한 번
+ *   2. 현재 수강 중 프로그램 카드 (탭하면 → 프로그램 화면: 일시·장소 / 수업 안내 / 회차별 수업)
+ *   3. 수강 예정 프로그램 카드 — 지금은 숨김 (SHOW_UPCOMING_ON_HOME)
+ *   4. FAQ 진입
+ *   5. 이전 수강 이력 — 맨 아래 작은 버튼 (→ /main/history)
+ * 규정·지침은 프로그램 화면의 수업 안내 안에 "필독"으로 있다 (홈에 따로 두지 않음)
  *
  * 프로그램 카드를 누르면 /main/program/[programId]
- * → 회차 번호를 누르면 출결 / 일정 / 내용 / Q&A / 리포트 탭
+ * → 회차를 누르면 출결 / 일정 / 내용 / Q&A / 리포트 탭
  */
 
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Spinner } from "@/components/ui/Spinner";
@@ -24,11 +27,36 @@ import { DUMMY_PAST_PROGRAMS } from "@/data/dummyHistory";
 import { calcSummary } from "@/data/dummyAttendance";
 import { pickDummyAttendance, SHOW_UPCOMING_ON_HOME } from "@/data/programView";
 import { daysBetween, dDayLabel, dotDateToKey, formatShortDate, todayKey } from "@/lib/dates";
+import { DEMO_MODE } from "@/lib/demo";
+import { guardianTitle } from "@/lib/guardianName";
 import { ChildSwitcher } from "@/components/ChildSwitcher";
+import { GuardianNamePrompt } from "@/components/GuardianNamePrompt";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { useChildren, type Child } from "@/hooks/useChildren";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useSelectedChild } from "@/hooks/useSelectedChild";
 import { useAuth } from "@/providers/AuthProvider";
+import { useToast } from "@/providers/ToastProvider";
+
+// ── 기기에 남기는 작은 표시 (없거나 막혀 있어도 화면은 그대로) ──
+
+function readFlag(key: string | null): boolean {
+  if (!key || typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeFlag(key: string | null): void {
+  if (!key) return;
+  try {
+    window.localStorage.setItem(key, "1");
+  } catch {
+    /* 저장이 막혀 있으면 이번에만 숨김 (laterNow) */
+  }
+}
 
 // ── 타입 ────────────────────────────────────────────────
 
@@ -124,17 +152,16 @@ function buildDummyProgramCards(child: Child | null): {
 export default function HomeScreen() {
   usePageTitle("홈");
   const router = useRouter();
-  const { user } = useAuth();
+  const toast = useToast();
+  const { user, guardianName, saveGuardianName } = useAuth();
+  // 이름을 묻는 카드: 이름이 없는 계정에만, [나중에]를 누른 기기에서는 다시 묻지 않음
+  const laterKey = user ? `tc.namePrompt.later.${user.uid}` : null;
+  const [laterNow, setLaterNow] = useState<string | null>(null); // 저장이 막힌 브라우저에서도 이번에는 숨김
+  const promptLater = useMemo(() => laterNow === laterKey || readFlag(laterKey), [laterKey, laterNow]);
+  const showNamePrompt = !!user && !DEMO_MODE && !guardianName && !promptLater;
   const { children, loading } = useChildren({ activeOnly: true });
   const { selected, selectedIndex, select } = useSelectedChild(children, user?.uid);
   const hasMultiple = children.length >= 2;
-
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return "좋은 아침이에요 ☀️";
-    if (h < 18) return "안녕하세요 👋";
-    return "좋은 저녁이에요 🌙";
-  };
 
   const { active, upcoming, pastCount } = buildDummyProgramCards(selected);
 
@@ -147,66 +174,57 @@ export default function HomeScreen() {
     router.push(`/main/program/${card.programId}?${qs.toString()}`);
   };
 
-  // 규정·지침 — 수강 중 프로그램의 규정 화면 (돌아올 때 "← 홈")
-  const rulesCard = active[0] ?? null;
-  const goToRules = (card: ProgramCard) => {
-    const qs = new URLSearchParams({
-      studentName: card.studentName,
-      programTitle: card.title,
-      sid: card.studentId,
-      from: "home",
-    });
-    router.push(`/main/program/${card.programId}/guide/rules?${qs.toString()}`);
-  };
-
   return (
-    <div className="flex flex-1 flex-col bg-[#f8fafc] pb-8">
-      {/* ── 상단 환영 헤더 ─────────────────────── */}
-      <div className="bg-brand px-5 pb-7" style={{ paddingTop: "calc(var(--sat) + 28px)" }}>
-        <div className="mb-[14px] flex min-h-9 items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-[10px]">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white/20">
-              <span className="text-[15px] font-extrabold text-white">TC</span>
-            </div>
-            <span className="truncate text-[16px] font-medium text-blue-100">{greeting()}</span>
-          </div>
-          {/* 자녀 2명 이상: 오른쪽 위에서 자녀 전환 */}
-          {!loading && hasMultiple && (
-            <ChildSwitcher items={children} selectedIndex={selectedIndex} onSelect={select} />
-          )}
-        </div>
-        {selected && (
-          <p className="text-[24px] font-semibold leading-[32px] text-white">
-            환영합니다,{" "}
-            <span className="font-extrabold text-white">{selected.studentName} 학부모님!</span>
+    <div className="flex flex-1 flex-col bg-paper pb-8">
+      {/* ── 상단: 경로(다른 화면과 같은 줄 · 지금 화면 "홈") + 오른쪽 자녀 전환 · 인사말 한 줄 ── */}
+      <div className="px-5 pb-7" style={{ paddingTop: "calc(var(--sat) + 4px)" }}>
+        <Breadcrumbs
+          items={[{ label: "홈" }]}
+          className="mb-3"
+          trailing={
+            // 자녀 2명 이상: 오른쪽 위에서 자녀 전환
+            !loading && hasMultiple ? (
+              <ChildSwitcher items={children} selectedIndex={selectedIndex} onSelect={select} />
+            ) : undefined
+          }
+        />
+        {user && (
+          <p className="text-[24px] font-semibold leading-[33px] tracking-[-0.01em] text-fg">
+            환영합니다, <span className="font-extrabold">{guardianTitle(guardianName)}</span>
           </p>
         )}
         {!loading && hasMultiple && (
-          <p className="mt-1 text-[15px] text-blue-100">
-            연결된 자녀 {children.length}명 · 오른쪽 위에서 전환할 수 있어요
-          </p>
-        )}
-        {loading && (
-          <div className="mt-2 flex justify-center">
-            <Spinner color="#ffffff" />
-          </div>
+          <p className="mt-2 text-[15px] text-sub">연결된 자녀 {children.length}명 · 오른쪽 위에서 전환할 수 있어요</p>
         )}
       </div>
+
+      {/* ── 보호자 이름 묻기 (이름이 없는 계정만) ─── */}
+      {showNamePrompt && (
+        <GuardianNamePrompt
+          onSave={async (raw) => {
+            const name = await saveGuardianName(raw);
+            toast.show(`${name} 학부모님, 반가워요`);
+          }}
+          onLater={() => {
+            writeFlag(laterKey);
+            setLaterNow(laterKey);
+          }}
+        />
+      )}
 
       {/* ── 로딩 중 ────────────────────────────── */}
       {loading && (
         <div className="flex flex-col items-center gap-3 p-12">
-          <Spinner color="#1d4ed8" size="large" />
-          <p className="text-[16px] text-gray-500">자녀 정보를 불러오는 중...</p>
+          <Spinner size="large" />
+          <p className="text-[16px] text-sub">자녀 정보를 불러오는 중...</p>
         </div>
       )}
 
       {/* ── 미등록 상태 ─────────────────────────── */}
       {!loading && children.length === 0 && (
-        <div className="m-5 flex flex-col items-center rounded-[20px] border border-dashed border-gray-200 bg-white p-9">
-          <span className="mb-3 text-[40px]">📋</span>
-          <p className="mb-2 text-[18px] font-bold text-gray-700">연결된 자녀가 없습니다</p>
-          <p className="text-center text-[16px] leading-[25px] text-gray-500">
+        <div className="m-5 flex flex-col items-center rounded-[20px] border border-dashed border-line bg-card p-9">
+          <p className="mb-2 text-[18px] font-bold text-fg2">연결된 자녀가 없습니다</p>
+          <p className="text-center text-[16px] leading-[25px] text-sub">
             캠퍼스 담당자에게 받은 등록코드를 입력해
             <br />
             자녀를 등록해주세요.
@@ -214,33 +232,10 @@ export default function HomeScreen() {
         </div>
       )}
 
-      {/* ── 규정·지침 (반드시 지켜 주세요) ─────── */}
-      {!loading && rulesCard && (
-        <button
-          type="button"
-          aria-label="프로그램 이수 규정·지침 보기"
-          onClick={() => goToRules(rulesCard)}
-          className="tap mx-5 mt-5 flex items-center gap-3 rounded-[18px] border border-red-200 bg-red-50 px-4 py-4 text-left"
-        >
-          <span aria-hidden="true" className="text-[28px] leading-none">
-            ⚠️
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[18px] font-extrabold leading-[26px] text-red-700">프로그램 이수 규정·지침</span>
-            <span className="block text-[15px] font-semibold text-red-600">반드시 지켜 주세요 · 지각·결석 기준</span>
-          </span>
-          <span aria-hidden="true" className="text-[24px] text-red-300">
-            ›
-          </span>
-        </button>
-      )}
-
       {/* ── 현재 수강 중 ────────────────────────── */}
       {!loading && active.length > 0 && (
         <>
-          <div className="px-5 pt-6 pb-3">
-            <h2 className="text-[19px] font-extrabold text-gray-900">📌 현재 수강 중인 프로그램</h2>
-          </div>
+          <h2 className="sr-only">현재 수강 중인 프로그램</h2>
           {active.map((card) => (
             <ActiveProgramCard
               key={`${card.programId}-${card.studentId}`}
@@ -255,7 +250,7 @@ export default function HomeScreen() {
       {!loading && SHOW_UPCOMING_ON_HOME && upcoming.length > 0 && (
         <>
           <div className="px-5 pt-6 pb-3">
-            <h2 className="text-[19px] font-extrabold text-gray-900">🗓 수강 예정 프로그램</h2>
+            <h2 className="text-[19px] font-extrabold text-fg">수강 예정 프로그램</h2>
           </div>
           {upcoming.map((card) => (
             <UpcomingProgramCard
@@ -267,19 +262,20 @@ export default function HomeScreen() {
         </>
       )}
 
-      {/* ── FAQ 진입 카드 ───────────────────────── */}
+      {/* ── FAQ 진입 ───────────────────────────── */}
       {!loading && (
         <button
           type="button"
-          className="tap mx-5 mt-5 flex items-center gap-3 rounded-[14px] border border-gray-200 bg-white p-4 text-left"
+          className="tap mx-5 mt-4 flex items-center gap-3 rounded-[18px] border border-line bg-card px-5 py-[18px] text-left"
           onClick={() => router.push("/main/faq")}
         >
-          <span className="text-[26px]">💬</span>
           <div className="min-w-0 flex-1">
-            <p className="mb-[2px] text-[16px] font-bold text-gray-700">궁금하신 점이 있으신가요?</p>
-            <p className="text-[14px] text-gray-500">FAQ · 자주 묻는 질문 보기</p>
+            <p className="text-[17px] font-bold text-fg">궁금하신 점이 있으신가요?</p>
+            <p className="mt-[2px] text-[15px] text-sub">자주 묻는 질문 · 챗봇 상담</p>
           </div>
-          <span className="text-[24px] font-light text-gray-300">›</span>
+          <span aria-hidden="true" className="text-[22px] leading-none text-gold">
+            ›
+          </span>
         </button>
       )}
 
@@ -289,9 +285,9 @@ export default function HomeScreen() {
           <button
             type="button"
             onClick={() => router.push("/main/history")}
-            className="tap rounded-full border border-gray-200 bg-white px-5 py-[10px] text-[15px] font-semibold text-gray-600"
+            className="tap rounded-full border border-line bg-card px-5 py-[10px] text-[15px] font-semibold text-sub"
           >
-            📂 이전 수강 이력 보기 ({pastCount}) ›
+            이전 수강 이력 보기 ({pastCount}) ›
           </button>
         </div>
       )}
@@ -316,47 +312,42 @@ function ActiveProgramCard({ card, onPress }: { card: ProgramCard; onPress: () =
     <button
       type="button"
       aria-label={`${card.title} 상세 보기`}
-      className="tap mx-5 mb-3 flex flex-col rounded-[20px] border border-blue-100 bg-white p-5 text-left shadow-[0_2px_8px_rgba(29,78,216,0.08)]"
+      className="tap mx-5 mb-3 flex flex-col rounded-[20px] border border-line border-t-2 border-t-gold bg-card p-6 text-left"
       onClick={onPress}
     >
-      {/* 상태 + 이동 표시 */}
-      <div className="mb-2 flex w-full items-center justify-between">
-        <span className="flex items-center gap-[5px] rounded-[20px] border border-green-200 bg-green-50 px-[9px] py-[3px]">
-          <span className="h-[6px] w-[6px] rounded-[3px] bg-green-500" />
-          <span className="text-[14px] font-bold text-green-600">수강 중</span>
+      <div className="mb-3 flex w-full items-center justify-between">
+        <span className="rounded-md border border-gold-border bg-gold-light px-2 py-[2px] text-[14px] font-bold text-gold">
+          수강 중
         </span>
-        <span aria-hidden="true" className="text-[24px] leading-none text-gray-300">
+        <span aria-hidden="true" className="text-[22px] leading-none text-gold">
           ›
         </span>
       </div>
 
-      {/* 프로그램명 + 운영 요일/시간 */}
-      <p className="text-[20px] font-extrabold leading-[30px] text-gray-900">{card.title}</p>
-      <p className="mt-[2px] text-[15px] text-gray-500">
+      <p className="text-[21px] font-extrabold leading-[30px] tracking-[-0.01em] text-fg">{card.title}</p>
+      <p className="mt-1 text-[15px] text-sub">
         {card.frequency} {card.fixedDay}요일
         {card.nextSessionStartTime && card.nextSessionEndTime
           ? ` · ${card.nextSessionStartTime}–${card.nextSessionEndTime}`
           : ""}
       </p>
 
-      {/* 진도 */}
-      <div className="mt-4 flex w-full items-center gap-3">
+      <div className="mt-5 flex w-full items-center gap-3">
         <ProgressBar value={progress} height={6} className="flex-1" />
-        <span className="shrink-0 text-[14px] font-semibold text-gray-500">
+        <span className="shrink-0 text-[14px] font-semibold text-sub">
           {card.completedSessions}/{card.totalSessions}회
         </span>
       </div>
 
-      {/* 다음 수업 한 줄 */}
       {nextKey && (
-        <div className="mt-4 flex w-full items-center gap-2 rounded-xl bg-blue-50 px-3 py-[10px]">
-          <span className="shrink-0 text-[14px] font-bold text-blue-600">다음 수업</span>
-          <span className="shrink-0 text-[15px] font-bold text-brand">{formatShortDate(nextKey)}</span>
+        <div className="mt-5 flex w-full items-center gap-2 border-t border-line pt-4">
+          <span className="shrink-0 text-[14px] font-bold text-gold">다음 수업</span>
+          <span className="shrink-0 text-[15px] font-bold text-fg">{formatShortDate(nextKey)}</span>
           {card.nextSessionTopic && (
-            <span className="min-w-0 flex-1 truncate text-[15px] text-gray-700">{card.nextSessionTopic}</span>
+            <span className="min-w-0 flex-1 truncate text-[15px] text-sub">{card.nextSessionTopic}</span>
           )}
           {dday && (
-            <span className="shrink-0 rounded-md bg-brand px-[6px] py-[1px] text-[14px] font-bold text-white">
+            <span className="shrink-0 rounded-md bg-brand px-[6px] py-[1px] text-[14px] font-bold text-ink">
               {dday}
             </span>
           )}
@@ -378,20 +369,20 @@ function UpcomingProgramCard({ card, onPress }: { card: ProgramCard; onPress: ()
     <button
       type="button"
       aria-label={`수강 예정 · ${card.title} 안내 보기`}
-      className="tap mx-5 mb-3 flex flex-col rounded-[20px] border border-violet-200 bg-white p-5 text-left shadow-[0_2px_8px_rgba(124,58,237,0.08)]"
+      className="tap mx-5 mb-3 flex flex-col rounded-[20px] border border-line bg-card p-5 text-left"
       onClick={onPress}
     >
       <div className="mb-2 flex w-full items-center justify-between">
-        <span className="rounded-[20px] border border-violet-200 bg-violet-50 px-[9px] py-[3px] text-[14px] font-bold text-violet-700">
+        <span className="rounded-[20px] border border-line bg-elev px-[9px] py-[3px] text-[14px] font-bold text-gold">
           수강 예정
         </span>
-        <span aria-hidden="true" className="text-[24px] leading-none text-gray-300">
+        <span aria-hidden="true" className="text-[24px] leading-none text-faint">
           ›
         </span>
       </div>
 
-      <p className="text-[20px] font-extrabold leading-[30px] text-gray-900">{card.title}</p>
-      <p className="mt-[2px] text-[15px] text-gray-500">
+      <p className="text-[20px] font-extrabold leading-[30px] text-fg">{card.title}</p>
+      <p className="mt-[2px] text-[15px] text-sub">
         {card.frequency} {card.fixedDay}요일
         {card.nextSessionStartTime && card.nextSessionEndTime
           ? ` · ${card.nextSessionStartTime}–${card.nextSessionEndTime}`
@@ -400,22 +391,22 @@ function UpcomingProgramCard({ card, onPress }: { card: ProgramCard; onPress: ()
       </p>
 
       {firstKey && (
-        <div className="mt-4 flex w-full items-center gap-2 rounded-xl bg-violet-50 px-3 py-[10px]">
-          <span className="shrink-0 text-[14px] font-bold text-violet-700">첫 수업</span>
-          <span className="shrink-0 text-[15px] font-bold text-gray-900">{formatShortDate(firstKey)}</span>
+        <div className="mt-4 flex w-full items-center gap-2 rounded-xl bg-paper-light px-3 py-[10px]">
+          <span className="shrink-0 text-[14px] font-bold text-gold">첫 수업</span>
+          <span className="shrink-0 text-[15px] font-bold text-fg">{formatShortDate(firstKey)}</span>
           {card.endDate && (
-            <span className="min-w-0 flex-1 truncate text-[15px] text-gray-700">
+            <span className="min-w-0 flex-1 truncate text-[15px] text-fg2">
               ~ {formatShortDate(dotDateToKey(card.endDate))}
             </span>
           )}
           {dday && (
-            <span className="ml-auto shrink-0 rounded-md bg-violet-600 px-[6px] py-[1px] text-[14px] font-bold text-white">
+            <span className="ml-auto shrink-0 rounded-md bg-brand px-[6px] py-[1px] text-[14px] font-bold text-ink">
               {dday}
             </span>
           )}
         </div>
       )}
-      <p className="mt-3 text-[15px] font-semibold text-violet-700">기간·장소·수업 안내 보기 ›</p>
+      <p className="mt-3 text-[15px] font-semibold text-gold">기간·장소·수업 안내 보기 ›</p>
     </button>
   );
 }

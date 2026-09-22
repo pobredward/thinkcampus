@@ -11,7 +11,7 @@ import { DemoRedirect } from "@/components/DemoRedirect";
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-1 flex-col bg-white">
+    <div className="flex min-h-dvh flex-1 flex-col bg-card">
       <DemoRedirect>{children}</DemoRedirect>
     </div>
   );

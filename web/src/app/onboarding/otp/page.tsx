@@ -20,11 +20,13 @@ import { getFirebaseAuth, getFns, signInWithPhone, type ConfirmationResult } fro
 import { otpErrorMessage, smsErrorMessage } from "@/lib/errors";
 import { clearOnboardingSession, readOnboardingSession } from "@/lib/onboardingSession";
 import { maskPhone, toE164Korea } from "@/lib/phone";
+import { useAuth } from "@/providers/AuthProvider";
 import { useDialog } from "@/providers/DialogProvider";
 
 export default function OnboardingOtp() {
   const router = useRouter();
   const dialog = useDialog();
+  const { saveGuardianName } = useAuth();
   const goBack = useBack("/onboarding");
   // 전화번호는 이전 단계(verify)가 sessionStorage 에 저장 — 마운트 후 읽는다 (SSR 불일치 방지)
   const [phone, setPhone] = useState("");
@@ -93,6 +95,11 @@ export default function OnboardingOtp() {
         await signInWithCustomToken(getFirebaseAuth(), session.customToken);
       }
 
+      // 2-1) 가입 화면에서 받은 보호자 이름을 계정 표시 이름으로 (실패해도 로그인은 계속 — 홈에서 다시 물어봄)
+      if (session?.guardianName) {
+        await saveGuardianName(session.guardianName).catch(() => undefined);
+      }
+
       // 3) 초대받은 보호자인 경우 자동 연결 (allowedGuardianPhoneHashes 기반)
       try {
         await httpsCallable(getFns(), "linkGuardianByPhone")({});
@@ -111,7 +118,7 @@ export default function OnboardingOtp() {
 
   return (
     <form
-      className="flex flex-1 flex-col bg-white px-6 pb-10 pt-[60px]"
+      className="flex flex-1 flex-col bg-card px-6 pb-10 pt-[60px]"
       onSubmit={(e) => {
         e.preventDefault();
         void handleConfirm();
@@ -121,21 +128,21 @@ export default function OnboardingOtp() {
       <button
         type="button"
         onClick={goBack}
-        className="tap mb-4 self-start text-[16px] font-medium text-brand"
+        className="tap mb-4 self-start text-[16px] font-medium text-gold"
       >
         ← 이전
       </button>
 
       {/* 진행 단계 */}
       <div className="mb-8 flex gap-[6px]" aria-label="3단계 / 3단계">
-        <span className="h-2 w-2 rounded-full bg-gray-200" />
-        <span className="h-2 w-2 rounded-full bg-gray-200" />
+        <span className="h-2 w-2 rounded-full bg-line2" />
+        <span className="h-2 w-2 rounded-full bg-line2" />
         <span className="h-2 w-6 rounded-full bg-brand" />
       </div>
 
-      <h1 className="mb-3 text-[28px] font-bold text-gray-900">인증번호 입력</h1>
-      <p className="mb-10 text-[16px] leading-[26px] text-gray-500">
-        <span className="font-semibold text-gray-900">{maskedPhone}</span>
+      <h1 className="mb-3 text-[28px] font-bold text-fg">인증번호 입력</h1>
+      <p className="mb-10 text-[16px] leading-[26px] text-sub">
+        <span className="font-semibold text-fg">{maskedPhone}</span>
         <br />
         으로 발송된 6자리 인증번호를 입력해주세요.
       </p>
@@ -145,7 +152,7 @@ export default function OnboardingOtp() {
         {sending ? (
           <div className="flex items-center gap-[10px]">
             <Spinner />
-            <span className="text-[16px] text-gray-500">인증번호 발송 중…</span>
+            <span className="text-[16px] text-sub">인증번호 발송 중…</span>
           </div>
         ) : (
           <OtpInput value={otp} onChange={setOtp} autoFocus />
@@ -158,7 +165,7 @@ export default function OnboardingOtp() {
         onClick={() => void handleResend()}
         disabled={resendCountdown > 0 || sending}
         className={`tap mb-10 text-center text-[16px] ${
-          resendCountdown > 0 ? "text-gray-500" : "text-brand underline"
+          resendCountdown > 0 ? "text-sub" : "text-gold underline"
         }`}
       >
         {resendCountdown > 0 ? `재발송 (${resendCountdown}초 후)` : "인증번호 재발송"}

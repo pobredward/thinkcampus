@@ -40,7 +40,7 @@ export function ReportPanel({
     <>
       <PanelTitle>{session.sessionNumber}회차 리포트</PanelTitle>
 
-      {absent && <Note tone="amber">결석한 회차라 참여도와 평가가 없어요.</Note>}
+      {absent && <Note>결석한 회차라 참여도와 평가가 없어요.</Note>}
 
       {!!record.feedback && (
         <Card title={absent ? '선생님 안내' : '선생님 한마디'} icon="💬">
@@ -73,9 +73,9 @@ export function ReportPanel({
             {record.homeworkDone != null && (
               <InfoRow label="과제">
                 {record.homeworkDone ? (
-                  <Text style={[styles.value, { fontWeight: '700', color: '#15803d' }]}>✓ 제출 완료</Text>
+                  <Text style={[styles.value, { fontWeight: '700', color: '#d4b06a' }]}>✓ 제출 완료</Text>
                 ) : (
-                  <Text style={[styles.value, { fontWeight: '700', color: '#dc2626' }]}>미제출</Text>
+                  <Text style={[styles.value, { fontWeight: '700', color: '#f27d78' }]}>미제출</Text>
                 )}
               </InfoRow>
             )}
@@ -85,13 +85,13 @@ export function ReportPanel({
 
       {record.highlights.length > 0 && (
         <Card title="잘한 점" icon="👍">
-          <Bullets items={record.highlights} color="#22c55e" />
+          <Bullets items={record.highlights} color="#d4b06a" />
         </Card>
       )}
 
       {record.improvements.length > 0 && (
         <Card title={absent ? '참고해 주세요' : '다음엔 이렇게'} icon="💡">
-          <Bullets items={record.improvements} color="#f59e0b" />
+          <Bullets items={record.improvements} color="#7c8390" />
         </Card>
       )}
 
@@ -125,7 +125,7 @@ export function ReportPanel({
           </View>
           {!!onOpenFullReport && (
             <TouchableOpacity style={styles.fullBtn} onPress={onOpenFullReport} activeOpacity={0.85}>
-              <Text style={styles.fullBtnText}>📊 종합 리포트 보기</Text>
+              <Text style={styles.fullBtnText}>종합 리포트 보기</Text>
             </TouchableOpacity>
           )}
         </Card>
@@ -138,33 +138,33 @@ const styles = StyleSheet.create({
   quote: {
     borderRadius: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#1d4ed8',
-    backgroundColor: '#eff6ff',
+    borderLeftColor: '#d4b06a',
+    backgroundColor: '#1e232d',
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
-  quoteBy: { marginBottom: 4, fontSize: 15, fontWeight: '700', color: '#1d4ed8' },
-  quoteText: { fontSize: 17, lineHeight: 27, color: '#111827' },
-  value: { fontSize: 17, lineHeight: 25, color: '#111827' },
-  valueSub: { color: '#4b5563' },
+  quoteBy: { marginBottom: 4, fontSize: 15, fontWeight: '700', color: '#d4b06a' },
+  quoteText: { fontSize: 17, lineHeight: 27, color: '#f2f2f0' },
+  value: { fontSize: 17, lineHeight: 25, color: '#f2f2f0' },
+  valueSub: { color: '#9aa0ab' },
   gradeRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   gradeBox: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   gradeText: { fontSize: 26, fontWeight: '800' },
-  scoreLabel: { fontSize: 15, color: '#4b5563' },
-  score: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: '#111827' },
-  scoreUnit: { fontSize: 16, fontWeight: '600', color: '#4b5563' },
+  scoreLabel: { fontSize: 15, color: '#9aa0ab' },
+  score: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: '#f2f2f0' },
+  scoreUnit: { fontSize: 16, fontWeight: '600', color: '#9aa0ab' },
   compList: { marginTop: 20, gap: 16 },
   compHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 4 },
-  compLabel: { flexShrink: 1, fontSize: 16, fontWeight: '600', color: '#1f2937' },
-  compScore: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  compBench: { fontSize: 14, fontWeight: '500', color: '#6b7280' },
+  compLabel: { flexShrink: 1, fontSize: 16, fontWeight: '600', color: '#d4d7dd' },
+  compScore: { fontSize: 16, fontWeight: '700', color: '#f2f2f0' },
+  compBench: { fontSize: 14, fontWeight: '500', color: '#9aa0ab' },
   fullBtn: {
     marginTop: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     paddingVertical: 16,
     alignItems: 'center',
   },
-  fullBtnText: { fontSize: 16, fontWeight: '700', color: '#1d4ed8' },
+  fullBtnText: { fontSize: 16, fontWeight: '700', color: '#d4b06a' },
 });

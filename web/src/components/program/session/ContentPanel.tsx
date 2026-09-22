@@ -27,62 +27,62 @@ export function ContentPanel({ session }: { session: Session }) {
       <Card title="수업 소개" icon="📖">
         {session.programCode && (
           <p className="mb-3">
-            <span className="rounded-lg border border-blue-200 bg-brand-light px-[10px] py-1 text-[15px] font-bold text-brand">
+            <span className="rounded-lg border border-line bg-elev px-[10px] py-1 text-[15px] font-bold text-gold">
               {session.programCode}
             </span>
           </p>
         )}
-        <p className="text-[17px] leading-[27px] text-gray-800">{session.description}</p>
+        <p className="text-[17px] leading-[27px] text-fg2">{session.description}</p>
         {session.rotationNote && (
-          <p className="mt-3 text-[15px] leading-[23px] text-gray-600">{session.rotationNote}</p>
+          <p className="mt-3 text-[15px] leading-[23px] text-sub">{session.rotationNote}</p>
         )}
       </Card>
 
       {session.objectives && session.objectives.length > 0 && (
         <Card title="수업 목표" icon="🎯">
-          <Bullets items={session.objectives} color="#1d4ed8" />
+          <Bullets items={session.objectives} color="#d4b06a" />
         </Card>
       )}
 
       {session.teachingMethod && (
         <Card title="이렇게 가르쳐요" icon="🧩">
-          <p className="text-[16px] leading-[26px] text-gray-800">{session.teachingMethod}</p>
+          <p className="text-[16px] leading-[26px] text-fg2">{session.teachingMethod}</p>
         </Card>
       )}
 
       <Card title="강사 소개" icon="🧑‍🏫">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[22px] font-bold text-brand">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-elev text-[22px] font-bold text-gold">
             {session.instructor.name.charAt(0)}
           </span>
           <div className="min-w-0">
-            <p className="text-[18px] font-bold text-gray-900">{session.instructor.name} 강사</p>
-            <p className="text-[15px] text-gray-600">{session.instructor.title}</p>
+            <p className="text-[18px] font-bold text-fg">{session.instructor.name} 강사</p>
+            <p className="text-[15px] text-sub">{session.instructor.title}</p>
           </div>
         </div>
-        <p className="mt-3 text-[16px] leading-[25px] text-gray-800">{session.instructor.bio}</p>
+        <p className="mt-3 text-[16px] leading-[25px] text-fg2">{session.instructor.bio}</p>
       </Card>
 
       {hasMaterials && (
         <Card title="수업 자료" icon="📂">
           {session.planUrl && (
             <LinkButton onClick={() => openUrl(session.planUrl!)} tone="blue">
-              📋 전체 수업 계획서
+              전체 수업 계획서
             </LinkButton>
           )}
           {session.lessonPlans?.map(({ lessonNumber, topic, slideUrl, activityUrl }) => (
-            <div key={lessonNumber} className="mt-4 border-t border-gray-100 pt-4 first:mt-0 first:border-t-0 first:pt-0">
-              <p className="text-[15px] font-bold text-brand">{lessonNumber}차시</p>
-              <p className="mb-2 text-[17px] font-semibold text-gray-900">{topic}</p>
+            <div key={lessonNumber} className="mt-4 border-t border-line pt-4 first:mt-0 first:border-t-0 first:pt-0">
+              <p className="text-[15px] font-bold text-gold">{lessonNumber}차시</p>
+              <p className="mb-2 text-[17px] font-semibold text-fg">{topic}</p>
               <div className="flex flex-wrap gap-2">
                 {slideUrl && (
                   <LinkButton onClick={() => openUrl(slideUrl)} tone="blue">
-                    🖥 수업 PPT
+                    수업 PPT
                   </LinkButton>
                 )}
                 {activityUrl && (
-                  <LinkButton onClick={() => openUrl(activityUrl)} tone="green">
-                    📝 활동지
+                  <LinkButton onClick={() => openUrl(activityUrl)} tone="plain">
+                    활동지
                   </LinkButton>
                 )}
               </div>
@@ -100,11 +100,11 @@ function LinkButton({
   children,
 }: {
   onClick: () => void;
-  tone: "blue" | "green";
+  tone: "blue" | "plain";
   children: React.ReactNode;
 }) {
   const cls =
-    tone === "blue" ? "border-blue-200 bg-brand-light text-brand" : "border-green-200 bg-green-50 text-green-700";
+    tone === "blue" ? "border-line bg-elev text-gold" : "border-line bg-elev text-fg2";
   return (
     <button type="button" onClick={onClick} className={`tap rounded-xl border px-4 py-[9px] text-[16px] font-semibold ${cls}`}>
       {children}

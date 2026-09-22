@@ -11,7 +11,8 @@ import { useState } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { Child } from "@/hooks/useChildren";
 
-const AVATAR_COLORS = ["#2563eb", "#059669", "#7c3aed", "#d97706", "#db2777"];
+// 골드 계열 (잉크 글자) — 자녀마다 조금씩 다른 톤
+const AVATAR_COLORS = ["#d4b06a", "#c8a24a", "#e0c184", "#b8944e", "#d9bd83"];
 
 export function childAvatarColor(index: number): string {
   return AVATAR_COLORS[index % AVATAR_COLORS.length];
@@ -34,13 +35,13 @@ function ChevronDown({ className = "" }: { className?: string }) {
 
 function CheckCircle({ on }: { on: boolean }) {
   return on ? (
-    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-brand">
+    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-gold">
       <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
-        <path d="M2.5 6.2 5 8.6l4.5-5" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M2.5 6.2 5 8.6l4.5-5" fill="none" stroke="#0c0e13" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
   ) : (
-    <span className="h-[22px] w-[22px] shrink-0 rounded-full border-[1.5px] border-gray-300" />
+    <span className="h-[22px] w-[22px] shrink-0 rounded-full border-[1.5px] border-line2" />
   );
 }
 
@@ -64,20 +65,20 @@ export function ChildSwitcher({
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-label={`자녀 전환, 현재 ${current.studentName}`}
-        className="tap flex shrink-0 items-center gap-[6px] rounded-full border border-white/30 bg-white/15 py-1 pl-1 pr-[10px]"
+        className="tap flex shrink-0 items-center gap-[6px] rounded-full border border-line2 bg-elev py-1 pl-1 pr-[10px]"
       >
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[15px] font-extrabold"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-card text-[15px] font-extrabold"
           style={{ color: childAvatarColor(selectedIndex) }}
         >
           {childInitial(current.studentName)}
         </span>
-        <span className="max-w-[84px] truncate text-[15px] font-bold text-white">{current.studentName}</span>
-        <ChevronDown className="text-blue-100" />
+        <span className="max-w-[84px] truncate text-[15px] font-bold text-fg">{current.studentName}</span>
+        <ChevronDown className="text-sub" />
       </button>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title="자녀 선택">
-        <p className="-mt-2 mb-4 text-[15px] text-gray-500">
+        <p className="-mt-2 mb-4 text-[15px] text-sub">
           연결된 자녀 {items.length}명 · 홈에 표시할 자녀를 선택하세요.
         </p>
         <ul role="listbox" aria-label="자녀 목록" className="flex flex-col gap-2 pb-4">
@@ -95,20 +96,20 @@ export function ChildSwitcher({
                     setOpen(false);
                   }}
                   className={`tap flex w-full items-center gap-3 rounded-[14px] border-[1.5px] p-[14px] text-left ${
-                    isSel ? "border-brand bg-brand-light" : "border-gray-200 bg-white"
+                    isSel ? "border-gold bg-elev" : "border-line bg-card"
                   }`}
                 >
                   <span
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[18px] font-extrabold text-white"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[18px] font-extrabold text-fg"
                     style={{ backgroundColor: childAvatarColor(i) }}
                   >
                     {childInitial(c.studentName)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[17px] font-bold text-gray-900">
-                      {c.studentName} <span className="text-[15px] font-medium text-gray-500">학생</span>
+                    <span className="block truncate text-[17px] font-bold text-fg">
+                      {c.studentName} <span className="text-[15px] font-medium text-sub">학생</span>
                     </span>
-                    {meta && <span className="mt-[2px] block truncate text-[14px] text-gray-500">{meta}</span>}
+                    {meta && <span className="mt-[2px] block truncate text-[14px] text-sub">{meta}</span>}
                   </span>
                   <CheckCircle on={isSel} />
                 </button>

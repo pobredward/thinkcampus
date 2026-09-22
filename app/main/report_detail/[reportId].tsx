@@ -33,7 +33,7 @@ import {
 
 function buildPdfHtml(report: typeof DUMMY_REPORT): string {
   const gradeColor: Record<string, string> = {
-    S: '#7c3aed', A: '#1d4ed8', B: '#0369a1', C: '#6b7280',
+    S: '#0f1218', A: '#141a24', B: '#4a5263', C: '#6b7280',
   };
 
   const programRows = report.programs.map((p) => {
@@ -71,7 +71,7 @@ function buildPdfHtml(report: typeof DUMMY_REPORT): string {
         </div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
           <thead>
-            <tr style="background:#f8fafc;">
+            <tr style="background:#f6f6f4;">
               <th style="padding:8px 12px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb;">역량 항목</th>
               <th style="padding:8px 12px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb;">점수</th>
               <th style="padding:8px 12px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb;">비교</th>
@@ -79,7 +79,7 @@ function buildPdfHtml(report: typeof DUMMY_REPORT): string {
           </thead>
           <tbody>${competencyRows}</tbody>
         </table>
-        <div style="background:#f8fafc;border-radius:8px;padding:14px;margin-bottom:10px;">
+        <div style="background:#f6f6f4;border-radius:8px;padding:14px;margin-bottom:10px;">
           <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">강사 총평</div>
           <div style="font-size:13px;color:#374151;line-height:1.7;">${p.instructorComment}</div>
         </div>
@@ -104,35 +104,35 @@ function buildPdfHtml(report: typeof DUMMY_REPORT): string {
 <body style="padding:32px;max-width:800px;margin:0 auto;">
 
   <!-- 헤더 -->
-  <div style="background:#1d4ed8;border-radius:16px;padding:28px 32px;margin-bottom:28px;color:#fff;">
-    <div style="font-size:13px;color:#bfdbfe;margin-bottom:6px;">ThinkCampus 학습 리포트</div>
+  <div style="background:#141a24;border-radius:16px;padding:28px 32px;margin-bottom:28px;color:#fff;">
+    <div style="font-size:13px;color:#d9dbe0;margin-bottom:6px;">ThinkCampus 학습 리포트</div>
     <div style="font-size:28px;font-weight:900;margin-bottom:6px;">${report.studentName} 학생</div>
-    <div style="font-size:14px;color:#bfdbfe;">${report.campusName} · ${report.campPeriod}</div>
+    <div style="font-size:14px;color:#d9dbe0;">${report.campusName} · ${report.campPeriod}</div>
     <div style="display:flex;align-items:center;gap:16px;margin-top:20px;">
       <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:12px 24px;text-align:center;">
         <div style="font-size:36px;font-weight:900;">${report.totalGrade}</div>
-        <div style="font-size:12px;color:#bfdbfe;margin-top:2px;">종합 등급</div>
+        <div style="font-size:12px;color:#d9dbe0;margin-top:2px;">종합 등급</div>
       </div>
       <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:12px 24px;text-align:center;">
         <div style="font-size:36px;font-weight:900;">${report.totalScore}</div>
-        <div style="font-size:12px;color:#bfdbfe;margin-top:2px;">종합 점수</div>
+        <div style="font-size:12px;color:#d9dbe0;margin-top:2px;">종합 점수</div>
       </div>
       <div style="flex:1;">
         <div style="font-size:14px;font-weight:700;margin-bottom:4px;">${report.personalityType}</div>
-        <div style="font-size:12px;color:#bfdbfe;line-height:1.6;">${report.personalityDesc.slice(0, 80)}...</div>
+        <div style="font-size:12px;color:#d9dbe0;line-height:1.6;">${report.personalityDesc.slice(0, 80)}...</div>
       </div>
     </div>
   </div>
 
   <!-- 강점 & 발전 영역 -->
   <div style="display:flex;gap:12px;margin-bottom:28px;">
-    <div style="flex:1;background:#f0fdf4;border-radius:12px;padding:16px;border:1px solid #bbf7d0;">
-      <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:10px;">강점 분야</div>
-      ${report.strengthAreas.map((s) => `<div style="font-size:13px;color:#16a34a;margin-bottom:4px;">✓ ${s}</div>`).join('')}
+    <div style="flex:1;background:#f2f3f5;border-radius:12px;padding:16px;border:1px solid #d9dbe0;">
+      <div style="font-size:13px;font-weight:700;color:#0f1218;margin-bottom:10px;">강점 분야</div>
+      ${report.strengthAreas.map((s) => `<div style="font-size:13px;color:#141a24;margin-bottom:4px;">✓ ${s}</div>`).join('')}
     </div>
-    <div style="flex:1;background:#eff6ff;border-radius:12px;padding:16px;border:1px solid #bfdbfe;">
-      <div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:10px;">발전 권장 영역</div>
-      ${report.growthAreas.map((s) => `<div style="font-size:13px;color:#1d4ed8;margin-bottom:4px;">→ ${s}</div>`).join('')}
+    <div style="flex:1;background:#f2f3f5;border-radius:12px;padding:16px;border:1px solid #d9dbe0;">
+      <div style="font-size:13px;font-weight:700;color:#0f1218;margin-bottom:10px;">발전 권장 영역</div>
+      ${report.growthAreas.map((s) => `<div style="font-size:13px;color:#141a24;margin-bottom:4px;">→ ${s}</div>`).join('')}
     </div>
   </div>
 
@@ -143,7 +143,7 @@ function buildPdfHtml(report: typeof DUMMY_REPORT): string {
   </div>
 
   <!-- 프로그램별 상세 -->
-  <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #1d4ed8;">프로그램별 상세 평가</div>
+  <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #141a24;">프로그램별 상세 평가</div>
   ${programRows}
 
   <!-- 발급 정보 -->
@@ -218,7 +218,7 @@ export default function ReportDetailScreen() {
   const gradeBg = getGradeBg(report.totalGrade);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <View style={{ flex: 1, backgroundColor: '#0c0e13' }}>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
       >
@@ -239,7 +239,7 @@ export default function ReportDetailScreen() {
               disabled={pdfLoading}
             >
               {pdfLoading
-                ? <ActivityIndicator color="#fff" size="small" />
+                ? <ActivityIndicator color="#0c0e13" size="small" />
                 : <Text style={styles.navBtnPrimaryText}>PDF 저장·공유</Text>}
             </TouchableOpacity>
           </View>
@@ -298,7 +298,7 @@ export default function ReportDetailScreen() {
             ))}
           </View>
           <View style={[styles.twoColCard, styles.growthCard]}>
-            <Text style={[styles.twoColTitle, { color: '#1e40af' }]}>발전 권장</Text>
+            <Text style={[styles.twoColTitle, { color: '#d4b06a' }]}>발전 권장</Text>
             {report.growthAreas.map((s, i) => (
               <View key={i} style={styles.twoColItem}>
                 <View style={styles.arrowDot} />
@@ -388,7 +388,7 @@ function ProgramCard({
         <View style={styles.progExpanded}>
           {/* 성장 지수 */}
           <View style={styles.growthRow}>
-            <GrowthBar label="캠프 전" score={prog.preScore} color="#9ca3af" />
+            <GrowthBar label="캠프 전" score={prog.preScore} color="#7c8390" />
             <View style={styles.growthArrow}><Text style={styles.growthArrowText}>→</Text></View>
             <GrowthBar label="캠프 후" score={prog.postScore} color={gradeColor} />
           </View>
@@ -465,7 +465,7 @@ function CompetencyRow({ comp, gradeColor }: { comp: CompetencyScore; gradeColor
         </View>
         <View style={styles.compScoreRow}>
           <Text style={[styles.compScore, { color: gradeColor }]}>{comp.score}</Text>
-          <Text style={[styles.compDiff, { color: diff >= 0 ? '#16a34a' : '#dc2626' }]}>
+          <Text style={[styles.compDiff, { color: diff >= 0 ? '#141a24' : '#dc2626' }]}>
             {diff >= 0 ? `+${diff}` : diff}
           </Text>
         </View>
@@ -485,91 +485,91 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#262b36',
   },
   backBtn: {},
-  backText: { fontSize: 16, color: '#1d4ed8', fontWeight: '500' },
+  backText: { fontSize: 16, color: '#d4b06a', fontWeight: '500' },
   navActions: { flexDirection: 'row', gap: 8 },
   navBtn: {
-    borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8,
+    borderWidth: 1, borderColor: '#262b36', borderRadius: 8,
     paddingHorizontal: 14, paddingVertical: 8,
   },
-  navBtnText: { fontSize: 15, color: '#374151', fontWeight: '500' },
-  navBtnPrimary: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
-  navBtnPrimaryText: { fontSize: 15, color: '#fff', fontWeight: '700' },
+  navBtnText: { fontSize: 15, color: '#d4d7dd', fontWeight: '500' },
+  navBtnPrimary: { backgroundColor: '#d4b06a', borderColor: '#d4b06a' },
+  navBtnPrimaryText: { fontSize: 15, color: '#0c0e13', fontWeight: '700' },
 
   // 종합 헤더 카드
   heroCard: {
     marginHorizontal: 20, marginTop: 16,
-    backgroundColor: '#ffffff', borderRadius: 16,
-    padding: 18, borderWidth: 1, borderColor: '#e5e7eb',
+    backgroundColor: '#161a22', borderRadius: 16,
+    padding: 18, borderWidth: 1, borderColor: '#262b36',
   },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   heroAvatar: {
     width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#1e232d', alignItems: 'center', justifyContent: 'center',
   },
-  heroAvatarText: { fontSize: 22, fontWeight: '700', color: '#1d4ed8' },
-  heroName: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  heroCampus: { fontSize: 14, color: '#6b7280', marginTop: 1 },
-  heroPeriod: { fontSize: 14, color: '#6b7280', marginTop: 1 },
+  heroAvatarText: { fontSize: 22, fontWeight: '700', color: '#d4b06a' },
+  heroName: { fontSize: 18, fontWeight: '700', color: '#f2f2f0' },
+  heroCampus: { fontSize: 14, color: '#9aa0ab', marginTop: 1 },
+  heroPeriod: { fontSize: 14, color: '#9aa0ab', marginTop: 1 },
   heroGrade: {
     width: 48, height: 48, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
   heroGradeText: { fontSize: 26, fontWeight: '900' },
   totalScoreRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  totalScoreLabel: { fontSize: 15, color: '#6b7280', fontWeight: '500' },
+  totalScoreLabel: { fontSize: 15, color: '#9aa0ab', fontWeight: '500' },
   totalScoreValue: { fontSize: 16, fontWeight: '700' },
-  totalBarBg: { height: 8, backgroundColor: '#f3f4f6', borderRadius: 4, overflow: 'hidden', marginBottom: 16 },
+  totalBarBg: { height: 8, backgroundColor: '#1e232d', borderRadius: 4, overflow: 'hidden', marginBottom: 16 },
   totalBarFill: { height: 8, borderRadius: 4 },
   personalityBox: {
-    backgroundColor: '#f8fafc', borderRadius: 10, padding: 14,
-    borderWidth: 1, borderColor: '#e5e7eb',
+    backgroundColor: '#0c0e13', borderRadius: 10, padding: 14,
+    borderWidth: 1, borderColor: '#262b36',
   },
-  personalityType: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  personalityDesc: { fontSize: 15, color: '#374151', lineHeight: 23 },
+  personalityType: { fontSize: 16, fontWeight: '700', color: '#f2f2f0', marginBottom: 6 },
+  personalityDesc: { fontSize: 15, color: '#d4d7dd', lineHeight: 23 },
 
   // 강점 / 발전
   twoColRow: { flexDirection: 'row', marginHorizontal: 20, marginTop: 12, gap: 10 },
   twoColCard: { flex: 1, borderRadius: 14, padding: 14, borderWidth: 1 },
-  strengthCard: { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' },
-  growthCard: { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' },
-  twoColTitle: { fontSize: 14, fontWeight: '700', color: '#166534', marginBottom: 10 },
+  strengthCard: { backgroundColor: '#1e232d', borderColor: '#343a47' },
+  growthCard: { backgroundColor: '#1e232d', borderColor: '#343a47' },
+  twoColTitle: { fontSize: 14, fontWeight: '700', color: '#d4b06a', marginBottom: 10 },
   twoColItem: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  checkDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e' },
-  arrowDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#60a5fa' },
-  strengthText: { fontSize: 14, color: '#16a34a', flex: 1 },
-  growthText: { fontSize: 14, color: '#1d4ed8', flex: 1 },
+  checkDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#d4b06a' },
+  arrowDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#7c8390' },
+  strengthText: { fontSize: 14, color: '#d4b06a', flex: 1 },
+  growthText: { fontSize: 14, color: '#d4b06a', flex: 1 },
 
   // 담임 총평
   overallCommentCard: {
     marginHorizontal: 20, marginTop: 12,
-    backgroundColor: '#ffffff', borderRadius: 14,
-    padding: 16, borderWidth: 1, borderColor: '#e5e7eb',
+    backgroundColor: '#161a22', borderRadius: 14,
+    padding: 16, borderWidth: 1, borderColor: '#262b36',
   },
-  sectionLabel: { fontSize: 14, fontWeight: '700', color: '#6b7280', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  overallCommentText: { fontSize: 16, color: '#374151', lineHeight: 25 },
+  sectionLabel: { fontSize: 14, fontWeight: '700', color: '#9aa0ab', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  overallCommentText: { fontSize: 16, color: '#d4d7dd', lineHeight: 25 },
 
   // 프로그램별
   programSectionTitle: {
-    fontSize: 16, fontWeight: '700', color: '#111827',
+    fontSize: 16, fontWeight: '700', color: '#f2f2f0',
     marginHorizontal: 20, marginTop: 24, marginBottom: 10,
   },
   progCard: {
     marginHorizontal: 20, marginBottom: 10,
-    backgroundColor: '#ffffff', borderRadius: 14,
-    borderWidth: 1, borderColor: '#e5e7eb', overflow: 'hidden',
+    backgroundColor: '#161a22', borderRadius: 14,
+    borderWidth: 1, borderColor: '#262b36', overflow: 'hidden',
   },
   progCardHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14,
   },
   progIcon: { fontSize: 24 },
   progTitleWrap: { flex: 1 },
-  progName: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  progMeta: { fontSize: 14, color: '#6b7280', marginTop: 2 },
+  progName: { fontSize: 16, fontWeight: '700', color: '#f2f2f0' },
+  progMeta: { fontSize: 14, color: '#9aa0ab', marginTop: 2 },
   progGradeBadge: {
     width: 32, height: 32, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
@@ -577,84 +577,84 @@ const styles = StyleSheet.create({
   progGradeText: { fontSize: 17, fontWeight: '900' },
   progScoreWrap: { alignItems: 'flex-end' },
   progScore: { fontSize: 20, fontWeight: '800' },
-  expandArrow: { fontSize: 20, color: '#9ca3af', transform: [{ rotate: '0deg' }] },
-  expandArrowOpen: { transform: [{ rotate: '90deg' }], color: '#1d4ed8' },
+  expandArrow: { fontSize: 20, color: '#7c8390', transform: [{ rotate: '0deg' }] },
+  expandArrowOpen: { transform: [{ rotate: '90deg' }], color: '#d4b06a' },
 
   progBarSection: {
     paddingHorizontal: 14, paddingBottom: 12,
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
-  progBarBg: { flex: 1, height: 6, backgroundColor: '#f3f4f6', borderRadius: 3, overflow: 'hidden' },
+  progBarBg: { flex: 1, height: 6, backgroundColor: '#1e232d', borderRadius: 3, overflow: 'hidden' },
   progBarFill: { height: 6, borderRadius: 3 },
   growthChip: {
-    backgroundColor: '#f0fdf4', borderRadius: 10,
+    backgroundColor: '#1e232d', borderRadius: 10,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  growthChipText: { fontSize: 14, color: '#16a34a', fontWeight: '700' },
+  growthChipText: { fontSize: 14, color: '#d4b06a', fontWeight: '700' },
 
   // 확장 영역
   progExpanded: {
-    borderTopWidth: 1, borderTopColor: '#f3f4f6',
+    borderTopWidth: 1, borderTopColor: '#262b36',
     padding: 14,
   },
   growthRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, height: 80 },
   growthBarWrap: { flex: 1, alignItems: 'center' },
-  growthBarLabel: { fontSize: 14, color: '#6b7280', marginBottom: 4 },
+  growthBarLabel: { fontSize: 14, color: '#9aa0ab', marginBottom: 4 },
   growthBarScore: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
-  growthBarBg: { width: '70%', height: 40, backgroundColor: '#f3f4f6', borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
+  growthBarBg: { width: '70%', height: 40, backgroundColor: '#1e232d', borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
   growthBarFill: { width: '100%', borderRadius: 4 },
   growthArrow: { paddingHorizontal: 12 },
-  growthArrowText: { fontSize: 20, color: '#6b7280' },
+  growthArrowText: { fontSize: 20, color: '#9aa0ab' },
 
   subSectionTitle: {
-    fontSize: 14, fontWeight: '700', color: '#6b7280',
+    fontSize: 14, fontWeight: '700', color: '#9aa0ab',
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginBottom: 10,
   },
   compRow: { marginBottom: 12 },
   compLabelWrap: { marginBottom: 4 },
-  compLabel: { fontSize: 15, fontWeight: '600', color: '#374151' },
-  compDesc: { fontSize: 14, color: '#6b7280' },
+  compLabel: { fontSize: 15, fontWeight: '600', color: '#d4d7dd' },
+  compDesc: { fontSize: 14, color: '#9aa0ab' },
   compRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   compBarBg: {
-    flex: 1, height: 8, backgroundColor: '#f3f4f6',
+    flex: 1, height: 8, backgroundColor: '#1e232d',
     borderRadius: 4, overflow: 'visible', position: 'relative',
   },
   compBarFill: { height: 8, borderRadius: 4 },
   compBenchmarkLine: {
     position: 'absolute', top: -2, bottom: -2,
-    width: 2, backgroundColor: '#f59e0b', zIndex: 1,
+    width: 2, backgroundColor: '#343a47', zIndex: 1,
   },
   compScoreRow: { flexDirection: 'row', gap: 4, alignItems: 'center' },
   compScore: { fontSize: 16, fontWeight: '800', minWidth: 28 },
   compDiff: { fontSize: 14, fontWeight: '600' },
 
   commentBox: {
-    backgroundColor: '#f8fafc', borderRadius: 10, padding: 12,
+    backgroundColor: '#0c0e13', borderRadius: 10, padding: 12,
     marginTop: 14, marginBottom: 10,
   },
-  commentLabel: { fontSize: 14, fontWeight: '700', color: '#374151', marginBottom: 6 },
-  commentText: { fontSize: 15, color: '#374151', lineHeight: 23 },
+  commentLabel: { fontSize: 14, fontWeight: '700', color: '#d4d7dd', marginBottom: 6 },
+  commentText: { fontSize: 15, color: '#d4d7dd', lineHeight: 23 },
 
   highlightBox: {
-    backgroundColor: '#fffbeb', borderRadius: 10, padding: 12,
-    marginBottom: 10, borderWidth: 1, borderColor: '#fde68a',
+    backgroundColor: '#1e232d', borderRadius: 10, padding: 12,
+    marginBottom: 10, borderWidth: 1, borderColor: '#4a3a1e',
   },
-  highlightLabel: { fontSize: 14, fontWeight: '700', color: '#92400e', marginBottom: 8 },
+  highlightLabel: { fontSize: 14, fontWeight: '700', color: '#d4d7dd', marginBottom: 8 },
   highlightRow: { flexDirection: 'row', gap: 6, marginBottom: 5 },
-  highlightStar: { fontSize: 14, color: '#f59e0b' },
-  highlightText: { flex: 1, fontSize: 15, color: '#78350f', lineHeight: 21 },
+  highlightStar: { fontSize: 14, color: '#7c8390' },
+  highlightText: { flex: 1, fontSize: 15, color: '#f2a65a', lineHeight: 21 },
 
   nextStepsBox: {
-    backgroundColor: '#eff6ff', borderRadius: 10, padding: 12,
-    borderWidth: 1, borderColor: '#bfdbfe',
+    backgroundColor: '#1e232d', borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: '#343a47',
   },
-  nextStepsLabel: { fontSize: 14, fontWeight: '700', color: '#1e40af', marginBottom: 8 },
+  nextStepsLabel: { fontSize: 14, fontWeight: '700', color: '#d4b06a', marginBottom: 8 },
   nextStepRow: { flexDirection: 'row', gap: 8, marginBottom: 6, alignItems: 'flex-start' },
   nextStepNum: {
     width: 18, height: 18, borderRadius: 9,
-    backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+    backgroundColor: '#d4b06a', alignItems: 'center', justifyContent: 'center', marginTop: 1,
   },
-  nextStepNumText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  nextStepText: { flex: 1, fontSize: 15, color: '#1e40af', lineHeight: 21 },
+  nextStepNumText: { fontSize: 14, fontWeight: '700', color: '#0c0e13' },
+  nextStepText: { flex: 1, fontSize: 15, color: '#d4d7dd', lineHeight: 21 },
 });

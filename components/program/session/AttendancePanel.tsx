@@ -6,14 +6,16 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { DayItem, DayStatus, ProgressSummary } from '../../../data/programView';
 import { formatKoreanDate } from '../../../lib/dates';
+import { C } from '../../../lib/theme';
 import { Card, InfoList, InfoRow, InfoValue, Note, PanelTitle } from './parts';
 
-const STATUS_LOOK: Record<DayStatus, { icon: string; box: string; text: string; title: string }> = {
-  present: { icon: '✅', box: '#f0fdf4', text: '#15803d', title: '출석' },
-  late: { icon: '⏰', box: '#fffbeb', text: '#b45309', title: '지각' },
-  absent: { icon: '❌', box: '#fef2f2', text: '#dc2626', title: '결석' },
-  upcoming: { icon: '🗓️', box: '#eff6ff', text: '#1d4ed8', title: '수업 전' },
-  cancelled: { icon: '🚫', box: '#f3f4f6', text: '#4b5563', title: '휴강' },
+// 상태는 왼쪽 세로 막대 색 + 글자색으로 (이모지 없이) — 웹과 같은 값
+const STATUS_LOOK: Record<DayStatus, { bar: string; text: string; title: string }> = {
+  present: { bar: C.gold, text: C.text, title: '출석' },
+  late: { bar: '#f59e0b', text: '#b45309', title: '지각' },
+  absent: { bar: '#dc2626', text: '#b91c1c', title: '결석' },
+  upcoming: { bar: C.line2, text: C.fg2, title: '수업 전' },
+  cancelled: { bar: C.line2, text: C.sub, title: '휴강' },
 };
 
 export function AttendancePanel({ item, summary }: { item: DayItem; summary: ProgressSummary }) {
@@ -40,9 +42,7 @@ export function AttendancePanel({ item, summary }: { item: DayItem; summary: Pro
       <PanelTitle>출결</PanelTitle>
       <Card>
         <View style={styles.statusRow}>
-          <View style={[styles.statusIcon, { backgroundColor: look.box }]}>
-            <Text style={styles.statusEmoji}>{look.icon}</Text>
-          </View>
+          <View style={[styles.statusBar, { backgroundColor: look.bar }]} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.statusTitle, { color: look.text }]}>{look.title}</Text>
             <Text style={styles.statusSub}>{subline}</Text>
@@ -73,16 +73,16 @@ export function AttendancePanel({ item, summary }: { item: DayItem; summary: Pro
         </View>
       </Card>
 
-      {status === 'absent' && <Note tone="amber">빠진 수업의 소개와 자료는 ‘내용’ 탭에서 볼 수 있어요.</Note>}
+      {status === 'absent' && <Note>빠진 수업의 소개와 자료는 ‘내용’ 탭에서 볼 수 있어요.</Note>}
 
-      <Card title="이 프로그램 출결" icon="📋">
+      <Card title="이 프로그램 출결">
         <Text style={styles.summaryLine}>
           지금까지 {summary.done}회 / 전체 {summary.total}회
         </Text>
         <View style={styles.countRow}>
-          <Count label="출석" value={summary.present} bg="#f0fdf4" color="#15803d" />
-          <Count label="지각" value={summary.late} bg="#fffbeb" color="#b45309" />
-          <Count label="결석" value={summary.absent} bg="#fef2f2" color="#dc2626" />
+          <Count label="출석" value={summary.present} bg={C.goldLight} color={C.gold} />
+          <Count label="지각" value={summary.late} bg={C.lateBg} color={C.late} />
+          <Count label="결석" value={summary.absent} bg={C.dangerBg} color={C.danger} />
         </View>
       </Card>
     </>
@@ -100,11 +100,10 @@ function Count({ label, value, bg, color }: { label: string; value: number; bg: 
 
 const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  statusIcon: { width: 64, height: 64, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  statusEmoji: { fontSize: 30 },
+  statusBar: { width: 5, height: 56, borderRadius: 3 },
   statusTitle: { fontSize: 26, lineHeight: 34, fontWeight: '800' },
-  statusSub: { fontSize: 17, color: '#374151' },
-  summaryLine: { fontSize: 16, color: '#4b5563' },
+  statusSub: { fontSize: 17, color: '#d4d7dd' },
+  summaryLine: { fontSize: 16, color: '#9aa0ab' },
   countRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   countBox: { flex: 1, borderRadius: 16, paddingVertical: 12, alignItems: 'center' },
   countLabel: { fontSize: 15, fontWeight: '600' },

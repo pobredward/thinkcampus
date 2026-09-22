@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { demoStudentText } from "@/lib/demo";
 
 type NotifType = "attendance" | "notice" | "report" | "schedule";
 
@@ -72,16 +73,16 @@ const DUMMY_NOTIFICATIONS: Notification[] = [
   },
 ];
 
-function getTypeInfo(type: NotifType): { emoji: string; color: string; bg: string; label: string } {
+function getTypeInfo(type: NotifType): { label: string } {
   switch (type) {
     case "attendance":
-      return { emoji: "📋", color: "#1d4ed8", bg: "#eff6ff", label: "출결" };
+      return { label: "출결" };
     case "notice":
-      return { emoji: "📢", color: "#d97706", bg: "#fffbeb", label: "공지" };
+      return { label: "공지" };
     case "report":
-      return { emoji: "📊", color: "#7c3aed", bg: "#f5f3ff", label: "리포트" };
+      return { label: "리포트" };
     case "schedule":
-      return { emoji: "📅", color: "#059669", bg: "#ecfdf5", label: "일정" };
+      return { label: "일정" };
   }
 }
 
@@ -100,23 +101,23 @@ export default function NotificationScreen() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-[#f8fafc]">
+    <div className="flex flex-1 flex-col bg-paper">
       {/* 고정 헤더 */}
       <div
-        className="sticky top-0 z-10 flex flex-col border-b border-gray-100 bg-white px-5 pb-[14px]"
+        className="sticky top-0 z-10 flex flex-col border-b border-line bg-paper px-5 pb-[14px]"
         style={{ paddingTop: "calc(var(--sat) + 12px)" }}
       >
         <div className="mb-[6px] flex items-center gap-2">
-          <h1 className="text-[24px] font-bold text-gray-900">알림</h1>
+          <h1 className="text-[24px] font-bold text-fg">알림</h1>
           {unreadCount > 0 && (
-            <div className="flex min-w-5 items-center justify-center rounded-[10px] bg-brand px-[7px] py-[2px]">
-              <span className="text-[14px] font-bold text-white">{unreadCount}</span>
+            <div className="flex min-w-5 items-center justify-center rounded-[10px] bg-gold px-[7px] py-[2px]">
+              <span className="text-[14px] font-bold text-ink">{unreadCount}</span>
             </div>
           )}
         </div>
         {unreadCount > 0 && (
           <button type="button" onClick={markAllRead} className="tap self-start">
-            <span className="text-[15px] font-medium text-brand">모두 읽음 처리</span>
+            <span className="text-[15px] font-medium text-gold">모두 읽음 처리</span>
           </button>
         )}
       </div>
@@ -124,8 +125,7 @@ export default function NotificationScreen() {
       <div className="flex flex-col px-4 pb-6 pt-3">
         {notifications.length === 0 && (
           <div className="flex flex-col items-center gap-3 pt-20">
-            <span className="text-[40px]">🔔</span>
-            <p className="text-[16px] text-gray-500">새 알림이 없습니다</p>
+            <p className="text-[16px] text-sub">새 알림이 없습니다</p>
           </div>
         )}
 
@@ -136,14 +136,14 @@ export default function NotificationScreen() {
               key={notif.id}
               type="button"
               className={`tap relative mb-2 flex w-full flex-col rounded-[14px] border p-4 text-left ${
-                !notif.isRead ? "border-blue-200 bg-[#fafcff]" : "border-gray-200 bg-white"
+                !notif.isRead ? "border-gold-border bg-card" : "border-line bg-card"
               }`}
               onClick={() => markRead(notif.id)}
             >
               {/* 미읽음 점 */}
               {!notif.isRead && (
                 <span
-                  className="absolute right-4 top-4 h-2 w-2 rounded-full bg-brand"
+                  className="absolute right-4 top-4 h-2 w-2 rounded-full bg-gold"
                   role="img"
                   aria-label="읽지 않음"
                 />
@@ -151,27 +151,21 @@ export default function NotificationScreen() {
 
               {/* 상단 행 */}
               <div className="mb-2 flex w-full items-center justify-between">
-                <div
-                  className="flex items-center gap-1 rounded-lg px-2 py-[3px]"
-                  style={{ backgroundColor: info.bg }}
-                >
-                  <span className="text-[15px]">{info.emoji}</span>
-                  <span className="text-[14px] font-bold" style={{ color: info.color }}>
-                    {info.label}
-                  </span>
-                </div>
-                <span className="pr-5 text-[14px] text-gray-500">{notif.date}</span>
+                <span className="rounded-md bg-elev px-2 py-[3px] text-[14px] font-bold text-fg2">
+                  {info.label}
+                </span>
+                <span className="pr-5 text-[14px] text-sub">{notif.date}</span>
               </div>
 
               {/* 제목 + 본문 */}
               <p
                 className={`mb-1 text-[16px] ${
-                  !notif.isRead ? "font-bold text-gray-900" : "font-semibold text-gray-700"
+                  !notif.isRead ? "font-bold text-fg" : "font-semibold text-fg2"
                 }`}
               >
                 {notif.title}
               </p>
-              <p className="text-[15px] leading-[22px] text-gray-500">{notif.body}</p>
+              <p className="text-[15px] leading-[22px] text-sub">{demoStudentText(notif.body)}</p>
             </button>
           );
         })}

@@ -24,6 +24,7 @@ import { getFns } from "@/lib/firebase";
 import { e164ToLocal } from "@/lib/phone";
 import { useAuth } from "@/providers/AuthProvider";
 import { useDialog } from "@/providers/DialogProvider";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export default function WithdrawPage() {
   usePageTitle("회원 탈퇴");
@@ -73,21 +74,16 @@ export default function WithdrawPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-[#f8fafc] pb-10">
-      <header
-        className="border-b border-gray-100 bg-white px-5 pb-4"
-        style={{ paddingTop: "calc(var(--sat) + 12px)" }}
-      >
-        <button type="button" onClick={goBack} className="tap -ml-1 mb-2 py-1 pr-2 text-[16px] font-medium text-brand">
-          ← 내 정보
-        </button>
-        <h1 className="text-[24px] font-bold text-gray-900">회원 탈퇴</h1>
+    <div className="flex flex-1 flex-col bg-paper pb-10">
+      <header className="border-b border-line bg-paper px-5 pb-4" style={{ paddingTop: "calc(var(--sat) + 4px)" }}>
+        <Breadcrumbs items={[{ label: "내 정보", href: "/main/profile" }, { label: "회원 탈퇴" }]} />
+        <h1 className="mt-1 text-[24px] font-bold text-fg">회원 탈퇴</h1>
       </header>
 
-      <section className="mx-5 mt-5 rounded-[20px] border border-gray-200 bg-white p-5">
-        <h2 className="mb-4 text-[18px] font-bold text-gray-900">탈퇴하면 이렇게 돼요</h2>
+      <section className="mx-5 mt-5 rounded-[20px] border border-line bg-card p-5">
+        <h2 className="mb-4 text-[18px] font-bold text-fg">탈퇴하면 이렇게 돼요</h2>
         <ul className="flex flex-col gap-4">
-          <Item icon="👧">
+          <Item>
             {loading ? (
               "연결된 자녀의 출결·수업·리포트를 더 이상 볼 수 없어요."
             ) : childNames.length > 0 ? (
@@ -98,27 +94,27 @@ export default function WithdrawPage() {
               "연결된 자녀 정보가 모두 해제돼요."
             )}
           </Item>
-          <Item icon="🔗">내가 보낸 리포트 공유 링크가 바로 사용 중지돼요.</Item>
-          <Item icon="📱">
+          <Item>내가 보낸 리포트 공유 링크가 바로 사용 중지돼요.</Item>
+          <Item>
             로그인 정보{phone ? <> (<b>{phone}</b>)</> : null}가 삭제되고, <b>되돌릴 수 없어요.</b>
           </Item>
-          <Item icon="↩️">
+          <Item>
             다시 이용하려면 캠퍼스에서 등록코드를 새로 받거나, 다른 보호자에게 초대를 받아야 해요.
           </Item>
         </ul>
-        <p className="mt-5 rounded-2xl bg-gray-50 px-4 py-3 text-[15px] leading-[23px] text-gray-600">
+        <p className="mt-5 rounded-2xl bg-elev px-4 py-3 text-[15px] leading-[23px] text-sub">
           자녀의 수업 기록은 캠퍼스 운영 자료라 삭제되지 않아요. 다른 보호자는 계속 볼 수 있어요.
         </p>
       </section>
 
-      <label className="tap mx-5 mt-4 flex cursor-pointer items-center gap-3 rounded-[20px] border border-gray-200 bg-white px-5 py-4">
+      <label className="tap mx-5 mt-4 flex cursor-pointer items-center gap-3 rounded-[20px] border border-line bg-card px-5 py-4">
         <input
           type="checkbox"
           checked={agreed}
           onChange={(e) => setAgreed(e.target.checked)}
           className="h-6 w-6 shrink-0 accent-red-600"
         />
-        <span className="text-[17px] font-semibold text-gray-900">위 내용을 모두 확인했어요</span>
+        <span className="text-[17px] font-semibold text-fg">위 내용을 모두 확인했어요</span>
       </label>
 
       <div className="mx-5 mt-5 flex flex-col gap-2">
@@ -126,17 +122,17 @@ export default function WithdrawPage() {
           type="button"
           onClick={() => void handleWithdraw()}
           disabled={!agreed || working}
-          className={`tap flex items-center justify-center rounded-2xl py-4 text-[17px] font-bold text-white ${
-            agreed && !working ? "bg-red-600" : "bg-red-300"
+          className={`tap flex items-center justify-center rounded-2xl py-4 text-[17px] font-bold ${
+            agreed && !working ? "bg-danger text-ink" : "bg-danger-bg text-danger"
           }`}
         >
-          {working ? <Spinner color="#fff" /> : "회원 탈퇴하기"}
+          {working ? <Spinner color="#0c0e13" /> : "회원 탈퇴하기"}
         </button>
         <button
           type="button"
           onClick={goBack}
           disabled={working}
-          className="tap rounded-2xl py-4 text-center text-[17px] font-semibold text-gray-600"
+          className="tap rounded-2xl py-4 text-center text-[17px] font-semibold text-sub"
         >
           취소
         </button>
@@ -145,13 +141,11 @@ export default function WithdrawPage() {
   );
 }
 
-function Item({ icon, children }: { icon: string; children: React.ReactNode }) {
+function Item({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex gap-3">
-      <span aria-hidden="true" className="w-7 shrink-0 text-center text-[20px] leading-[26px]">
-        {icon}
-      </span>
-      <span className="flex-1 text-[16px] leading-[26px] text-gray-800">{children}</span>
+      <span aria-hidden="true" className="mt-[11px] h-1 w-1 shrink-0 rounded-full bg-gold" />
+      <span className="flex-1 text-[16px] leading-[26px] text-fg2">{children}</span>
     </li>
   );
 }

@@ -23,6 +23,7 @@ import { router } from 'expo-router';
 import { signOut } from '@react-native-firebase/auth';
 import { httpsCallable } from '@react-native-firebase/functions';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Breadcrumbs } from '../../../../components/ui/Breadcrumbs';
 import { auth, functions } from '../../../../firebase';
 import { useChildren } from '../../../../hooks/useChildren';
 import { clearSelectedChild } from '../../../../hooks/useSelectedChild';
@@ -82,10 +83,8 @@ export default function WithdrawScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={8} accessibilityRole="button">
-          <Text style={styles.backText}>← 내 정보</Text>
-        </TouchableOpacity>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
+        <Breadcrumbs items={[{ label: '내 정보', href: '/main/profile' }, { label: '회원 탈퇴' }]} />
         <Text style={styles.title} accessibilityRole="header">
           회원 탈퇴
         </Text>
@@ -94,7 +93,7 @@ export default function WithdrawScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>탈퇴하면 이렇게 돼요</Text>
         <View style={{ gap: 16 }}>
-          <Item icon="👧">
+          <Item>
             {loading ? (
               '연결된 자녀의 출결·수업·리포트를 더 이상 볼 수 없어요.'
             ) : childNames.length > 0 ? (
@@ -106,12 +105,12 @@ export default function WithdrawScreen() {
               '연결된 자녀 정보가 모두 해제돼요.'
             )}
           </Item>
-          <Item icon="🔗">내가 보낸 리포트 공유 링크가 바로 사용 중지돼요.</Item>
-          <Item icon="📱">
+          <Item>내가 보낸 리포트 공유 링크가 바로 사용 중지돼요.</Item>
+          <Item>
             로그인 정보{phone ? <> (<Text style={styles.bold}>{phone}</Text>)</> : null}가 삭제되고,{' '}
             <Text style={styles.bold}>되돌릴 수 없어요.</Text>
           </Item>
-          <Item icon="↩️">
+          <Item>
             다시 이용하려면 캠퍼스에서 등록코드를 새로 받거나, 다른 보호자에게 초대를 받아야 해요.
           </Item>
         </View>
@@ -142,7 +141,11 @@ export default function WithdrawScreen() {
           accessibilityRole="button"
           accessibilityState={{ disabled: !agreed || working }}
         >
-          {working ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.withdrawText}>회원 탈퇴하기</Text>}
+          {working ? (
+            <ActivityIndicator color="#0c0e13" />
+          ) : (
+            <Text style={[styles.withdrawText, !(agreed && !working) && styles.withdrawTextOff]}>회원 탈퇴하기</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelBtn} onPress={goBack} disabled={working}>
           <Text style={styles.cancelText}>취소</Text>
@@ -152,10 +155,10 @@ export default function WithdrawScreen() {
   );
 }
 
-function Item({ icon, children }: { icon: string; children: React.ReactNode }) {
+function Item({ children }: { children: React.ReactNode }) {
   return (
     <View style={styles.item}>
-      <Text style={styles.itemIcon}>{icon}</Text>
+      <View style={styles.itemDot} />
       <Text style={styles.itemText} lineBreakStrategyIOS="hangul-word">
         {children}
       </Text>
@@ -164,35 +167,33 @@ function Item({ icon, children }: { icon: string; children: React.ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#0c0e13' },
   content: { paddingBottom: 40 },
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#0c0e13',
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#262b36',
     paddingHorizontal: 20,
     paddingBottom: 16,
   },
-  backBtn: { alignSelf: 'flex-start', paddingVertical: 4, paddingRight: 8, marginBottom: 8 },
-  backText: { fontSize: 16, fontWeight: '500', color: '#1d4ed8' },
-  title: { fontSize: 24, fontWeight: '700', color: '#111827' },
+  title: { marginTop: 4, fontSize: 24, fontWeight: '700', color: '#f2f2f0' },
 
   card: {
     marginHorizontal: 20,
     marginTop: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     padding: 20,
   },
-  cardTitle: { marginBottom: 16, fontSize: 18, fontWeight: '700', color: '#111827' },
+  cardTitle: { marginBottom: 16, fontSize: 18, fontWeight: '700', color: '#f2f2f0' },
   item: { flexDirection: 'row', gap: 12 },
-  itemIcon: { width: 28, textAlign: 'center', fontSize: 20, lineHeight: 26 },
-  itemText: { flex: 1, fontSize: 16, lineHeight: 26, color: '#1f2937' },
+  itemDot: { width: 4, height: 4, borderRadius: 2, marginTop: 11, backgroundColor: '#d4b06a' },
+  itemText: { flex: 1, fontSize: 16, lineHeight: 26, color: '#d4d7dd' },
   bold: { fontWeight: '700' },
-  note: { marginTop: 20, borderRadius: 16, backgroundColor: '#f9fafb', paddingHorizontal: 16, paddingVertical: 12 },
-  noteText: { fontSize: 15, lineHeight: 23, color: '#4b5563' },
+  note: { marginTop: 20, borderRadius: 16, backgroundColor: '#1e232d', paddingHorizontal: 16, paddingVertical: 12 },
+  noteText: { fontSize: 15, lineHeight: 23, color: '#9aa0ab' },
 
   agreeRow: {
     marginHorizontal: 20,
@@ -200,10 +201,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#161a22',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#262b36',
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
@@ -212,18 +213,19 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#9ca3af',
+    borderColor: '#343a47',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxOn: { backgroundColor: '#dc2626', borderColor: '#dc2626' },
-  checkMark: { fontSize: 16, fontWeight: '800', color: '#ffffff', lineHeight: 20 },
-  agreeText: { flex: 1, fontSize: 17, fontWeight: '600', color: '#111827' },
+  checkboxOn: { backgroundColor: '#f27d78', borderColor: '#f27d78' },
+  checkMark: { fontSize: 16, fontWeight: '800', color: '#f2f2f0', lineHeight: 20 },
+  agreeText: { flex: 1, fontSize: 17, fontWeight: '600', color: '#f2f2f0' },
 
   actions: { marginHorizontal: 20, marginTop: 20, gap: 8 },
-  withdrawBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center', backgroundColor: '#dc2626' },
-  withdrawBtnOff: { backgroundColor: '#fca5a5' },
-  withdrawText: { fontSize: 17, fontWeight: '700', color: '#ffffff' },
+  withdrawBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center', backgroundColor: '#f27d78' },
+  withdrawBtnOff: { backgroundColor: '#2a1719' },
+  withdrawText: { fontSize: 17, fontWeight: '700', color: '#0c0e13' },
+  withdrawTextOff: { color: '#f27d78' },
   cancelBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
-  cancelText: { fontSize: 17, fontWeight: '600', color: '#4b5563' },
+  cancelText: { fontSize: 17, fontWeight: '600', color: '#9aa0ab' },
 });
