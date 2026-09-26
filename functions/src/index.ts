@@ -8,6 +8,7 @@
  *   addGuardianPhone / linkGuardianByPhone – 보호자 초대 / 초대받은 번호 자동 연결
  *   deleteAccount – 회원 탈퇴 (내 연결 정보 정리 + Auth 계정 삭제)
  *   createShareToken / viewReport – 리포트 공유 링크
+ *   listPendingHouseholdMembers / linkHouseholdMember – 형제 가구 연동
  */
 
 import { onCall, onRequest, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
@@ -15,31 +16,20 @@ import * as admin from 'firebase-admin';
 // admin.firestore.FieldValue 네임스페이스 접근은 Functions 에뮬레이터에서 undefined 가 되는 경우가 있어 모듈형 import 사용
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import * as crypto from 'crypto';
+import { sha256, toE164Korea } from './lib/crypto';
+import { findPendingHouseholdMembers } from './householdLink';
+import { COL_GUARDIAN_LINKS } from './lib/collections';
 
-admin.initializeApp();
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 const db = admin.firestore();
 
 // ────────────────────────────────────────────
 // 환경변수
 // ────────────────────────────────────────────
-const HASH_SALT = process.env.HASH_SALT ?? '';
-if (!HASH_SALT) {
+if (!process.env.HASH_SALT) {
   console.warn('⚠️  HASH_SALT 환경변수가 설정되지 않았습니다. .env 파일을 확인하세요.');
-}
-
-// ────────────────────────────────────────────
-// 유틸
-// ────────────────────────────────────────────
-function sha256(value: string): string {
-  return crypto.createHash('sha256').update(value + HASH_SALT).digest('hex');
-}
-
-/** 한국 전화번호 → E.164 (+821012345678) */
-function toE164Korea(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
-  if (digits.startsWith('82')) return '+' + digits;
-  if (digits.startsWith('0')) return '+82' + digits.slice(1);
-  return '+82' + digits;
 }
 
 /** 학생 이름 마스킹: "김철수" → "김○○" */
@@ -159,6 +149,7 @@ interface RedeemCodeRequest {
 interface RedeemCodeResponse {
   customToken?: string;
   existingUser?: boolean;
+  pendingHousehold?: Array<{ studentId: string; maskedName: string }>;
 }
 
 export const redeemCode = onCall(
@@ -253,7 +244,7 @@ export const redeemCode = onCall(
     }
 
     // 학생-보호자 guardianUids 갱신 및 enrollment 생성을 묶어서 처리
-    const enrollmentRef = db.collection('enrollments').doc();
+    const enrollmentRef = db.collection(COL_GUARDIAN_LINKS).doc();
     const studentRef = db.collection('students').doc(studentId);
     const batch = db.batch();
 
@@ -273,7 +264,8 @@ export const redeemCode = onCall(
         guardianUids: FieldValue.arrayUnion(existingUid),
       });
       await batch.commit();
-      return { existingUser: true };
+      const pendingHousehold = await findPendingHouseholdMembers(existingUid);
+      return { existingUser: true, pendingHousehold };
     } else {
       // 신규 계정: uid 생성 후 customToken 발급
       const newUser = await admin.auth().createUser({ phoneNumber: normalizedPhone });
@@ -294,7 +286,8 @@ export const redeemCode = onCall(
         guardianUids: FieldValue.arrayUnion(uid),
       });
       await batch.commit();
-      return { customToken };
+      const pendingHousehold = await findPendingHouseholdMembers(uid);
+      return { customToken, pendingHousehold };
     }
   },
 );
@@ -386,7 +379,7 @@ export const linkGuardianByPhone = onCall(
       const campusData = studentDoc.data();
 
       // 이미 이 uid로 연결된 enrollment가 있으면 스킵
-      const existing = await db.collection('enrollments')
+      const existing = await db.collection(COL_GUARDIAN_LINKS)
         .where('guardianUid', '==', uid)
         .where('studentId', '==', studentId)
         .limit(1)
@@ -398,7 +391,7 @@ export const linkGuardianByPhone = onCall(
       const guardianRelation = relations[phoneHash] ?? '초대됨';
 
       // enrollment 생성
-      const enrollmentRef = db.collection('enrollments').doc();
+      const enrollmentRef = db.collection(COL_GUARDIAN_LINKS).doc();
       batch.set(enrollmentRef, {
         studentId,
         campusId: campusData.campusId ?? 'unknown',
@@ -427,7 +420,7 @@ export const linkGuardianByPhone = onCall(
 // ────────────────────────────────────────────
 // deleteAccount (회원 탈퇴)
 // 로그인한 보호자 본인의 계정과 개인 연결 정보를 삭제한다.
-//   - enrollments(guardianUid == 나)              → 삭제
+//   - guardianLinks(guardianUid == 나)            → 삭제
 //   - students.guardianUids 의 내 uid              → 제거
 //   - students.allowedGuardianPhoneHashes 의 내 번호 → 제거 (다시 로그인해도 자동 연결 안 됨)
 //   - reports.guardianUids / guardianUid 의 내 uid  → 제거
@@ -476,7 +469,7 @@ export const deleteAccount = onCall(
 
     const [enrollSnap, guardianStudentsSnap, invitedStudentsSnap, reportsSnap, legacyReportsSnap, tokensSnap, codesSnap] =
       await Promise.all([
-        db.collection('enrollments').where('guardianUid', '==', uid).get(),
+        db.collection(COL_GUARDIAN_LINKS).where('guardianUid', '==', uid).get(),
         db.collection('students').where('guardianUids', 'array-contains', uid).get(),
         phoneHash
           ? db.collection('students').where('allowedGuardianPhoneHashes', 'array-contains', phoneHash).get()
@@ -854,3 +847,12 @@ export const viewReport = onRequest(
     res.status(200).send(html);
   },
 );
+
+export { importRoster } from './importRoster';
+export { createProgramRun } from './createProgramRun';
+export { listPendingHouseholdMembers, linkHouseholdMember } from './householdLink';
+export { checkCompanyAdminAccess } from './checkCompanyAdminAccess';
+export { checkStaffAccess } from './checkStaffAccess';
+export { getProgramRunAttendanceSheet } from './getProgramRunAttendanceSheet';
+export { listStudentProgramBundles } from './listStudentProgramBundles';
+export { recordSessionAttendance } from './recordSessionAttendance';
