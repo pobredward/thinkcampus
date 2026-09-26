@@ -88,10 +88,7 @@ export default function AdminNewProgramRunPage() {
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-fg2">
-        <Link href="/admin" className="underline">← Admin</Link>
-      </p>
-      <h1 className="text-2xl font-bold">운영 건 생성</h1>
+      <h1 className="text-[20px] font-bold">운영 건 생성</h1>
       <p className="text-sm text-fg2">contractCode는 import CSV와 동일해야 합니다.</p>
 
       <div className="grid gap-3 sm:grid-cols-2">

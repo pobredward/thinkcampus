@@ -8,7 +8,7 @@ export interface StaffAccess {
 
 export function staffHomePath(access: StaffAccess): string | null {
   if (access.companyAdmin) return "/admin";
-  if (access.centerAdmin) return "/admin/center/attendance";
+  if (access.centerAdmin) return "/admin/center";
   return null;
 }
 

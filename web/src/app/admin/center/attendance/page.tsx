@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { PrimaryButton } from "@/components/ui/Button";
@@ -16,6 +16,7 @@ import {
 import { useDemoPortal } from "@/providers/DemoPortalProvider";
 import { getDb, getFns } from "@/lib/firebase";
 import { useAuth } from "@/providers/AuthProvider";
+import { useCenterRun } from "@/providers/CenterRunProvider";
 
 interface ProgramRunOption {
   id: string;
@@ -43,10 +44,13 @@ interface SheetSession {
 
 export default function CenterAttendancePage() {
   usePageTitle("센터 출결");
+  const searchParams = useSearchParams();
+  const sessionFromUrl = searchParams.get("session");
   const { user } = useAuth();
   const { role: demoRole, active: demoActive } = useDemoPortal();
   const centerDemo = demoActive && demoRole === "center";
   const { access } = useStaffAccess(user?.uid ?? null);
+  const { selectedRun: assignedRun, runs: assignedRuns } = useCenterRun();
 
   const [runs, setRuns] = useState<ProgramRunOption[]>([]);
   const [runsLoading, setRunsLoading] = useState(true);
@@ -60,7 +64,8 @@ export default function CenterAttendancePage() {
 
   const loadRuns = useCallback(async () => {
     if (centerDemo) {
-      setRuns([...DEMO_CENTER_RUNS]);
+      const list = assignedRuns.length > 0 ? assignedRuns : [...DEMO_CENTER_RUNS];
+      setRuns(list);
       setRunsLoading(false);
       return;
     }
@@ -99,7 +104,18 @@ export default function CenterAttendancePage() {
     } finally {
       setRunsLoading(false);
     }
-  }, [user, access.companyAdmin, access.campusIds, centerDemo]);
+  }, [user, access.companyAdmin, access.campusIds, centerDemo, assignedRuns]);
+
+  useEffect(() => {
+    if (centerDemo && assignedRun) {
+      setProgramRunId(assignedRun.id);
+      setRunSessionId(sessionFromUrl ?? "");
+    }
+  }, [centerDemo, assignedRun, sessionFromUrl]);
+
+  useEffect(() => {
+    if (sessionFromUrl) setRunSessionId(sessionFromUrl);
+  }, [sessionFromUrl]);
 
   useEffect(() => {
     void loadRuns();
@@ -190,10 +206,7 @@ export default function CenterAttendancePage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-fg2">
-        <Link href="/admin" className="underline">← 회사 Admin</Link>
-      </p>
-      <h1 className="text-2xl font-bold">센터 출결 입력</h1>
+      <h1 className="text-[20px] font-bold">출결 입력</h1>
       <p className="text-sm text-fg2 leading-relaxed">
         운영 건과 회차를 고른 뒤 학생별 출결을 저장합니다. 학부모 앱에는{" "}
         <code className="text-fg">sessionAttendance</code> 로 반영됩니다.
@@ -213,22 +226,30 @@ export default function CenterAttendancePage() {
 
       {runs.length > 0 && (
         <div className="space-y-3">
-          <label className="block text-sm font-semibold text-fg">운영 건 (contractCode)</label>
-          <select
-            className="w-full rounded-lg border border-line bg-elev px-3 py-2 text-sm"
-            value={programRunId}
-            onChange={(e) => {
-              setProgramRunId(e.target.value);
-              setRunSessionId("");
-            }}
-          >
-            <option value="">선택…</option>
-            {runs.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.contractCode} · {r.municipalityName} ({r.campusId})
-              </option>
-            ))}
-          </select>
+          {centerDemo && assignedRuns.length > 1 ? (
+            <p className="text-sm text-sub">
+              운영 건 <span className="font-semibold text-fg">{assignedRun?.contractCode}</span> — 상단에서 전환
+            </p>
+          ) : (
+            <>
+              <label className="block text-sm font-semibold text-fg">운영 건 (contractCode)</label>
+              <select
+                className="w-full rounded-lg border border-line bg-elev px-3 py-2 text-sm"
+                value={programRunId}
+                onChange={(e) => {
+                  setProgramRunId(e.target.value);
+                  setRunSessionId("");
+                }}
+              >
+                <option value="">선택…</option>
+                {runs.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.contractCode} · {r.municipalityName} ({r.campusId})
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
 
           {selectedRun && sessions.length > 0 && (
             <>

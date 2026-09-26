@@ -34,7 +34,7 @@ export function middleware(request: NextRequest) {
   return (
     rewriteDemo(request, GUARDIAN, "/main", "guardian") ??
     rewriteDemo(request, COMPANY, "/admin", "company") ??
-    rewriteDemo(request, CENTER, "/admin/center", "center", "/attendance") ??
+    rewriteDemo(request, CENTER, "/admin/center", "center") ??
     NextResponse.next()
   );
 }

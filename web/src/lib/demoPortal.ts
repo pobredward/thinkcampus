@@ -104,6 +104,14 @@ export const DEMO_CENTER_RUNS = [
     contractCode: "SEED-ROSTER-001",
     campusId: "campus-ds26",
     municipalityName: "달성군",
+    campusName: "달성캠퍼스",
+  },
+  {
+    id: "demo-run-stem-2026",
+    contractCode: "DG-2026-STEM",
+    campusId: "campus-ds26",
+    municipalityName: "달성군",
+    campusName: "달성캠퍼스",
   },
 ] as const;
 

@@ -132,10 +132,7 @@ export default function AdminImportPage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-fg2">
-        <Link href="/admin" className="underline">← Admin</Link>
-      </p>
-      <h1 className="text-2xl font-bold">지자체 명단 import</h1>
+      <h1 className="text-[20px] font-bold">지자체 명단 import</h1>
       <p className="text-sm text-fg2 leading-relaxed">
         표에 엑셀 데이터를 붙여넣으세요. 헤더 행이 포함돼 있어도 열 이름이 맞으면 자동으로 매핑됩니다.
       </p>

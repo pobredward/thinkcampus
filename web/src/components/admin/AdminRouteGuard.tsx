@@ -80,8 +80,8 @@ export function AdminRouteGuard({
           </p>
         )}
         {mode === "company" && access.centerAdmin && (
-          <Link href="/admin/center/attendance" className="mt-3 inline-block text-gold underline">
-            센터 출결 화면으로 →
+          <Link href="/admin/center" className="mt-3 inline-block text-gold underline">
+            센터 관리 화면으로 →
           </Link>
         )}
         <pre className="mt-4 overflow-x-auto rounded bg-bg p-3 text-xs text-sub">

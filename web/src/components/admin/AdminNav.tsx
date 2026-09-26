@@ -9,7 +9,7 @@ export function AdminNav() {
   const { role, active } = useDemoPortal();
 
   const companyHref = active && role === "company" ? DEMO_ROLE_PATH.company : "/admin";
-  const centerHref = active && role === "center" ? DEMO_ROLE_PATH.center : "/admin/center/attendance";
+  const centerHref = active && role === "center" ? DEMO_ROLE_PATH.center : "/admin/center";
   const guardianHref = active && role === "guardian" ? DEMO_ROLE_PATH.guardian : "/main";
 
   return (
