@@ -856,3 +856,5 @@ export { checkStaffAccess } from './checkStaffAccess';
 export { getProgramRunAttendanceSheet } from './getProgramRunAttendanceSheet';
 export { listStudentProgramBundles } from './listStudentProgramBundles';
 export { recordSessionAttendance } from './recordSessionAttendance';
+export { getCenterRunOps } from './getCenterRunOps';
+export { createCenterNotice } from './createCenterNotice';
