@@ -63,9 +63,31 @@ const PAST   = new Date(NOW.getTime() - 1 * 24 * 60 * 60 * 1000);    // 어제 (
 const LOCKED_UNTIL = new Date(NOW.getTime() - 1000);                   // 이미 해제
 
 const CAMPUS_ID = 'campus-ds26';
+/** importRoster dry-run / 테스트용 운영 건 (contractCode) */
+const SEED_ROSTER_CONTRACT_CODE = 'SEED-ROSTER-001';
+const SEED_PROGRAM_RUN_ID = 'run-seed-sat-001';
+/** runSessions 고정 id (출결 시드·학부모 앱 session.id 와 일치) */
+const SEED_RUN_SESSION_IDS = [
+  'rs-seed-01',
+  'rs-seed-02',
+  'rs-seed-03',
+  'rs-seed-04',
+  'rs-seed-05',
+  'rs-seed-06',
+] as const;
+const SEED_SESSION_ROWS = [
+  { sessionTemplateId: 'stpl-eng', topic: '글로벌 영어 커뮤니케이션', scheduledDate: '2026-09-05' },
+  { sessionTemplateId: 'stpl-world', topic: '세계사 인문학 — 교류와 충돌', scheduledDate: '2026-09-19' },
+  { sessionTemplateId: 'stpl-korean', topic: '한국사 인문학 — 우리 역사 깊이 읽기', scheduledDate: '2026-10-03' },
+  { sessionTemplateId: 'stpl-debate', topic: '사고·창의력 디베이트', scheduledDate: '2026-10-17' },
+  { sessionTemplateId: 'stpl-steam', topic: '창의 융합 과학 STEAM', scheduledDate: '2026-10-31' },
+  { sessionTemplateId: 'stpl-ai', topic: 'AI/SW 바이브 코딩', scheduledDate: '2026-11-14' },
+];
+/** 형제 자동 연동 테스트: 001·002 동일 가구 (import 시 우리가 부여하는 householdId) */
+const HOUSEHOLD_SIBLINGS = 'hh-seed-siblings-001';
 const STUDENTS = [
-  { id: 'student-001', name: '김민준', birthDate: '20100315' },
-  { id: 'student-002', name: '이서연', birthDate: '20110720' },
+  { id: 'student-001', name: '김민준', birthDate: '20100315', householdId: HOUSEHOLD_SIBLINGS },
+  { id: 'student-002', name: '이서연', birthDate: '20110720', householdId: HOUSEHOLD_SIBLINGS },
   { id: 'student-003', name: '박지호', birthDate: '20090502' },
   { id: 'student-004', name: '최민철', birthDate: '20120301' },
 ];
@@ -308,8 +330,13 @@ async function main() {
     await deleteCollection('campuses');
     await deleteCollection('students');
     await deleteCollection('enrollmentCodes');
+    await deleteCollection('guardianLinks');
     await deleteCollection('enrollments');
     await deleteCollection('reports');
+    await deleteCollection('programRuns');
+    await deleteCollection('runSessions');
+    await deleteCollection('studentProgramEnrollments');
+    await deleteCollection('sessionAttendance');
     console.log();
   }
 
@@ -324,12 +351,84 @@ async function main() {
   });
   console.log(`  ✅ campuses/${CAMPUS_ID} – 달성캠퍼스`);
 
+  console.log('\n1️⃣b 운영 건(programRuns) 생성...');
+  await db.collection('programRuns').doc(SEED_PROGRAM_RUN_ID).set({
+    contractCode: SEED_ROSTER_CONTRACT_CODE,
+    programTemplateId: 'tpl-sat-creative-6',
+    campusId: CAMPUS_ID,
+    municipalityName: '시드 지자체',
+    status: 'active',
+    startDate: '2026-09-05',
+    endDate: '2026-11-14',
+    frequency: 'biweekly',
+    fixedDay: 6,
+    startTime: '10:00',
+    endTime: '12:00',
+    location: '달성캠퍼스 본관',
+    sessionPlan: SEED_SESSION_ROWS.map((r) => ({
+      sessionTemplateId: r.sessionTemplateId,
+      topic: r.topic,
+      lessonCount: 3,
+    })),
+    reportPolicy: { requireCompanyApproval: false },
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  console.log(`  ✅ programRuns/${SEED_PROGRAM_RUN_ID} – contractCode ${SEED_ROSTER_CONTRACT_CODE}`);
+
+  console.log('\n1️⃣c runSessions 생성...');
+  for (let i = 0; i < SEED_SESSION_ROWS.length; i++) {
+    const row = SEED_SESSION_ROWS[i];
+    const sessId = SEED_RUN_SESSION_IDS[i];
+    await db.collection('runSessions').doc(sessId).set({
+      programRunId: SEED_PROGRAM_RUN_ID,
+      sessionNumber: i + 1,
+      sessionTemplateId: row.sessionTemplateId,
+      topic: row.topic,
+      scheduledDate: row.scheduledDate,
+      startTime: '10:00',
+      endTime: '12:00',
+      lessonCount: 3,
+      location: '달성캠퍼스 본관',
+      status: 'scheduled',
+      source: 'generated',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(`  ✅ runSessions/${sessId} – ${i + 1}회 ${row.scheduledDate}`);
+  }
+
+  console.log('\n1️⃣d 출결 시드 (student-001, 1~3회차)...');
+  const attSamples = [
+    { sessId: SEED_RUN_SESSION_IDS[0], status: 'present', participationScore: 88 },
+    { sessId: SEED_RUN_SESSION_IDS[1], status: 'late', lateMinutes: 7, participationScore: 75 },
+    { sessId: SEED_RUN_SESSION_IDS[2], status: 'present', participationScore: 92 },
+  ] as const;
+  for (const a of attSamples) {
+    const docId = `${a.sessId}__student-001`;
+    await db.collection('sessionAttendance').doc(docId).set({
+      runSessionId: a.sessId,
+      programRunId: SEED_PROGRAM_RUN_ID,
+      studentId: 'student-001',
+      campusId: CAMPUS_ID,
+      sessionNumber: SEED_RUN_SESSION_IDS.indexOf(a.sessId) + 1,
+      status: a.status,
+      lateMinutes: (a as { lateMinutes?: number }).lateMinutes ?? null,
+      participationScore: a.participationScore,
+      homeworkDone: true,
+      feedback: '시드 데이터 — Functions recordSessionAttendance 로 갱신 가능',
+      recordedByUid: 'seed',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(`  ✅ sessionAttendance/${docId} (${a.status})`);
+  }
+
   // ── 학생 ────────────────────────────────────
   console.log('\n2️⃣  학생 생성...');
   for (const s of STUDENTS) {
     await db.collection('students').doc(s.id).set({
       name: s.name,
       birthDate: s.birthDate,
+      ...(s.householdId ? { householdId: s.householdId } : {}),
       guardianUids: [],
       primaryGuardianUid: null,
       allowedGuardianPhoneHashes: [], // 기존 보호자가 addGuardianPhone으로 추가
@@ -344,6 +443,7 @@ async function main() {
     const docData: Record<string, unknown> = {
       campusId: CAMPUS_ID,
       studentId: student.id,
+      ...(student.householdId ? { householdId: student.householdId } : {}),
       birthDateHash: sha256(student.birthDate), // 생년월일만 검증 — 전화번호 불필요
       used: c.used,
       usedByUid: (c as any).usedByUid ?? null,
