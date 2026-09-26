@@ -14,6 +14,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useMapMainPath } from "@/hooks/useMainBase";
 import { goUpTo } from "@/lib/navHistory";
 
 export interface Crumb {
@@ -48,6 +49,7 @@ export function Breadcrumbs({
   trailing?: ReactNode;
 }) {
   const router = useRouter();
+  const mapMain = useMapMainPath();
   const scroller = useRef<HTMLDivElement>(null);
 
   // 길면 끝(지금 화면)이 보이도록
@@ -64,9 +66,10 @@ export function Breadcrumbs({
             {items.map((c, i) => {
               const last = i === items.length - 1;
               const isHome = i === 0 && c.label === "홈";
+              const href = c.href ? mapMain(c.href) : undefined;
               return (
                 <li key={`${i}-${c.label}`} className="flex shrink-0 items-center">
-                  {last || !c.href ? (
+                  {last || !href ? (
                     <span
                       aria-current={last ? "page" : undefined}
                       className={`flex h-11 max-w-[13em] items-center gap-1 truncate px-1 text-[15px] ${
@@ -78,11 +81,11 @@ export function Breadcrumbs({
                     </span>
                   ) : (
                     <a
-                      href={c.href}
+                      href={href}
                       onClick={(e) => {
                         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // 새 탭 열기는 그대로
                         e.preventDefault();
-                        goUpTo(c.href!, { back: () => router.back(), push: (h) => router.push(h) });
+                        goUpTo(href!, { back: () => router.back(), push: (h) => router.push(h) });
                       }}
                       className="tap flex h-11 max-w-[10em] items-center gap-1 rounded-lg px-1 text-[15px] font-medium text-sub hover:text-fg"
                     >

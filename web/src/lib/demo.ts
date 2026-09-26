@@ -5,7 +5,7 @@
  * Firebase 에 접속하지 않는다 — 로그인·자녀 조회는 아래 고정값, 보호자 초대·회원 탈퇴·로그아웃은 막고 안내만 띄운다.
  *
  *   켜기/끄기: NEXT_PUBLIC_DEMO_MODE=1 / 0
- *   값이 없으면 기본으로 켜짐 (에뮬레이터 빌드 — E2E — 에서는 꺼짐)
+ *   값이 없으면 꺼짐 — 공개 체험은 `/demo` 경로 사용
  *   → 실제 서비스로 전환할 때 Vercel 환경변수에 NEXT_PUBLIC_DEMO_MODE=0 을 넣고 다시 배포
  *
  * 자녀 목록은 운영 DB 에서 010-7656-7933 계정에 연결된 값(2026-09-17 기준)을 옮겨 두고, 이름만 체험용으로 바꿨다.
@@ -16,7 +16,8 @@ import type { Child } from "@/hooks/useChildren";
 
 const flag = process.env.NEXT_PUBLIC_DEMO_MODE;
 
-export const DEMO_MODE: boolean = flag ? flag === "1" : process.env.NEXT_PUBLIC_USE_EMULATORS !== "1";
+/** 전역 체험 모드(레거시). 신규 체험은 `/demo/*` 사용 — 기본값 꺼짐 */
+export const DEMO_MODE: boolean = flag === "1";
 
 export const DEMO_PHONE_E164 = "+821076567933";
 
@@ -34,7 +35,7 @@ export const DEMO_USER = {
 
 export const DEMO_CHILDREN: Child[] = [
   {
-    enrollmentId: "demo-enrollment-1",
+    guardianLinkId: "demo-guardian-link-1",
     studentId: "student-001",
     studentName: "신민준",
     campusId: "campus-ds26",
@@ -42,7 +43,7 @@ export const DEMO_CHILDREN: Child[] = [
     relation: "부(아빠)",
   },
   {
-    enrollmentId: "demo-enrollment-2",
+    guardianLinkId: "demo-guardian-link-2",
     studentId: "student-002",
     studentName: "신서연",
     campusId: "campus-ds26",

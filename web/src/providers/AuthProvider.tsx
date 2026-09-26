@@ -21,7 +21,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut as fbSignOut, updateProfile } from "firebase/auth";
 import { DEMO_BLOCKED, DEMO_GUARDIAN_NAME, DEMO_MODE, DEMO_USER } from "@/lib/demo";
+import { DEMO_PORTAL_BLOCKED, demoUserForRole, type DemoRole } from "@/lib/demoPortal";
 import { getFirebaseAuth, isFirebaseConfigured, type User } from "@/lib/firebase";
+import { useDemoPortal } from "@/providers/DemoPortalProvider";
 import { guardianNameError, normalizeGuardianName } from "@/lib/guardianName";
 
 export type SignOutReason = "user" | "withdrawn";
@@ -64,7 +66,25 @@ const DEMO_STATE: AuthState = {
   },
 };
 
+function portalDemoState(role: DemoRole): AuthState {
+  const user = demoUserForRole(role);
+  const guardianName = role === "guardian" ? DEMO_GUARDIAN_NAME : null;
+  return {
+    user,
+    loading: false,
+    signOut: async () => {},
+    guardianName,
+    saveGuardianName: async () => {
+      throw new Error(DEMO_PORTAL_BLOCKED.guardianName);
+    },
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { role, active } = useDemoPortal();
+  if (active && role) {
+    return <AuthContext.Provider value={portalDemoState(role)}>{children}</AuthContext.Provider>;
+  }
   if (DEMO_MODE) return <AuthContext.Provider value={DEMO_STATE}>{children}</AuthContext.Provider>;
   return <FirebaseAuthProvider>{children}</FirebaseAuthProvider>;
 }

@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import { NavigationTracker } from "@/components/NavigationTracker";
+import { DemoPortalBanner } from "@/components/demo/DemoPortalBanner";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { DemoPortalProvider } from "@/providers/DemoPortalProvider";
 import { DialogProvider } from "@/providers/DialogProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
 
@@ -45,12 +47,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div id="app-frame">
           <ToastProvider>
             <DialogProvider>
-              <AuthProvider>
-                <Suspense fallback={null}>
-                  <NavigationTracker />
-                  {children}
-                </Suspense>
-              </AuthProvider>
+              <DemoPortalProvider>
+                <AuthProvider>
+                  <Suspense fallback={null}>
+                    <NavigationTracker />
+                    <DemoPortalBanner />
+                    {children}
+                  </Suspense>
+                </AuthProvider>
+              </DemoPortalProvider>
             </DialogProvider>
           </ToastProvider>
         </div>

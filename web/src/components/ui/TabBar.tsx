@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMainBase } from "@/hooks/useMainBase";
 
 /**
  * 하단 메인 탭바 — 홈 / 알림 / 내 정보 (모바일 main/(tabs)/_layout.tsx 와 동일)
@@ -10,11 +11,23 @@ import { usePathname } from "next/navigation";
  */
 type IconName = "home" | "bell" | "user";
 
-const TABS: { href: string; icon: IconName; label: string; match: (p: string) => boolean }[] = [
-  { href: "/main", icon: "home", label: "홈", match: (p) => p === "/main" },
-  { href: "/main/notification", icon: "bell", label: "알림", match: (p) => p.startsWith("/main/notification") },
-  { href: "/main/profile", icon: "user", label: "내 정보", match: (p) => p.startsWith("/main/profile") },
-];
+function buildTabs(base: string) {
+  return [
+    { href: base, icon: "home" as IconName, label: "홈", match: (p: string) => p === base },
+    {
+      href: `${base}/notification`,
+      icon: "bell" as IconName,
+      label: "알림",
+      match: (p: string) => p.startsWith(`${base}/notification`),
+    },
+    {
+      href: `${base}/profile`,
+      icon: "user" as IconName,
+      label: "내 정보",
+      match: (p: string) => p.startsWith(`${base}/profile`),
+    },
+  ];
+}
 
 function TabIcon({ name }: { name: IconName }) {
   const common = {
@@ -51,6 +64,8 @@ function TabIcon({ name }: { name: IconName }) {
 
 export function TabBar() {
   const pathname = usePathname();
+  const mainBase = useMainBase();
+  const tabs = buildTabs(mainBase);
   return (
     <nav
       aria-label="메인 탭"
@@ -58,7 +73,7 @@ export function TabBar() {
       style={{ paddingBottom: "var(--sab)" }}
     >
       <ul className="flex" style={{ height: "var(--tabbar-h)" }}>
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const focused = t.match(pathname);
           return (
             <li key={t.href} className="relative flex flex-1 items-center justify-center">
