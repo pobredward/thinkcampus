@@ -17,8 +17,7 @@
  * → 회차를 누르면 출결 / 일정 / 내용 / Q&A / 리포트 탭
  */
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Spinner } from "@/components/ui/Spinner";
 import { DUMMY_PROGRAM } from "@/data/dummyProgram";
@@ -26,13 +25,20 @@ import { DUMMY_UPCOMING_PROGRAM } from "@/data/dummyUpcomingProgram";
 import { DUMMY_PAST_PROGRAMS } from "@/data/dummyHistory";
 import { calcSummary } from "@/data/dummyAttendance";
 import { pickDummyAttendance, SHOW_UPCOMING_ON_HOME } from "@/data/programView";
+import { useAllSessionAttendance } from "@/hooks/useAllSessionAttendance";
+import { useStudentPrograms } from "@/hooks/useStudentPrograms";
+import { buildProgramCardsFromBundles, type ProgramCard } from "@/lib/programCards";
 import { daysBetween, dDayLabel, dotDateToKey, formatShortDate, todayKey } from "@/lib/dates";
-import { DEMO_MODE } from "@/lib/demo";
+import { useGuardianDemoData } from "@/hooks/useDemoExperience";
+import { useMainRouter } from "@/hooks/useMainRouter";
 import { guardianTitle } from "@/lib/guardianName";
 import { ChildSwitcher } from "@/components/ChildSwitcher";
 import { GuardianNamePrompt } from "@/components/GuardianNamePrompt";
+import { HouseholdLinkPrompt } from "@/components/HouseholdLinkPrompt";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { useChildren, type Child } from "@/hooks/useChildren";
+import { usePendingHousehold } from "@/hooks/usePendingHousehold";
+import { consumeHouseholdPromptFlag } from "@/lib/householdPrompt";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useSelectedChild } from "@/hooks/useSelectedChild";
 import { useAuth } from "@/providers/AuthProvider";
@@ -56,31 +62,6 @@ function writeFlag(key: string | null): void {
   } catch {
     /* 저장이 막혀 있으면 이번에만 숨김 (laterNow) */
   }
-}
-
-// ── 타입 ────────────────────────────────────────────────
-
-// 더미 프로그램 카드 데이터 (나중에 Firestore로 교체)
-interface ProgramCard {
-  programId: string;
-  studentId: string;
-  studentName: string;
-  title: string;
-  subtitle: string;
-  totalSessions: number;
-  totalHours: number;
-  completedSessions: number;
-  nextSessionDate: string | null;
-  nextSessionTopic: string | null;
-  nextSessionStartTime: string | null;
-  nextSessionEndTime: string | null;
-  nextSessionLocation: string | null;
-  fixedDay: string;
-  frequency: string;
-  status: "active" | "upcoming" | "completed";
-  /** 수강 예정 카드용 'YYYY.MM.DD' */
-  startDate?: string;
-  endDate?: string;
 }
 
 // ── 더미: 선택된 자녀의 프로그램 목록 시뮬레이션 ────────
@@ -151,19 +132,48 @@ function buildDummyProgramCards(child: Child | null): {
 
 export default function HomeScreen() {
   usePageTitle("홈");
-  const router = useRouter();
+  const { pushMain } = useMainRouter();
   const toast = useToast();
+  const guardianDemo = useGuardianDemoData();
   const { user, guardianName, saveGuardianName } = useAuth();
   // 이름을 묻는 카드: 이름이 없는 계정에만, [나중에]를 누른 기기에서는 다시 묻지 않음
   const laterKey = user ? `tc.namePrompt.later.${user.uid}` : null;
   const [laterNow, setLaterNow] = useState<string | null>(null); // 저장이 막힌 브라우저에서도 이번에는 숨김
   const promptLater = useMemo(() => laterNow === laterKey || readFlag(laterKey), [laterKey, laterNow]);
-  const showNamePrompt = !!user && !DEMO_MODE && !guardianName && !promptLater;
-  const { children, loading } = useChildren({ activeOnly: true });
+  const showNamePrompt = !!user && !guardianDemo && !guardianName && !promptLater;
+  const { children, loading, refresh: refreshChildren } = useChildren({ activeOnly: true });
+  const { pending: pendingHousehold, refetch: refetchHousehold } = usePendingHousehold(!!user && !guardianDemo);
+  const hhLaterKey = user ? `tc.householdBanner.later.${user.uid}` : null;
+  const [hhLaterNow, setHhLaterNow] = useState<string | null>(null);
+  const hhBannerLater = useMemo(
+    () => hhLaterNow === hhLaterKey || readFlag(hhLaterKey),
+    [hhLaterKey, hhLaterNow],
+  );
+  const [autoHouseholdOpen, setAutoHouseholdOpen] = useState(false);
+  useEffect(() => {
+    if (consumeHouseholdPromptFlag()) setAutoHouseholdOpen(true);
+  }, []);
   const { selected, selectedIndex, select } = useSelectedChild(children, user?.uid);
   const hasMultiple = children.length >= 2;
+  const { bundles, loading: programsLoading } = useStudentPrograms(selected?.studentId);
+  const { byProgramRunId: attendanceByRunId } = useAllSessionAttendance(
+    selected?.studentId,
+    !guardianDemo && !!selected,
+  );
 
-  const { active, upcoming, pastCount } = buildDummyProgramCards(selected);
+  const firestoreCards = useMemo(() => {
+    if (!selected || guardianDemo || bundles.length === 0) return null;
+    return buildProgramCardsFromBundles(
+      selected.studentId,
+      selected.studentName,
+      bundles,
+      attendanceByRunId,
+    );
+  }, [selected, bundles, attendanceByRunId]);
+
+  const dummyCards = useMemo(() => buildDummyProgramCards(selected), [selected]);
+  const { active, upcoming, pastCount } = firestoreCards ?? dummyCards;
+  const cardsLoading = !guardianDemo && programsLoading && !!selected;
 
   const goToProgram = (card: ProgramCard) => {
     const qs = new URLSearchParams({
@@ -171,7 +181,7 @@ export default function HomeScreen() {
       programTitle: card.title,
       sid: card.studentId,
     });
-    router.push(`/main/program/${card.programId}?${qs.toString()}`);
+    pushMain(`/main/program/${card.programId}?${qs.toString()}`);
   };
 
   return (
@@ -199,6 +209,24 @@ export default function HomeScreen() {
       </div>
 
       {/* ── 보호자 이름 묻기 (이름이 없는 계정만) ─── */}
+      {!guardianDemo &&
+        pendingHousehold.length > 0 &&
+        !hhBannerLater &&
+        user && (
+          <HouseholdLinkPrompt
+            pending={pendingHousehold}
+            autoOpen={autoHouseholdOpen}
+            onLinked={() => {
+              void refetchHousehold();
+              void refreshChildren();
+            }}
+            onDismissBanner={() => {
+              writeFlag(hhLaterKey);
+              setHhLaterNow(hhLaterKey);
+            }}
+          />
+        )}
+
       {showNamePrompt && (
         <GuardianNamePrompt
           onSave={async (raw) => {
@@ -267,7 +295,7 @@ export default function HomeScreen() {
         <button
           type="button"
           className="tap mx-5 mt-4 flex items-center gap-3 rounded-[18px] border border-line bg-card px-5 py-[18px] text-left"
-          onClick={() => router.push("/main/faq")}
+          onClick={() => pushMain("/main/faq")}
         >
           <div className="min-w-0 flex-1">
             <p className="text-[17px] font-bold text-fg">궁금하신 점이 있으신가요?</p>
@@ -284,7 +312,7 @@ export default function HomeScreen() {
         <div className="mt-6 flex justify-center px-5">
           <button
             type="button"
-            onClick={() => router.push("/main/history")}
+            onClick={() => pushMain("/main/history")}
             className="tap rounded-full border border-line bg-card px-5 py-[10px] text-[15px] font-semibold text-sub"
           >
             이전 수강 이력 보기 ({pastCount}) ›

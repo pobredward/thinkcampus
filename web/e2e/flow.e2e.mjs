@@ -1088,8 +1088,8 @@ await check("탈퇴 후 서버 정리: Auth 계정 삭제 · enrollment 삭제 �
   const accounts = await emuAccounts();
   if (accounts.some((u) => u.localId === withdrawnUid)) throw new Error("Auth 계정이 남아 있음");
   const owner = accounts.find((u) => u.phoneNumber === "+821011112222");
-  const enrolls = await emuDocs("enrollments");
-  if (enrolls.some((d) => d.fields?.guardianUid?.stringValue === withdrawnUid)) throw new Error("enrollment 남아 있음");
+  const links = await emuDocs("guardianLinks");
+  if (links.some((d) => d.fields?.guardianUid?.stringValue === withdrawnUid)) throw new Error("guardianLink 남아 있음");
   const student = await emuDoc("students/student-001");
   const guardians = strArray(student.fields?.guardianUids);
   if (guardians.includes(withdrawnUid)) throw new Error("guardianUids 에 남아 있음");

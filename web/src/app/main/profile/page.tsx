@@ -166,7 +166,7 @@ export default function ProfileScreen() {
       ) : (
         children.map((child) => (
           <div
-            key={child.enrollmentId}
+            key={child.guardianLinkId}
             className="mx-5 mb-2 flex items-center justify-between rounded-[14px] border border-line bg-card p-4"
           >
             <div>

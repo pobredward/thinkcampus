@@ -1,6 +1,6 @@
 /**
  * 더미 "이전 수강 이력" — 홈 아래쪽 버튼 · 이전 수강 이력 화면(/main/history)에서 사용
- * 나중에 Firestore enrollments(status: completed) 조회로 교체 예정 (웹·모바일 동일 파일)
+ * 나중에 Firestore studentProgramEnrollments(status: completed) 조회로 교체 예정 (웹·모바일 동일 파일)
  */
 
 export interface PastProgram {

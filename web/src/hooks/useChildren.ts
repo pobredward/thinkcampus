@@ -1,19 +1,22 @@
 "use client";
 
 /**
- * 보호자에게 연결된 자녀 목록 — enrollments(guardianUid) → students / campuses
+ * 보호자에게 연결된 자녀 목록 — guardianLinks(guardianUid) → students / campuses
  * 모바일 홈/내 정보 화면의 fetchChildren 과 동일한 조회 로직.
  * 체험 모드에서는 조회하지 않고 lib/demo.ts 의 고정 목록을 쓴다.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
-import { DEMO_CHILDREN, DEMO_MODE } from "@/lib/demo";
+import { DEMO_CHILDREN } from "@/lib/demo";
+import { useGuardianDemoData } from "@/hooks/useDemoExperience";
+import { COL_GUARDIAN_LINKS } from "@/lib/collections";
 import { getDb } from "@/lib/firebase";
 import { useAuth } from "@/providers/AuthProvider";
 
 export interface Child {
-  enrollmentId: string;
+  /** guardianLinks 문서 id */
+  guardianLinkId: string;
   studentId: string;
   studentName: string;
   campusId: string;
@@ -23,6 +26,7 @@ export interface Child {
 
 export function useChildren(opts?: { activeOnly?: boolean }) {
   const activeOnly = opts?.activeOnly ?? false;
+  const guardianDemo = useGuardianDemoData();
   const { user } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +38,7 @@ export function useChildren(opts?: { activeOnly?: boolean }) {
   const fetchChildren = useCallback(
     async (isRefresh = false) => {
       if (!uid) return;
-      if (DEMO_MODE) {
+      if (guardianDemo) {
         setChildren(DEMO_CHILDREN);
         setLoading(false);
         setRefreshing(false);
@@ -47,7 +51,7 @@ export function useChildren(opts?: { activeOnly?: boolean }) {
         const db = getDb();
         const constraints = [where("guardianUid", "==", uid)];
         if (activeOnly) constraints.push(where("status", "==", "active"));
-        const snap = await getDocs(query(collection(db, "enrollments"), ...constraints));
+        const snap = await getDocs(query(collection(db, COL_GUARDIAN_LINKS), ...constraints));
         const list: Child[] = await Promise.all(
           snap.docs.map(async (d) => {
             const data = d.data();
@@ -56,7 +60,7 @@ export function useChildren(opts?: { activeOnly?: boolean }) {
               getDoc(doc(db, "campuses", data.campusId)),
             ]);
             return {
-              enrollmentId: d.id,
+              guardianLinkId: d.id,
               studentId: data.studentId,
               studentName: sSnap.exists() ? (sSnap.data()?.name ?? data.studentId) : data.studentId,
               campusId: data.campusId,
@@ -77,7 +81,7 @@ export function useChildren(opts?: { activeOnly?: boolean }) {
         setRefreshing(false);
       }
     },
-    [uid, activeOnly],
+    [uid, activeOnly, guardianDemo],
   );
 
   useEffect(() => {

@@ -16,6 +16,7 @@ import { GUARDIAN_NAME_MAX, guardianNameError, normalizeGuardianName } from "@/l
 import { errCode, errMessage } from "@/lib/errors";
 import { formatBirth, toE164Korea } from "@/lib/phone";
 import { useBack } from "@/hooks/useBack";
+import { setHouseholdPromptFlag } from "@/lib/householdPrompt";
 import { saveOnboardingSession } from "@/lib/onboardingSession";
 import { useAuth } from "@/providers/AuthProvider";
 import { useDialog } from "@/providers/DialogProvider";
@@ -49,7 +50,11 @@ export default function OnboardingVerify() {
     try {
       const fn = httpsCallable<
         { code: string; birthDate: string; phone: string; relation: string },
-        { customToken?: string; existingUser?: boolean }
+        {
+          customToken?: string;
+          existingUser?: boolean;
+          pendingHousehold?: Array<{ studentId: string; maskedName: string }>;
+        }
       >(getFns(), "redeemCode");
       const result = await fn({ code, birthDate, phone, relation: relation.trim() });
       const data = result.data;
@@ -60,10 +65,12 @@ export default function OnboardingVerify() {
         if (current && !current.displayName && current.phoneNumber === toE164Korea(phone)) {
           await saveGuardianName(guardianName).catch(() => undefined);
         }
+        if (data.pendingHousehold?.length) setHouseholdPromptFlag();
         void dialog.alert("등록 완료", "기존 계정에 자녀가 연결되었습니다.", [
           { text: "확인", onPress: () => router.replace("/main") },
         ]);
       } else if (data.customToken) {
+        if (data.pendingHousehold?.length) setHouseholdPromptFlag();
         // 신규 계정 → OTP 인증 화면으로 (전화번호·customToken 은 URL 대신 sessionStorage)
         saveOnboardingSession({
           phone,

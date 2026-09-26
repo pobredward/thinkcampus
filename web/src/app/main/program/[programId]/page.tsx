@@ -16,7 +16,12 @@
  */
 
 import { useMemo } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Spinner } from "@/components/ui/Spinner";
+import { useProgramBundle } from "@/hooks/useProgramBundle";
+import { useSessionAttendance } from "@/hooks/useSessionAttendance";
+import { useGuardianDemoData } from "@/hooks/useDemoExperience";
+import { useMainRouter } from "@/hooks/useMainRouter";
+import { useParams, useSearchParams } from "next/navigation";
 import { GuideMenu, MenuRow } from "@/components/program/GuideMenu";
 import { ProgramHeader } from "@/components/program/ProgramHeader";
 import { SectionHeading } from "@/components/program/SectionHeading";
@@ -39,24 +44,44 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 export default function ProgramSessionsPage() {
   const { programId } = useParams<{ programId: string }>();
   const sp = useSearchParams();
-  const router = useRouter();
+  const { pushMain } = useMainRouter();
+  const guardianDemo = useGuardianDemoData();
 
   const studentName = sp.get("studentName") ?? "";
   const sid = sp.get("sid");
 
-  // TODO: Firestore 에서 programId / studentId 기준 조회
-  const program = getDummyProgram(programId);
+  const { program: loadedProgram, loading: programLoading, fromFirestore } = useProgramBundle(programId, sid);
+  const program = loadedProgram ?? getDummyProgram(programId);
   const programTitle = sp.get("programTitle") ?? program.title;
   usePageTitle(programTitle);
 
-  const attendance = useMemo(() => pickDummyAttendance(sid), [sid]);
+  const { attendance: firestoreAttendance } = useSessionAttendance(
+    sid,
+    programId,
+    loadedProgram,
+    studentName,
+    fromFirestore,
+  );
+  const attendance = useMemo(() => {
+    if (fromFirestore && firestoreAttendance) return firestoreAttendance;
+    return pickDummyAttendance(sid);
+  }, [fromFirestore, firestoreAttendance, sid]);
   const items = useMemo(() => buildDayItems(program, attendance), [program, attendance]);
   const qs = sp.toString();
 
+  if (!guardianDemo && programLoading) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-12">
+        <Spinner size="large" />
+        <p className="text-sub">프로그램을 불러오는 중…</p>
+      </div>
+    );
+  }
+
   const openGuide = (section: GuideSection) =>
-    router.push(`/main/program/${programId}/guide/${section}${qs ? `?${qs}` : ""}`);
+    pushMain(`/main/program/${programId}/guide/${section}${qs ? `?${qs}` : ""}`);
   const openSession = (d: DayItem) =>
-    router.push(`/main/program/${programId}/session/${d.session.id}${qs ? `?${qs}` : ""}`);
+    pushMain(`/main/program/${programId}/session/${d.session.id}${qs ? `?${qs}` : ""}`);
 
   // 수강 예정 — 같은 구성 (진행·리포트 없이)
   if (isUpcomingProgram(program)) {
@@ -76,7 +101,7 @@ export default function ProgramSessionsPage() {
   const summary = summarize(items, program.totalSessions);
   const next = nextUpcoming(items);
   const finished = isProgramFinished(items);
-  const openReport = () => router.push(`/main/program/${programId}/report${qs ? `?${qs}` : ""}`);
+  const openReport = () => pushMain(`/main/program/${programId}/report${qs ? `?${qs}` : ""}`);
 
   return (
     <div className="flex flex-1 flex-col bg-paper pb-10">

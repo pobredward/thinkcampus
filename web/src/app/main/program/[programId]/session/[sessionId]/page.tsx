@@ -42,6 +42,8 @@ import { useUpTo } from "@/hooks/useBack";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { faqHref, sessionCrumbs } from "@/lib/crumbs";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useProgramBundle } from "@/hooks/useProgramBundle";
+import { useSessionAttendance } from "@/hooks/useSessionAttendance";
 import { daysBetween, dDayLabel, formatKoreanDate, formatShortDate, todayKey } from "@/lib/dates";
 
 // 회차 사이 이동(replace)과 Q&A 에서 다녀온 FAQ 는 건너뛰고 목록을 찾는다
@@ -58,19 +60,30 @@ export default function SessionPage() {
     p.delete("tab");
     return p.toString();
   }, [sp]);
-  const program = getDummyProgram(programId);
+  const sid = sp.get("sid");
+  const { program: loaded, fromFirestore } = useProgramBundle(programId, sid);
+  const program = loaded ?? getDummyProgram(programId);
+  const studentName = sp.get("studentName") ?? "";
+  const { attendance: firestoreAttendance } = useSessionAttendance(
+    sid,
+    programId,
+    loaded,
+    studentName,
+    fromFirestore,
+  );
   const listUrl = `/main/program/${programId}${baseQs ? `?${baseQs}` : ""}`;
   const goList = useUpTo(listUrl, { skip: SESSION_PATH });
   const listLabel = "회차 목록";
 
-  const sid = sp.get("sid");
-  const attendance = useMemo(() => pickDummyAttendance(sid), [sid]);
+  const attendance = useMemo(() => {
+    if (fromFirestore && firestoreAttendance) return firestoreAttendance;
+    return pickDummyAttendance(sid);
+  }, [fromFirestore, firestoreAttendance, sid]);
   const items = useMemo(() => buildDayItems(program, attendance), [program, attendance]);
   const index = items.findIndex((d) => d.session.id === sessionId);
   const item = index >= 0 ? items[index] : null;
   const prev = index > 0 ? items[index - 1] : null;
   const next = index >= 0 && index < items.length - 1 ? items[index + 1] : null;
-  const studentName = sp.get("studentName");
   const today = todayKey();
 
   const tabs = item ? availableTabs(item, program) : [];

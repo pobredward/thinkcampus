@@ -2,10 +2,10 @@
 
 /**
  * 기존 학부모 로그인 화면 (모바일 onboarding/login.tsx)
- * 전화번호 입력 → OTP 발송 → 인증 → enrollment 확인 → /main
+ * 전화번호 입력 → OTP 발송 → 인증 → guardianLinks 확인 → /main
  *
- * - enrollment 가 있으면 바로 메인으로 (next 파라미터가 있으면 그 경로로)
- * - enrollment 가 없으면 "등록코드가 필요합니다" 안내 후 온보딩으로 돌아감
+ * - guardianLinks 가 있으면 바로 메인으로 (next 파라미터가 있으면 그 경로로)
+ * - 연결 없으면 "등록코드가 필요합니다" 안내 후 온보딩으로 돌아감
  */
 
 import { useRef, useState } from "react";
@@ -16,6 +16,7 @@ import { PrimaryButton } from "@/components/ui/Button";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { useBack } from "@/hooks/useBack";
 import { useCountdown } from "@/hooks/useCountdown";
+import { COL_GUARDIAN_LINKS } from "@/lib/collections";
 import { getDb, getFirebaseAuth, getFns, signInWithPhone, type ConfirmationResult } from "@/lib/firebase";
 import { otpErrorMessage, smsErrorMessage } from "@/lib/errors";
 import { formatPhone, maskPhone, toE164Korea } from "@/lib/phone";
@@ -25,7 +26,7 @@ type Step = "phone" | "otp";
 
 /** 오픈 리다이렉트 방지 — /main 하위 경로만 허용 */
 function safeNext(next: string | null): string {
-  if (next && /^\/main(\/|$)/.test(next)) return next;
+  if (next && (/^\/main(\/|$)/.test(next) || /^\/admin(\/|$)/.test(next))) return next;
   return "/main";
 }
 
@@ -76,13 +77,13 @@ export default function LoginScreen() {
       const uid = cred.user?.uid;
       if (!uid) throw new Error("uid 없음");
 
-      // 2) enrollment 존재 여부 확인
-      const hasEnrollment = async () =>
+      // 2) guardianLinks 존재 여부 확인
+      const hasGuardianLink = async () =>
         !(
-          await getDocs(query(collection(getDb(), "enrollments"), where("guardianUid", "==", uid)))
+          await getDocs(query(collection(getDb(), COL_GUARDIAN_LINKS), where("guardianUid", "==", uid)))
         ).empty;
 
-      let enrolled = await hasEnrollment();
+      let enrolled = await hasGuardianLink();
 
       // 2-1) 초대받은 보호자(addGuardianPhone)라면 여기서 자동 연결
       //      모바일 원본은 온보딩 OTP 에서만 호출해서, 초대받은 보호자가 로그인 화면으로 들어오면
@@ -93,7 +94,7 @@ export default function LoginScreen() {
             getFns(),
             "linkGuardianByPhone",
           )({});
-          if (res.data.linked.length > 0) enrolled = await hasEnrollment();
+          if (res.data.linked.length > 0) enrolled = await hasGuardianLink();
         } catch {
           // 초대 내역 없음 등 — 아래 안내로 진행
         }
@@ -110,7 +111,7 @@ export default function LoginScreen() {
         return;
       }
 
-      // 3) enrollment 있음 → 메인으로
+      // 3) guardianLink 있음 → 메인으로
       router.replace(nextPath);
     } catch (e) {
       void dialog.alert("인증 실패", otpErrorMessage(e));

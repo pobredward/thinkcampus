@@ -14,6 +14,7 @@ import {
   getAuth,
   initializeAuth,
   RecaptchaVerifier,
+  signInWithEmailAndPassword,
   signInWithPhoneNumber as fbSignInWithPhoneNumber,
   type Auth,
   type ConfirmationResult,
@@ -119,6 +120,11 @@ function resetRecaptcha() {
  * 전화번호(E.164)로 SMS 인증번호 발송.
  * 반환값의 confirm(code) 로 로그인 완료 — 모바일(RNFB)과 동일한 사용법.
  */
+/** 관리자·센터 직원 — 이메일/비밀번호 (Firebase Auth Email provider) */
+export async function signInWithStaffEmail(email: string, password: string) {
+  return signInWithEmailAndPassword(getFirebaseAuth(), email.trim(), password);
+}
+
 export async function signInWithPhone(e164: string): Promise<ConfirmationResult> {
   const a = getFirebaseAuth();
   try {

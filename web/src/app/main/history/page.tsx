@@ -5,7 +5,7 @@
  * 끝난 프로그램 목록. 누르면 그 프로그램 화면(더미 단계: 수강 중 프로그램 화면으로 대체)
  */
 
-import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { DUMMY_PAST_PROGRAMS, type PastProgram } from "@/data/dummyHistory";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -13,17 +13,42 @@ import { HOME_CRUMB } from "@/lib/crumbs";
 import { useChildren } from "@/hooks/useChildren";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useSelectedChild } from "@/hooks/useSelectedChild";
+import { useStudentPrograms } from "@/hooks/useStudentPrograms";
+import { useGuardianDemoData } from "@/hooks/useDemoExperience";
+import { useMainRouter } from "@/hooks/useMainRouter";
 import { useAuth } from "@/providers/AuthProvider";
+
+function bundleToPastProgram(b: { programRunId: string; program: { title: string; subtitle: string; startDate: string; endDate: string; totalSessions: number; totalHours: number } }): PastProgram {
+  return {
+    programId: b.programRunId,
+    title: b.program.title,
+    subtitle: b.program.subtitle,
+    startDate: b.program.startDate,
+    endDate: b.program.endDate,
+    totalSessions: b.program.totalSessions,
+    totalHours: b.program.totalHours,
+  };
+}
 
 export default function HistoryPage() {
   usePageTitle("이전 수강 이력");
-  const router = useRouter();
+  const { pushMain } = useMainRouter();
+  const guardianDemo = useGuardianDemoData();
   const { user } = useAuth();
-  const { children, loading } = useChildren({ activeOnly: true });
+  const { children, loading: childrenLoading } = useChildren({ activeOnly: true });
   const { selected } = useSelectedChild(children, user?.uid);
+  const { completed, loading: programsLoading } = useStudentPrograms(selected?.studentId);
 
-  // TODO: Firestore enrollments(status: completed) 조회
-  const items = selected ? DUMMY_PAST_PROGRAMS : [];
+  const items = useMemo((): PastProgram[] => {
+    if (!selected) return [];
+    if (!guardianDemo && completed.length > 0) {
+      return completed.map(bundleToPastProgram);
+    }
+    if (guardianDemo) return DUMMY_PAST_PROGRAMS;
+    return [];
+  }, [selected, completed, guardianDemo]);
+
+  const loading = childrenLoading || (!guardianDemo && programsLoading && !!selected);
 
   const open = (p: PastProgram) => {
     if (!selected) return;
@@ -33,7 +58,7 @@ export default function HistoryPage() {
       sid: selected.studentId,
       via: "history", // 상단 경로: 홈 › 이전 수강 이력 › 프로그램
     });
-    router.push(`/main/program/${p.programId}?${qs.toString()}`);
+    pushMain(`/main/program/${p.programId}?${qs.toString()}`);
   };
 
   return (
