@@ -31,13 +31,17 @@ service cloud.firestore {
     }
 
     // ─────────────────────────────────────────────────────
-    // enrollments: guardianUid 필드가 요청자 uid와 일치할 때만 읽기 허용
-    // 쓰기는 Functions 경유
+    // guardianLinks: 보호자(uid) ↔ 학생 ↔ 캠퍼스 연결 (구 enrollments)
     // ─────────────────────────────────────────────────────
-    match /enrollments/{enrollmentId} {
+    match /guardianLinks/{linkId} {
       allow read: if request.auth != null
         && resource.data.guardianUid == request.auth.uid;
       allow write: if false;
+    }
+
+    // 레거시 — 마이그레이션 후 데이터 없음. 클라이언트 접근 차단
+    match /enrollments/{enrollmentId} {
+      allow read, write: if false;
     }
 
     // ─────────────────────────────────────────────────────
@@ -69,6 +73,42 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────
     match /_ratelimit/{doc} {
       allow read, write: if false;
+    }
+
+    // programRuns / runSessions / studentProgramEnrollments — Functions(Admin) 전용
+    function isGuardianOfStudent(studentId) {
+      return request.auth != null
+        && request.auth.uid in get(/databases/$(database)/documents/students/$(studentId)).data.guardianUids;
+    }
+
+    match /programRuns/{doc} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /runSessions/{doc} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /studentProgramEnrollments/{doc} {
+      allow read: if isGuardianOfStudent(resource.data.studentId);
+      allow write: if false;
+    }
+    match /programTemplates/{doc} {
+      allow read, write: if false;
+    }
+    match /sessionTemplates/{doc} {
+      allow read, write: if false;
+    }
+
+    match /sessionAttendance/{doc} {
+      allow read: if isGuardianOfStudent(resource.data.studentId);
+      allow write: if false;
+    }
+
+    // staff — 직원 프로필 (Auth uid = 문서 id). 쓰기는 Admin SDK / Functions만
+    match /staff/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
     }
   }
 }
