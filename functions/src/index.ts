@@ -857,4 +857,7 @@ export { getProgramRunAttendanceSheet } from './getProgramRunAttendanceSheet';
 export { listStudentProgramBundles } from './listStudentProgramBundles';
 export { recordSessionAttendance } from './recordSessionAttendance';
 export { getCenterRunOps } from './getCenterRunOps';
+export { getCenterRunSummary } from './getCenterRunSummary';
+export { listCenterRoster } from './listCenterRoster';
+export { listCenterSchedule } from './listCenterSchedule';
 export { createCenterNotice } from './createCenterNotice';

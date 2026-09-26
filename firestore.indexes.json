@@ -57,6 +57,23 @@
       ]
     },
     {
+      "collectionGroup": "studentProgramEnrollments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "programRunId", "order": "ASCENDING" },
+        { "fieldPath": "studentName", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "studentProgramEnrollments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "programRunId", "order": "ASCENDING" },
+        { "fieldPath": "sectionId", "order": "ASCENDING" },
+        { "fieldPath": "studentName", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [

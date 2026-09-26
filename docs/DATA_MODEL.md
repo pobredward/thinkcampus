@@ -169,9 +169,14 @@
   programTitle?: string,
   enrolledAt?: Timestamp,
   externalRef?: string,      // 지자체 명단 행 id (optional)
+  sectionId?: string,       // 운영 건 내 반(로테이션 그룹). 10~20명 단위
   createdAt
 }
 ```
+
+`programRuns.sections` (선택): `{ id, label, sortOrder }[]` — 회사·센터가 반 이름을 정의. import 시 `sectionId`/`sectionLabel` CSV로 배정 가능(후순위).
+
+`runSessions.sectionId`: 같은 `scheduledDate`+`startTime`에 여러 문서 = **동시 로테이션**(최대 8반 등). 출결·입력률은 **해당 반 수강생만** 집계.
 
 학부모 앱 프로그램 목록: Callable **`listStudentProgramBundles`** (서버에서 run + sessions 조립). 클라이언트 N+1 조인 없음.
 
@@ -184,7 +189,11 @@
 `students`:
 
 ```ts
-{ ..., householdId?: string }
+{
+  ...,
+  householdId?: string,
+  photoUrl?: string,   // Storage — 출결·명단 카드용 (센터/ import)
+}
 ```
 
 `enrollmentCodes` (optional denorm):
