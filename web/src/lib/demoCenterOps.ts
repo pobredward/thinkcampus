@@ -6,7 +6,7 @@ export const DEMO_CENTER_HOME_TASKS = [
   { id: "sessions-today", label: "오늘 회차", value: "1건", hrefSuffix: "/lessons", tone: "default" as const },
   { id: "attendance-pending", label: "출결 미입력", value: "2회차", hrefSuffix: "/lessons", tone: "warn" as const },
   { id: "reports-review", label: "리포트 검수 대기", value: "3건", hrefSuffix: "/reports", tone: "warn" as const },
-  { id: "guardian-unlinked", label: "학부모 미연결", value: "1명", hrefSuffix: "/people?tab=guardians", tone: "warn" as const },
+  { id: "guardian-unlinked", label: "학부모 미연결", value: "1명", hrefSuffix: "/students?guardian=unlinked", tone: "warn" as const },
   { id: "instructor-gap", label: "강사 미배정 회차", value: "0건", hrefSuffix: "/lessons", tone: "default" as const },
 ];
 

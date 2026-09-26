@@ -77,7 +77,7 @@
   }
 }
 
-/* 데스크톱에서는 가운데 480px 폰 프레임, 모바일에서는 꽉 채움 */
+/* 데스크톱에서는 가운데 480px 폰 프레임, 모바일에서는 꽉 채움. 관리자/스태프 화면은 너비를 최대한 사용 */
 #app-frame {
   position: relative;
   width: 100%;
@@ -89,9 +89,16 @@
   flex-direction: column;
 }
 
+#app-frame:has([data-full-width="true"]) {
+  max-width: none;
+}
+
 @media (min-width: 481px) {
   #app-frame {
     box-shadow: 0 0 0 1px #262b36, 0 24px 70px rgba(0, 0, 0, 0.6);
+  }
+  #app-frame:has([data-full-width="true"]) {
+    box-shadow: none;
   }
 }
 

@@ -1,7 +1,10 @@
 "use client";
 
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useCenterScreenData } from "@/hooks/useCenterScreenData";
+import { useCenterSummary } from "@/hooks/useCenterSummary";
+import { DEMO_CENTER_REPORT_QUEUE } from "@/lib/demoCenterOps";
+import { useCenterRun } from "@/providers/CenterRunProvider";
+import { useDemoPortal } from "@/providers/DemoPortalProvider";
 import { Spinner } from "@/components/ui/Spinner";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -12,14 +15,19 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function CenterReportsPage() {
   usePageTitle("리포트");
-  const { ops, loading, error, hasRun } = useCenterScreenData();
-  const queue = ops?.reports ?? [];
+  const { selectedRun } = useCenterRun();
+  const { role, active } = useDemoPortal();
+  const isDemo = active && role === "center";
+  const { data: summary, loading, error } = useCenterSummary(selectedRun?.id);
+  const queue = isDemo ? DEMO_CENTER_REPORT_QUEUE : [];
 
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-[20px] font-bold text-fg">회차 리포트</h2>
-        <p className="mt-1 text-sm text-sub">강사 제출 → 센터 검수 → 학부모 앱 노출</p>
+        <p className="mt-1 text-sm text-sub">
+          반·회차별 검수 (대량 운영 시 반 필터와 함께 Phase C에서 목록 API 분리 예정)
+        </p>
       </div>
 
       {loading && (
@@ -28,14 +36,19 @@ export default function CenterReportsPage() {
         </div>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
-
-      {!loading && hasRun && queue.length === 0 && (
-        <p className="rounded-xl border border-line bg-elev px-4 py-8 text-center text-sub">
-          검수할 리포트가 없습니다.
+      {summary && (
+        <p className="rounded-lg border border-line bg-elev px-3 py-2 text-[13px] text-sub">
+          검수 대기 <span className="font-bold text-fg">{summary.dashboard.reportsPendingReview}</span>건
         </p>
       )}
 
-      {!loading && queue.length > 0 && (
+      {!isDemo && !loading && (
+        <p className="rounded-xl border border-line bg-elev px-4 py-8 text-center text-sub">
+          리포트 목록은 데이터가 쌓이면 표시됩니다. 지금은 홈·검수 대기 건수만 집계합니다.
+        </p>
+      )}
+
+      {isDemo && queue.length > 0 && (
         <ul className="space-y-2">
           {queue.map((r) => (
             <li key={r.id} className="rounded-xl border border-line bg-card px-4 py-3">
@@ -44,41 +57,12 @@ export default function CenterReportsPage() {
                   <p className="font-medium text-fg">
                     {r.studentName} · {r.sessionNumber}회차
                   </p>
-                  <p className="text-sm text-sub">
-                    {r.instructorName ?? "—"}
-                    {r.submittedAt ? ` · ${r.submittedAt}` : ""}
-                  </p>
+                  <p className="text-sm text-sub">{r.instructorName} · {r.submittedAt}</p>
                 </div>
-                <span
-                  className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold ${
-                    r.status === "centerReviewed"
-                      ? "bg-amber-500/10 text-amber-800"
-                      : r.status === "published"
-                        ? "bg-emerald-500/10 text-emerald-700"
-                        : "bg-line text-sub"
-                  }`}
-                >
-                  {STATUS_LABEL[r.status] ?? r.status}
+                <span className="shrink-0 rounded-lg bg-line px-2 py-1 text-[11px] font-semibold text-sub">
+                  {STATUS_LABEL[r.status]}
                 </span>
               </div>
-              {r.status === "centerReviewed" && (
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    className="tap flex-1 rounded-lg bg-gold px-3 py-2 text-[13px] font-semibold text-paper"
-                    disabled
-                  >
-                    승인 (Phase C)
-                  </button>
-                  <button
-                    type="button"
-                    className="tap flex-1 rounded-lg border border-line px-3 py-2 text-[13px] font-semibold text-sub"
-                    disabled
-                  >
-                    반려
-                  </button>
-                </div>
-              )}
             </li>
           ))}
         </ul>

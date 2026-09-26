@@ -4,16 +4,21 @@ import { useState } from "react";
 import { httpsCallable } from "firebase/functions";
 import { PrimaryButton } from "@/components/ui/Button";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useCenterScreenData } from "@/hooks/useCenterScreenData";
+import { useCenterSummary } from "@/hooks/useCenterSummary";
+import { DEMO_CENTER_NOTIFICATIONS } from "@/lib/demoCenterOps";
 import { useCenterRun } from "@/providers/CenterRunProvider";
+import { useDemoPortal } from "@/providers/DemoPortalProvider";
 import { getFns } from "@/lib/firebase";
 import { Spinner } from "@/components/ui/Spinner";
 
 export default function CenterCommsPage() {
   usePageTitle("소통");
   const { selectedRun } = useCenterRun();
-  const { ops, loading, error, reload, isDemo, hasRun } = useCenterScreenData();
-  const items = ops?.notifications ?? [];
+  const hasRun = Boolean(selectedRun);
+  const { role, active } = useDemoPortal();
+  const isDemo = active && role === "center";
+  const { loading, error } = useCenterSummary(selectedRun?.id);
+  const items = isDemo ? DEMO_CENTER_NOTIFICATIONS : [];
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -38,7 +43,8 @@ export default function CenterCommsPage() {
       await fn({ programRunId: selectedRun.id, title: t, body: body.trim() || undefined });
       setTitle("");
       setBody("");
-      await reload();
+      // 목록은 notifications API 분리 전까지 페이지 새로고침으로 갱신
+      window.location.reload();
     } catch (err) {
       setFormError((err as Error).message);
     } finally {

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { PrimaryButton } from "@/components/ui/Button";
+import { StudentAttendanceCard, type AttendanceChoice } from "@/components/students/StudentAttendanceCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useStaffAccess } from "@/hooks/useStaffAccess";
@@ -30,6 +30,7 @@ type AttendanceStatus = "present" | "late" | "absent";
 interface SheetStudent {
   studentId: string;
   name: string;
+  photoUrl?: string;
   status?: AttendanceStatus;
   lateMinutes?: number;
   participationScore?: number;
@@ -40,6 +41,8 @@ interface SheetSession {
   sessionNumber: number;
   topic: string;
   scheduledDate: string;
+  sectionLabel?: string;
+  startTime?: string;
 }
 
 export default function CenterAttendancePage() {
@@ -208,7 +211,8 @@ export default function CenterAttendancePage() {
     <div className="space-y-6">
       <h1 className="text-[20px] font-bold">출결 입력</h1>
       <p className="text-sm text-fg2 leading-relaxed">
-        운영 건과 회차를 고른 뒤 학생별 출결을 저장합니다. 학부모 앱에는{" "}
+        <strong className="font-semibold text-fg">반(섹션) 단위</strong> 시트입니다. 로테이션으로 같은 시간에 여러 반이
+        있으면 수업 탭에서 해당 반 카드를 선택하세요. 학부모 앱에는{" "}
         <code className="text-fg">sessionAttendance</code> 로 반영됩니다.
       </p>
 
@@ -261,7 +265,9 @@ export default function CenterAttendancePage() {
               >
                 {sessions.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.sessionNumber}회 · {s.scheduledDate} · {s.topic}
+                    {s.sectionLabel ? `${s.sectionLabel} · ` : ""}
+                    {s.sessionNumber}회 · {s.scheduledDate}
+                    {s.startTime ? ` ${s.startTime}` : ""} · {s.topic}
                   </option>
                 ))}
               </select>
@@ -279,69 +285,28 @@ export default function CenterAttendancePage() {
       )}
 
       {!sheetLoading && students.length > 0 && runSessionId && (
-        <ul className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           {students.map((st) => (
-            <li key={st.studentId} className="rounded-lg border border-line bg-elev p-4">
-              <p className="font-semibold text-fg">{st.name}</p>
-              <p className="text-xs text-sub">{st.studentId}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(["present", "late", "absent"] as AttendanceStatus[]).map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    className={`rounded-full px-3 py-1.5 text-sm ${
-                      st.status === status ? "bg-gold text-bg font-semibold" : "border border-line"
-                    }`}
-                    onClick={() => setStudentField(st.studentId, { status })}
-                  >
-                    {status === "present" ? "출석" : status === "late" ? "지각" : "결석"}
-                  </button>
-                ))}
-              </div>
-              {st.status === "late" && (
-                <label className="mt-2 block text-sm text-fg2">
-                  지각 (분)
-                  <input
-                    type="number"
-                    min={1}
-                    max={120}
-                    className="ml-2 w-20 rounded border border-line bg-bg px-2 py-1"
-                    value={st.lateMinutes ?? 5}
-                    onChange={(e) =>
-                      setStudentField(st.studentId, { lateMinutes: Number(e.target.value) || 5 })
-                    }
-                  />
-                </label>
-              )}
-              <label className="mt-2 block text-sm text-fg2">
-                참여도 (0–100)
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  className="ml-2 w-20 rounded border border-line bg-bg px-2 py-1"
-                  value={st.participationScore ?? ""}
-                  placeholder="—"
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setStudentField(st.studentId, {
-                      participationScore: v === "" ? undefined : Number(v),
-                    });
-                  }}
-                />
-              </label>
-              <PrimaryButton
-                type="button"
-                className="mt-3"
-                loading={savingId === st.studentId}
-                disabled={!st.status || savingId !== null}
-                onClick={() => void saveStudent(st)}
-              >
-                저장
-              </PrimaryButton>
-            </li>
+            <StudentAttendanceCard
+              key={st.studentId}
+              student={{
+                studentId: st.studentId,
+                name: st.name,
+                photoUrl: st.photoUrl,
+                status: st.status as AttendanceChoice | undefined,
+                lateMinutes: st.lateMinutes,
+                participationScore: st.participationScore,
+              }}
+              onStatus={(status) => setStudentField(st.studentId, { status })}
+              onLateMinutes={(m) => setStudentField(st.studentId, { lateMinutes: m })}
+              onParticipationScore={(score) => setStudentField(st.studentId, { participationScore: score })}
+              onSave={() => void saveStudent(st)}
+              saving={savingId === st.studentId}
+              showParticipation
+              showSave={!centerDemo}
+            />
           ))}
-        </ul>
+        </div>
       )}
 
       {!sheetLoading && programRunId && runSessionId && students.length === 0 && (

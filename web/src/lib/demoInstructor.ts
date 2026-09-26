@@ -22,6 +22,7 @@ export type InstructorAttendance = "present" | "late" | "absent" | "unset";
 export interface InstructorRosterRow {
   studentId: string;
   name: string;
+  photoUrl?: string;
   attendance: InstructorAttendance;
   lateMinutes?: number;
   participationScore?: number;

@@ -3,6 +3,8 @@
 export type StaffNavIcon =
   | "home"
   | "lessons"
+  | "students"
+  | "instructors"
   | "people"
   | "reports"
   | "comms"
@@ -37,22 +39,19 @@ export function buildCenterNavItems(base: string): StaffNavItem[] {
       match: (p) => p.startsWith(`${base}/lessons`) || p.startsWith(`${base}/attendance`),
     },
     {
-      href: `${base}/people`,
-      label: "사람",
-      icon: "people",
-      match: (p) => p.startsWith(`${base}/people`) || p.startsWith(`${base}/roster`),
+      href: `${base}/students`,
+      label: "학생",
+      icon: "students",
+      match: (p) =>
+        p.startsWith(`${base}/students`) ||
+        p.startsWith(`${base}/roster`) ||
+        (p.startsWith(`${base}/people`) && !p.includes("/instructors")),
     },
     {
-      href: `${base}/reports`,
-      label: "리포트",
-      icon: "reports",
-      match: (p) => p.startsWith(`${base}/reports`),
-    },
-    {
-      href: `${base}/comms`,
-      label: "소통",
-      icon: "comms",
-      match: (p) => p.startsWith(`${base}/comms`),
+      href: `${base}/instructors`,
+      label: "강사",
+      icon: "instructors",
+      match: (p) => p.startsWith(`${base}/instructors`),
     },
   ];
 }

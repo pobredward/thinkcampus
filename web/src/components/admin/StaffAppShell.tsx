@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { StaffBottomNav } from "@/components/admin/StaffBottomNav";
 import { AdminHeaderAuth } from "@/components/admin/AdminHeaderAuth";
+import { useCenterSummary } from "@/hooks/useCenterSummary";
 import { useCenterRun } from "@/providers/CenterRunProvider";
 import { DEMO_HUB_PATH } from "@/lib/demoPortal";
 import {
@@ -25,7 +26,8 @@ export function StaffAppShell({
   const { role, active } = useDemoPortal();
   const demoCenter = active && role === "center";
   const demoCompany = active && role === "company";
-  const { runs, selectedRunId, setSelectedRunId, selectedRun } = useCenterRun();
+  const { runs, selectedRunId, setSelectedRunId, selectedRun, runsLoading } = useCenterRun();
+  const { data: summary } = useCenterSummary(variant === "center" ? selectedRun?.id : null);
 
   const base =
     variant === "center" ? centerStaffBase(pathname, demoCenter) : companyStaffBase(pathname, demoCompany);
@@ -40,24 +42,34 @@ export function StaffAppShell({
   return (
     <div className="flex min-h-dvh flex-col bg-paper text-fg">
       <header
-        className="border-b border-line bg-paper px-4 pb-3 pt-[calc(var(--sat)+8px)]"
+        className="border-b border-line bg-paper px-4 pb-2.5 pt-[calc(var(--sat)+8px)]"
       >
-        <div className="mx-auto flex max-w-lg items-start justify-between gap-3">
+        <div className={`mx-auto flex ${variant === "center" ? "max-w-2xl" : "max-w-lg"} items-start justify-between gap-3`}>
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-gold">{title}</p>
-            <h1 className="truncate text-[20px] font-bold leading-tight">{subtitle}</h1>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[12px] font-semibold text-gold">{title}</span>
+              {demoCenter && (
+                <span className="rounded bg-gold/15 px-1.5 py-0.2 text-[10px] font-bold text-gold">체험</span>
+              )}
+            </div>
+            <h1 className="truncate text-[18px] font-bold leading-tight">{subtitle}</h1>
             {variant === "center" && selectedRun && (
-              <p className="mt-0.5 truncate text-[13px] text-sub">
-                {selectedRun.municipalityName} · {selectedRun.campusId}
+              <p className="mt-0.5 truncate text-[12px] text-sub">
+                {selectedRun.municipalityName}
+                {summary
+                  ? ` · 수강 ${summary.dashboard.totalStudents}명 · ${summary.dashboard.sectionsActive}개 반`
+                  : runsLoading
+                    ? " · 불러오는 중…"
+                    : ` · ${selectedRun.campusId}`}
               </p>
             )}
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
             {variant === "center" && runs.length > 1 && (
-              <label className="flex items-center gap-1.5 text-[12px] text-sub">
+              <label className="flex items-center gap-1 text-[11px] text-sub">
                 <span className="sr-only">운영 건</span>
                 <select
-                  className="max-w-[9.5rem] truncate rounded-lg border border-line bg-elev px-2 py-1 text-[12px] font-semibold text-fg"
+                  className="max-w-[8.5rem] truncate rounded-lg border border-line bg-elev px-2 py-1 text-[11px] font-semibold text-fg"
                   value={selectedRunId}
                   onChange={(e) => setSelectedRunId(e.target.value)}
                 >
@@ -68,14 +80,20 @@ export function StaffAppShell({
               </label>
             )}
             {variant === "center" && runs.length === 1 && selectedRun && (
-              <span className="rounded-lg border border-line bg-elev px-2 py-1 text-[12px] font-semibold text-fg">
+              <span className="rounded-lg border border-line bg-elev px-2 py-0.5 text-[11px] font-semibold text-fg">
                 {selectedRun.contractCode}
               </span>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={DEMO_HUB_PATH}
+                className="rounded-lg border border-line bg-elev px-2 py-0.5 text-[11px] text-sub"
+              >
+                데모허브
+              </Link>
               <Link
                 href={`${base}/${variant === "center" ? "profile" : "settings"}`}
-                className="rounded-lg border border-line bg-elev px-2 py-1 text-[11px] font-semibold text-sub"
+                className="rounded-lg border border-line bg-elev px-2 py-0.5 text-[11px] font-semibold text-sub"
               >
                 내 정보
               </Link>
@@ -83,18 +101,15 @@ export function StaffAppShell({
             </div>
           </div>
         </div>
-        <p className="mx-auto mt-2 max-w-lg text-[11px] text-faint">
-          <Link href={DEMO_HUB_PATH} className="underline">체험판 홈</Link>
-          {variant === "company" && (
-            <>
-              {" · "}
-              <span>센터에 부여한 운영 건만 센터 화면에 표시됩니다</span>
-            </>
-          )}
-        </p>
       </header>
 
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-5">{children}</main>
+      <main
+        className={`mx-auto flex w-full flex-1 flex-col px-4 py-5 ${
+          variant === "center" ? "max-w-2xl" : "max-w-lg"
+        }`}
+      >
+        {children}
+      </main>
 
       <StaffBottomNav items={navItems} />
     </div>

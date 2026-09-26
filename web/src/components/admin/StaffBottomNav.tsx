@@ -30,6 +30,21 @@ function NavIcon({ name }: { name: StaffNavIcon }) {
           <path d="M8 3v4M16 3v4M3 10h18" />
         </svg>
       );
+    case "students":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="8.5" r="3.5" />
+          <path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6" />
+        </svg>
+      );
+    case "instructors":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="7.5" r="3" />
+          <path d="M6 19c0-3 2.7-5 6-5s6 2 6 5" />
+          <path d="M16 4.5 18 3v4" />
+        </svg>
+      );
     case "people":
       return (
         <svg {...common}>
@@ -94,6 +109,7 @@ function NavIcon({ name }: { name: StaffNavIcon }) {
 
 export function StaffBottomNav({ items }: { items: StaffNavItem[] }) {
   const pathname = usePathname();
+  const compact = items.length >= 6;
   return (
     <nav
       aria-label="스태프 메인 탭"
@@ -116,7 +132,11 @@ export function StaffBottomNav({ items }: { items: StaffNavItem[] }) {
                 }`}
               >
                 <NavIcon name={t.icon} />
-                <span className={`text-[12px] ${focused ? "font-bold text-gold" : "font-medium text-sub"}`}>
+                <span
+                  className={`${compact ? "text-[10px] leading-tight" : "text-[12px]"} ${
+                    focused ? "font-bold text-gold" : "font-medium text-sub"
+                  }`}
+                >
                   {t.label}
                 </span>
               </Link>

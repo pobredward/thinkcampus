@@ -8,9 +8,9 @@ import { InstructorMaterialLinks } from "@/components/demo/InstructorMaterialLin
 import { InstructorSessionReportForm } from "@/components/demo/InstructorSessionReportForm";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { DUMMY_PROGRAM } from "@/data/dummyProgram";
+import { buildDemoInstructorSessionRoster } from "@/lib/demoCenterFamilies";
 import {
   DEMO_INSTRUCTOR_CLASS,
-  DEMO_INSTRUCTOR_ROSTER_INITIAL,
   DEMO_INSTRUCTOR_SESSIONS,
   lessonMaterialsForSession,
   sessionMetaForReport,
@@ -34,7 +34,7 @@ export default function InstructorSessionPage() {
 
   const [tab, setTab] = useState<SectionTab>("plan");
   const [roster, setRoster] = useState<InstructorRosterRow[]>(() =>
-    DEMO_INSTRUCTOR_ROSTER_INITIAL.map((r) => ({ ...r })),
+    buildDemoInstructorSessionRoster().map((r) => ({ ...r, attendance: "unset" as const })),
   );
 
   const patchStudent = useCallback((studentId: string, patch: Partial<InstructorRosterRow>) => {
