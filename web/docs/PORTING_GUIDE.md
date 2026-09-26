@@ -77,7 +77,7 @@ import { copyToClipboard } from "@/lib/share";            // Clipboard.setString
 import { printHtml } from "@/lib/print";                  // expo-print → await printHtml(buildPdfHtml(report))  (인쇄 다이얼로그에서 "PDF로 저장")
 import { useAuth } from "@/providers/AuthProvider";       // onAuthStateChanged → const { user } = useAuth();  로그아웃은 const { signOut } = useAuth() (이동은 가드가 처리)
 import { useBack } from "@/hooks/useBack";               // router.back() → const goBack = useBack("/main"); (링크로 바로 들어온 경우 fallback 경로로)
-import { useChildren } from "@/hooks/useChildren";         // enrollments→students/campuses 조회 (홈: activeOnly:true, 내정보: 기본)
+import { useChildren } from "@/hooks/useChildren";         // guardianLinks→students/campuses 조회 (홈: activeOnly:true, 내정보: 기본)
 import { getDb, getFns, getFirebaseAuth } from "@/lib/firebase";
 import { httpsCallable } from "firebase/functions";        // httpsCallable(getFns(), "createShareToken")
 import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore"; // RNFB 와 동일 API. 단 snap.exists → snap.exists()

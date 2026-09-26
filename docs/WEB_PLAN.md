@@ -8,7 +8,7 @@
 |---|---|
 | 방식 | **Next.js 별도 앱** (`web/`) — Expo Web 안 대신 채택. UI 는 새로 작성, 백엔드(Firestore·규칙·Cloud Functions·전화 OTP)는 모바일과 공유 |
 | 인증 | 클라이언트 전용 (Firebase JS SDK + invisible reCAPTCHA). SSR 세션 쿠키는 필요한 페이지가 생길 때 추가 |
-| 데이터 | 실데이터 미확정 → 모바일과 같은 더미 데이터 사본(`web/src/data`)으로 먼저 구현 |
+| 데이터 | 실데이터 미확정 → 모바일과 같은 더미 데이터 사본(`web/src/data`)으로 먼저 구현. **운영 건 스키마**: `docs/DATA_MODEL.md`, 타입 `shared/schema/` |
 | 배포 | **Vercel** (Root Directory = `web`, 리전 `icn1`) |
 | URL | 모바일 expo-router 경로를 1:1 미러링 (`/onboarding`, `/main`, `/main/program/[programId]/report` …). 예외: 회차 화면 `/main/program/[programId]/session/[sessionId]` (모바일 회차 상세는 여기의 "내용" 탭) |
 
