@@ -19,7 +19,7 @@ export default function HistoryScreen() {
   const { user, children, loading } = useChildren({ activeOnly: true });
   const { selected } = useSelectedChild(children, user?.uid);
 
-  // TODO: Firestore enrollments(status: completed) 조회
+  // TODO: Firestore studentProgramEnrollments(status: completed) 조회
   const items = selected ? DUMMY_PAST_PROGRAMS : [];
 
   const open = (p: PastProgram) => {

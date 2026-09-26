@@ -175,7 +175,7 @@ export default function ProfileScreen() {
         </View>
       ) : (
         children.map((child) => (
-          <View key={child.enrollmentId} style={styles.childCard}>
+          <View key={child.guardianLinkId} style={styles.childCard}>
             <View>
               <Text style={styles.childName}>{child.studentName}</Text>
               <Text style={styles.childSub}>

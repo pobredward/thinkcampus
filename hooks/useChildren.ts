@@ -1,5 +1,5 @@
 /**
- * 보호자에게 연결된 자녀 목록 — enrollments(guardianUid) → students / campuses
+ * 보호자에게 연결된 자녀 목록 — guardianLinks(guardianUid) → students / campuses
  * (홈 · 내 정보 · 회원 탈퇴 화면이 함께 사용. 웹 web/src/hooks/useChildren.ts 와 같은 로직)
  */
 
@@ -16,7 +16,7 @@ import { db } from '../firebase';
 import { useAuthUser } from './useAuthUser';
 
 export interface Child {
-  enrollmentId: string;
+  guardianLinkId: string;
   studentId: string;
   studentName: string;
   campusId: string;
@@ -40,7 +40,7 @@ export function useChildren(opts?: { activeOnly?: boolean }) {
       else setLoading(true);
       setError(null);
       try {
-        const base = collection(db, 'enrollments');
+        const base = collection(db, 'guardianLinks');
         const q = activeOnly
           ? query(base, where('guardianUid', '==', uid), where('status', '==', 'active'))
           : query(base, where('guardianUid', '==', uid));
@@ -53,7 +53,7 @@ export function useChildren(opts?: { activeOnly?: boolean }) {
               getDoc(doc(db, 'campuses', data.campusId)),
             ]);
             return {
-              enrollmentId: d.id,
+              guardianLinkId: d.id,
               studentId: data.studentId,
               studentName: sSnap.exists ? (sSnap.data()?.name ?? data.studentId) : data.studentId,
               campusId: data.campusId,

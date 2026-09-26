@@ -105,7 +105,7 @@ export default function LoginScreen() {
 
       // 2) enrollment 존재 여부 확인
       const hasEnrollment = async () =>
-        !(await getDocs(query(collection(db, 'enrollments'), where('guardianUid', '==', uid)))).empty;
+        !(await getDocs(query(collection(db, 'guardianLinks'), where('guardianUid', '==', uid)))).empty;
 
       let enrolled = await hasEnrollment();
 
