@@ -15,6 +15,7 @@
 
 import { useMemo, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Spinner } from "@/components/ui/Spinner";
 import { AttendancePanel } from "@/components/program/session/AttendancePanel";
 import { ContentPanel } from "@/components/program/session/ContentPanel";
 import { QnaPanel } from "@/components/program/session/QnaPanel";
@@ -30,7 +31,6 @@ import {
   isSessionTab,
   matchProgramReport,
   pickDummyAttendance,
-  pickDummyReport,
   SESSION_TABS,
   STATUS_BADGE,
   STATUS_LABEL,
@@ -44,6 +44,8 @@ import { faqHref, sessionCrumbs } from "@/lib/crumbs";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useProgramBundle } from "@/hooks/useProgramBundle";
 import { useSessionAttendance } from "@/hooks/useSessionAttendance";
+import { useFinalReport } from "@/hooks/useFinalReport";
+import { emptyAttendance } from "@/lib/mapSessionAttendance";
 import { daysBetween, dDayLabel, formatKoreanDate, formatShortDate, todayKey } from "@/lib/dates";
 
 // 회차 사이 이동(replace)과 Q&A 에서 다녀온 FAQ 는 건너뛰고 목록을 찾는다
@@ -61,24 +63,19 @@ export default function SessionPage() {
     return p.toString();
   }, [sp]);
   const sid = sp.get("sid");
-  const { program: loaded, fromFirestore } = useProgramBundle(programId, sid);
+  const { program: loaded, fromServer } = useProgramBundle(programId, sid);
   const program = loaded ?? getDummyProgram(programId);
   const studentName = sp.get("studentName") ?? "";
-  const { attendance: firestoreAttendance } = useSessionAttendance(
-    sid,
-    programId,
-    loaded,
-    studentName,
-    fromFirestore,
-  );
+  const { attendance: serverAttendance, loading: attendanceLoading } = useSessionAttendance(sid, programId, loaded, studentName, fromServer);
+  const { report } = useFinalReport(sid, programId);
   const listUrl = `/main/program/${programId}${baseQs ? `?${baseQs}` : ""}`;
   const goList = useUpTo(listUrl, { skip: SESSION_PATH });
   const listLabel = "회차 목록";
 
   const attendance = useMemo(() => {
-    if (fromFirestore && firestoreAttendance) return firestoreAttendance;
+    if (fromServer) return serverAttendance ?? emptyAttendance(program, sid, studentName);
     return pickDummyAttendance(sid);
-  }, [fromFirestore, firestoreAttendance, sid]);
+  }, [fromServer, serverAttendance, program, sid, studentName]);
   const items = useMemo(() => buildDayItems(program, attendance), [program, attendance]);
   const index = items.findIndex((d) => d.session.id === sessionId);
   const item = index >= 0 ? items[index] : null;
@@ -149,6 +146,15 @@ export default function SessionPage() {
     document.getElementById(`tab-${n}`)?.focus();
   }
 
+  // 출결을 아직 읽는 중이면 탭(리포트 유무)·상태가 바뀌지 않도록 잠시 기다린다
+  if (fromServer && attendanceLoading && !serverAttendance) {
+    return (
+      <div className="flex flex-1 items-center justify-center py-20">
+        <Spinner size="large" />
+      </div>
+    );
+  }
+
   if (!item || !tab) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-20">
@@ -163,7 +169,6 @@ export default function SessionPage() {
   const { session, status } = item;
   const dDay = status === "upcoming" ? dDayLabel(daysBetween(today, item.key)) : "";
   const finished = isProgramFinished(items);
-  const report = pickDummyReport();
   const openFullReport = () =>
     router.push(`/main/program/${programId}/report${baseQs ? `?${baseQs}` : ""}`);
 
@@ -241,7 +246,7 @@ export default function SessionPage() {
         {tab === "report" && isDone(status) && (
           <ReportPanel
             item={item}
-            evaluation={matchProgramReport(session.topic, report)}
+            evaluation={report ? matchProgramReport(session.topic, report) : null}
             onOpenFullReport={finished ? openFullReport : undefined}
           />
         )}

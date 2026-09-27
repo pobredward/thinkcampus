@@ -1,167 +1,147 @@
 "use client";
 
-import { useMemo, useRef, useEffect } from "react";
-import { usePageTitle } from "@/hooks/usePageTitle";
-import { useCenterSchedule } from "@/hooks/useCenterSchedule";
-import { useCenterSummary } from "@/hooks/useCenterSummary";
-import { centerStaffBase } from "@/lib/staffAppNav";
-import { CenterRotationBoard } from "@/components/admin/center/CenterRotationBoard";
-import { CenterSectionChips } from "@/components/admin/center/CenterSectionChips";
-import { buildDemoScheduleDates } from "@/lib/demoCenterScale";
-import { useCenterRun } from "@/providers/CenterRunProvider";
-import { useCenterScope } from "@/providers/CenterScopeProvider";
-import { useDemoPortal } from "@/providers/DemoPortalProvider";
-import { usePathname } from "next/navigation";
-import { Spinner } from "@/components/ui/Spinner";
+/**
+ * 센터 · 수업 — 날짜를 고르면 그날의 시간대별 반 카드
+ *   [날짜 리본: 9.5 · 9.19 · 오늘 10.3 · 10.17 …]
+ *   10:00–12:00
+ *     1반 · 박지훈 · 출결 12/12 · 리포트 12/12   [출결]
+ *     2반 · 이수민 · 출결 0/12                    [출결 입력]
+ *   13:00–15:00 …
+ * 넓은 표 없이 카드만 — 폰에서도 그대로.
+ */
 
-function getTodayKst(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo } from "react";
+import { Badge, Button, Empty, ErrorBox, fmtDate, Loading, PageTitle } from "@/components/staff/ui";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { todayKey } from "@/lib/dates";
+import { useCenterRun } from "@/providers/CenterRunProvider";
+import { useApi, useQuery, type CenterScheduleDay, type CenterScheduleSession } from "@/services";
+
+function pickDefaultDate(days: CenterScheduleDay[], today: string): string | null {
+  if (days.length === 0) return null;
+  return days.find((d) => d.date >= today)?.date ?? days[days.length - 1].date;
 }
 
-function parseDateMeta(dateStr: string, idx: number, todayStr: string) {
-  try {
-    const [y, m, d] = dateStr.split("-").map(Number);
-    const dateObj = new Date(Date.UTC(y, m - 1, d));
-    const dayOfWeek = ["일", "월", "화", "수", "목", "금", "토"][dateObj.getUTCDay()];
-    return {
-      label: `${idx + 1}회차`,
-      display: `${m}.${d} (${dayOfWeek})`,
-      isToday: dateStr === todayStr,
-    };
-  } catch {
-    return {
-      label: `${idx + 1}회차`,
-      display: dateStr,
-      isToday: dateStr === todayStr,
-    };
-  }
+function SessionCard({ s, date }: { s: CenterScheduleSession; date: string }) {
+  const done = s.enrolledCount > 0 && s.recordedCount >= s.enrolledCount;
+  const past = date < todayKey();
+  const attendanceTone = done ? "gold" : s.recordedCount > 0 ? "late" : past ? "danger" : "neutral";
+  return (
+    <li className="rounded-[16px] border border-line bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[18px] font-extrabold text-fg">{s.sectionLabel}</p>
+          <p className="mt-[2px] text-[15px] text-fg2">{s.instructorName ?? <span className="text-danger">강사 미배정</span>}</p>
+          <p className="mt-[2px] text-[14px] text-sub">{s.location}</p>
+        </div>
+        {s.status === "cancelled" ? (
+          <Badge tone="dim">휴강</Badge>
+        ) : (
+          <div className="flex flex-col items-end gap-1">
+            <Badge tone={attendanceTone}>
+              출결 {s.recordedCount}/{s.enrolledCount}
+            </Badge>
+            <Badge tone={s.reportedCount >= s.enrolledCount && s.enrolledCount > 0 ? "gold" : "neutral"}>
+              리포트 {s.reportedCount}/{s.enrolledCount}
+            </Badge>
+          </div>
+        )}
+      </div>
+      {s.status !== "cancelled" && (
+        <div className="mt-3 flex gap-2">
+          <Button href={`/admin/center/attendance?session=${encodeURIComponent(s.id)}`} variant={done ? "secondary" : "primary"} className="flex-1">
+            {done ? "출결 보기" : s.recordedCount > 0 ? "출결 이어서 입력" : "출결 입력"}
+          </Button>
+          <Button href={`/admin/center/reports?session=${encodeURIComponent(s.id)}`} variant="secondary" className="flex-1">
+            리포트
+          </Button>
+        </div>
+      )}
+    </li>
+  );
 }
 
 export default function CenterLessonsPage() {
-  usePageTitle("수업 로테이션");
-  const pathname = usePathname();
-  const { role, active } = useDemoPortal();
-  const base = centerStaffBase(pathname, active && role === "center");
-  const { selectedRun } = useCenterRun();
-  const { scheduleDate, setScheduleDate, sectionId, setSectionId } = useCenterScope();
-  const { data: summary } = useCenterSummary(selectedRun?.id);
-  const { days, loading, error } = useCenterSchedule(selectedRun?.id, scheduleDate);
+  usePageTitle("수업");
+  const api = useApi();
+  const router = useRouter();
+  const sp = useSearchParams();
+  const { selectedRun, runsLoading } = useCenterRun();
+  const runId = selectedRun?.id ?? null;
+  const { data: days, loading, error, refetch } = useQuery(() => (runId ? api.center.listSchedule(runId) : null), [api, runId]);
+  const today = todayKey();
 
-  const todayStr = getTodayKst();
+  const requested = sp.get("date");
+  const selectedDate = useMemo(() => {
+    if (!days) return null;
+    if (requested && days.some((d) => d.date === requested)) return requested;
+    return pickDefaultDate(days, today);
+  }, [days, requested, today]);
 
-  // 운영 건의 모든 수업 날짜 목록
-  const allDates = useMemo(() => {
-    if (summary?.scheduleDates && summary.scheduleDates.length > 0) {
-      return summary.scheduleDates;
-    }
-    return buildDemoScheduleDates(todayStr);
-  }, [summary?.scheduleDates, todayStr]);
-
-  // 선택된 날짜 버튼으로 자동 스크롤
-  const activeDateRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
-    if (activeDateRef.current) {
-      activeDateRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
-      });
-    }
-  }, [scheduleDate]);
+    if (days && selectedDate && requested !== selectedDate) router.replace(`/admin/center/lessons?date=${selectedDate}`, { scroll: false });
+  }, [days, selectedDate, requested, router]);
+
+  if (runsLoading || (loading && !days)) return <Loading label="시간표를 불러오는 중..." />;
+  if (!selectedRun) return <Empty title="운영 건을 먼저 골라 주세요" />;
+  if (error) return <ErrorBox message={error} onRetry={() => void refetch()} />;
+  if (!days || days.length === 0) return <Empty title="회차가 아직 없어요" desc="회사에서 운영 건 일정을 만들면 여기에 보여요." />;
+
+  const day = days.find((d) => d.date === selectedDate) ?? days[0];
+  const total = day.slots.reduce((a, s) => a + s.sessions.length, 0);
+  const recorded = day.slots.reduce((a, s) => a + s.sessions.filter((x) => x.enrolledCount > 0 && x.recordedCount >= x.enrolledCount).length, 0);
 
   return (
-    <div className="space-y-4">
-      {/* 상단 타이틀 */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-[19px] font-bold text-fg">수업 로테이션 시간표</h2>
-          <p className="text-[12px] text-sub">날짜별 전 반 동시 로테이션 현황 및 출결 관리</p>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <label className="flex items-center gap-1 text-[11px] text-sub">
-            <span className="sr-only">날짜 직접 선택</span>
-            <input
-              type="date"
-              className="rounded-lg border border-line bg-elev px-2 py-1 text-[12px] font-medium text-fg"
-              value={scheduleDate}
-              onChange={(e) => setScheduleDate(e.target.value)}
-            />
-          </label>
-        </div>
+    <div>
+      <PageTitle title="수업" desc={`${selectedRun.title} · ${selectedRun.sections.length}개 반`} />
+
+      {/* 날짜 리본 */}
+      <div role="tablist" aria-label="수업 날짜" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1">
+        {days.map((d) => {
+          const on = d.date === day.date;
+          const isToday = d.date === today;
+          const label = `${Number(d.date.slice(5, 7))}.${Number(d.date.slice(8, 10))}`;
+          return (
+            <button
+              key={d.date}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() => router.replace(`/admin/center/lessons?date=${d.date}`, { scroll: false })}
+              className={`tap flex h-[52px] shrink-0 flex-col items-center justify-center rounded-[14px] border px-3 ${
+                on ? "border-gold bg-gold-light text-gold" : "border-line bg-card text-fg2"
+              }`}
+            >
+              <span className="text-[14px] font-semibold">{d.sessionNumber}회차</span>
+              <span className={`text-[15px] font-bold ${isToday ? "underline underline-offset-2" : ""}`}>{isToday ? "오늘" : label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* 🌟 모든 날짜 버튼 바 (가로 스크롤 리본) */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between px-0.5">
-          <span className="text-[12px] font-bold text-fg">수업 일정 (전체 회차)</span>
-          <span className="text-[11px] text-sub">총 {allDates.length}회차</span>
-        </div>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 pt-0.5 scrollbar-none">
-          {allDates.map((dStr, idx) => {
-            const isSelected = dStr === scheduleDate;
-            const meta = parseDateMeta(dStr, idx, todayStr);
-
-            return (
-              <button
-                key={dStr}
-                ref={isSelected ? activeDateRef : null}
-                type="button"
-                onClick={() => setScheduleDate(dStr)}
-                className={`tap flex shrink-0 flex-col items-center justify-center rounded-xl border px-3 py-2 text-center transition-all ${
-                  isSelected
-                    ? "border-gold bg-gold/15 text-gold shadow-sm ring-1 ring-gold"
-                    : "border-line bg-card text-sub hover:border-gold/50 hover:bg-elev"
-                }`}
-                style={{ minWidth: "82px" }}
-              >
-                <div className="flex items-center gap-1">
-                  <span className={`text-[11px] font-bold ${isSelected ? "text-gold" : "text-sub"}`}>
-                    {meta.label}
-                  </span>
-                  {meta.isToday && (
-                    <span className="rounded bg-gold px-1 py-0.2 text-[9px] font-extrabold text-white">
-                      오늘
-                    </span>
-                  )}
-                </div>
-                <span className={`mt-0.5 text-[13px] font-semibold ${isSelected ? "text-fg" : "text-fg/85"}`}>
-                  {meta.display}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      <div className="mt-4 flex items-baseline justify-between">
+        <h2 className="text-[19px] font-extrabold text-fg">
+          {fmtDate(day.date)} · {day.sessionNumber}회차
+        </h2>
+        <span className="text-[14px] text-sub">
+          출결 완료 {recorded}/{total}반
+        </span>
       </div>
+      <p className="mt-1 text-[15px] text-sub">{day.slots[0]?.sessions[0]?.topic}</p>
 
-      {/* 인라인 반 필터 칩 */}
-      {summary && summary.sections.length > 0 && (
-        <div className="space-y-1">
-          <CenterSectionChips
-            sections={summary.sections}
-            value={sectionId}
-            onChange={setSectionId}
-            totalStudents={summary.dashboard.totalStudents}
-          />
-        </div>
-      )}
-
-      {/* 로딩 / 에러 */}
-      {loading && (
-        <div className="flex justify-center py-12">
-          <Spinner />
-        </div>
-      )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      {/* 🌟 시간표 표 (Rotation Schedule Table) */}
-      {!loading && (
-        <CenterRotationBoard
-          days={days}
-          basePath={base}
-          sectionFilter={sectionId}
-          sections={summary?.sections}
-        />
-      )}
+      {day.slots.map((slot) => (
+        <section key={`${slot.startTime}-${slot.endTime}`} className="mt-4" aria-label={`${slot.startTime}–${slot.endTime}`}>
+          <p className="mb-2 text-[15px] font-bold text-gold">
+            {slot.startTime}–{slot.endTime}
+          </p>
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {slot.sessions.map((s) => (
+              <SessionCard key={s.id} s={s} date={day.date} />
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

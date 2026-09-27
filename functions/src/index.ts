@@ -9,6 +9,7 @@
  *   deleteAccount – 회원 탈퇴 (내 연결 정보 정리 + Auth 계정 삭제)
  *   createShareToken / viewReport – 리포트 공유 링크
  *   listPendingHouseholdMembers / linkHouseholdMember – 형제 가구 연동
+ *   (직원 앱 Callable 은 아래 export 목록과 각 파일 머리말 참고 — web/src/services/live 가 호출)
  */
 
 import { onCall, onRequest, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
@@ -848,16 +849,24 @@ export const viewReport = onRequest(
   },
 );
 
-export { importRoster } from './importRoster';
-export { createProgramRun } from './createProgramRun';
+// ── 학부모 ──
 export { listPendingHouseholdMembers, linkHouseholdMember } from './householdLink';
+export { listStudentProgramBundles } from './listStudentProgramBundles';
+export { listGuardianNotifications, markNotificationRead } from './guardianNotifications';
+// ── 직원 공통 ──
 export { checkCompanyAdminAccess } from './checkCompanyAdminAccess';
 export { checkStaffAccess } from './checkStaffAccess';
-export { getProgramRunAttendanceSheet } from './getProgramRunAttendanceSheet';
-export { listStudentProgramBundles } from './listStudentProgramBundles';
 export { recordSessionAttendance } from './recordSessionAttendance';
-export { getCenterRunOps } from './getCenterRunOps';
-export { getCenterRunSummary } from './getCenterRunSummary';
+export { listSessionReports, saveSessionReportDrafts, submitSessionReports, reviewSessionReports } from './sessionReports';
+// ── 센터 ──
+export { listCenterRuns, getCenterRunSummary, listCenterSchedule } from './centerRuns';
+export { getProgramRunAttendanceSheet } from './getProgramRunAttendanceSheet';
 export { listCenterRoster } from './listCenterRoster';
-export { listCenterSchedule } from './listCenterSchedule';
-export { createCenterNotice } from './createCenterNotice';
+export { listCenterInstructors, getCenterInstructor, assignInstructorToSession } from './centerInstructors';
+export { createCenterNotice, listCenterNotifications } from './createCenterNotice';
+// ── 강사 ──
+export { getInstructorHome, listInstructorSessions, getInstructorSessionWorkspace } from './instructorApi';
+// ── 회사 ──
+export { importRoster } from './importRoster';
+export { createProgramRun } from './createProgramRun';
+export { getCompanyHome, listProgramRuns, getProgramRun, listProgramTemplates, listCampuses, updateProgramRunPolicy, listStaff } from './companyApi';

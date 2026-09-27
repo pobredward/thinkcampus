@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * 회사 · 새 운영 건 — 템플릿을 고르면 회차가 채워지고, 캠퍼스·일정·반·정책을 정한다
+ */
+
 import Link from "next/link";
-import { httpsCallable } from "firebase/functions";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { Button, Card, ErrorBox, Field, inputClass, Loading, PageTitle, SectionLabel, Select } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { getFns } from "@/lib/firebase";
-import { useAuth } from "@/providers/AuthProvider";
+import { todayKey, WEEKDAYS } from "@/lib/dates";
+import { useToast } from "@/providers/ToastProvider";
+import { useApi, useMutation, useQuery, type CreateProgramRunInput } from "@/services";
 
 interface SessionRow {
   sessionTemplateId: string;
@@ -13,160 +19,220 @@ interface SessionRow {
   lessonCount: number;
 }
 
-export default function AdminNewProgramRunPage() {
-  usePageTitle("운영 건 생성");
-  const { user } = useAuth();
+export default function CompanyNewRunPage() {
+  usePageTitle("새 운영 건");
+  const api = useApi();
+  const router = useRouter();
+  const toast = useToast();
+  const { data: templates, loading: tplLoading } = useQuery(() => api.company.listTemplates(), [api]);
+  const { data: campuses } = useQuery(() => api.company.listCampuses(), [api]);
+
   const [contractCode, setContractCode] = useState("");
-  const [campusId, setCampusId] = useState("campus-ds26");
+  const [title, setTitle] = useState("");
+  const [campusId, setCampusId] = useState("");
   const [municipalityName, setMunicipalityName] = useState("");
-  const [programTemplateId, setProgramTemplateId] = useState("tpl-custom");
-  const [startDate, setStartDate] = useState("2026-09-05");
-  const [endDate, setEndDate] = useState("2026-11-14");
-  const [frequency, setFrequency] = useState<"weekly" | "biweekly">("biweekly");
+  const [programTemplateId, setProgramTemplateId] = useState("");
+  const [startDate, setStartDate] = useState(todayKey());
+  const [frequency, setFrequency] = useState<"weekly" | "biweekly">("weekly");
   const [fixedDay, setFixedDay] = useState(6);
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("12:00");
   const [location, setLocation] = useState("");
-  const [defaultLessonCount, setDefaultLessonCount] = useState(3);
+  const [host, setHost] = useState("");
+  const [sectionCount, setSectionCount] = useState(1);
+  const [requireCompanyApproval, setRequireCompanyApproval] = useState(false);
   const [excludedDates, setExcludedDates] = useState("");
-  const [sessions, setSessions] = useState<SessionRow[]>([
-    { sessionTemplateId: "sess-1", topic: "1회차", lessonCount: 3 },
-    { sessionTemplateId: "sess-2", topic: "2회차", lessonCount: 3 },
-  ]);
-  const [result, setResult] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const create = useMutation((input: CreateProgramRunInput) => api.company.createRun(input));
 
-  const addSession = () => {
-    const n = sessions.length + 1;
-    setSessions([...sessions, { sessionTemplateId: `sess-${n}`, topic: `${n}회차`, lessonCount: defaultLessonCount }]);
-  };
+  const template = useMemo(() => templates?.find((t) => t.id === programTemplateId), [templates, programTemplateId]);
 
-  const submit = async () => {
-    if (!user) {
-      setError("로그인이 필요합니다.");
+  useEffect(() => {
+    if (!template) return;
+    setSessions(template.sessions.map((s) => ({ sessionTemplateId: s.id, topic: s.topic, lessonCount: s.lessonCount })));
+    setFrequency(template.defaultFrequency);
+    setFixedDay(template.defaultFixedDay);
+    setStartTime(template.defaultStartTime);
+    setEndTime(template.defaultEndTime);
+  }, [template]);
+
+  useEffect(() => {
+    const c = campuses?.find((x) => x.id === campusId);
+    if (c && !municipalityName) setMunicipalityName(c.municipalityName);
+  }, [campusId, campuses, municipalityName]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!contractCode.trim() || !programTemplateId || !campusId || !location.trim()) {
+      setError("계약 코드 · 프로그램 · 캠퍼스 · 장소는 꼭 입력해 주세요.");
       return;
     }
-    setLoading(true);
-    setError(null);
-    setResult(null);
+    const excluded = excludedDates
+      .split(/[,;\s]+/)
+      .map((s) => s.trim())
+      .filter((s) => /^\d{4}-\d{2}-\d{2}$/.test(s));
     try {
-      const fn = httpsCallable(getFns(), "createProgramRun");
-      const excluded = excludedDates
-        .split(/[,;\s]+/)
-        .map((s) => s.trim())
-        .filter((s) => /^\d{4}-\d{2}-\d{2}$/.test(s));
-      const res = await fn({
+      const res = await create.run({
         contractCode: contractCode.trim(),
-        campusId: campusId.trim(),
+        programTemplateId,
+        campusId,
         municipalityName: municipalityName.trim(),
-        programTemplateId: programTemplateId.trim(),
+        title: title.trim() || undefined,
         startDate,
-        endDate,
         frequency,
         fixedDay,
         startTime,
         endTime,
         location: location.trim(),
-        defaultLessonCount,
+        host: host.trim() || undefined,
+        sessionPlan: sessions,
+        defaultLessonCount: sessions[0]?.lessonCount ?? 3,
         excludedDates: excluded.length ? excluded : undefined,
-        fillSessionCount: true,
-        sessionPlan: sessions.map((s) => ({
-          sessionTemplateId: s.sessionTemplateId,
-          topic: s.topic,
-          lessonCount: s.lessonCount,
-        })),
+        sections: Array.from({ length: sectionCount }, (_, i) => ({ id: `sec-${i + 1}`, label: `${i + 1}반` })),
+        reportPolicy: { requireCompanyApproval },
       });
-      const data = res.data as { programRunId: string; runSessionCount: number };
-      setResult(`생성됨: ${data.programRunId} (${data.runSessionCount}회차)`);
-    } catch (e: unknown) {
-      setError(e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : String(e));
-    } finally {
-      setLoading(false);
+      toast.show(`운영 건을 만들었어요 · 회차 ${res.runSessionCount}개`);
+      router.replace(`/admin/runs/${encodeURIComponent(res.programRunId)}`);
+    } catch (err) {
+      setError((err as Error).message || "만들지 못했어요");
     }
-  };
+  }
+
+  if (tplLoading && !templates) return <Loading />;
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-[20px] font-bold">운영 건 생성</h1>
-      <p className="text-sm text-fg2">contractCode는 import CSV와 동일해야 합니다.</p>
+    <div>
+      <Link href="/admin/runs" className="tap inline-flex h-11 items-center text-[15px] font-semibold text-sub">
+        ‹ 운영 건 목록
+      </Link>
+      <PageTitle title="새 운영 건" desc="계약 코드는 명단 등록 때 쓰는 값과 같아야 해요." />
+      <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-4">
+        <Card>
+          <div className="flex flex-col gap-3">
+            <Field label="계약 코드" htmlFor="run-code" required hint="예: 2026-달성-창의-02">
+              <input id="run-code" className={inputClass} value={contractCode} onChange={(e) => setContractCode(e.target.value)} />
+            </Field>
+            <Field label="프로그램" htmlFor="run-tpl" required>
+              <Select id="run-tpl" value={programTemplateId} onChange={(e) => setProgramTemplateId(e.target.value)}>
+                <option value="">프로그램을 고르세요</option>
+                {templates?.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title} · {t.defaultSessionCount}회
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="운영 건 이름" htmlFor="run-title" hint="비우면 ‘지자체 + 프로그램’ 으로">
+              <input id="run-title" className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={template ? `${municipalityName || "지자체"} ${template.title}` : ""} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="캠퍼스" htmlFor="run-campus" required>
+                <Select id="run-campus" value={campusId} onChange={(e) => setCampusId(e.target.value)}>
+                  <option value="">선택</option>
+                  {campuses?.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="지자체" htmlFor="run-muni" required>
+                <input id="run-muni" className={inputClass} value={municipalityName} onChange={(e) => setMunicipalityName(e.target.value)} />
+              </Field>
+            </div>
+            <Field label="장소" htmlFor="run-location" required>
+              <input id="run-location" className={inputClass} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="예: 달성군 청소년수련관 3층 301호" />
+            </Field>
+            <Field label="주최" htmlFor="run-host">
+              <input id="run-host" className={inputClass} value={host} onChange={(e) => setHost(e.target.value)} placeholder="예: 달성군청 교육지원과 · 씽크캠퍼스 운영" />
+            </Field>
+          </div>
+        </Card>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm">
-          contractCode
-          <input className="mt-1 w-full rounded border border-line px-2 py-1.5" value={contractCode} onChange={(e) => setContractCode(e.target.value)} />
-        </label>
-        <label className="block text-sm">
-          campusId
-          <input className="mt-1 w-full rounded border border-line px-2 py-1.5" value={campusId} onChange={(e) => setCampusId(e.target.value)} />
-        </label>
-        <label className="block text-sm sm:col-span-2">
-          지자체 이름
-          <input className="mt-1 w-full rounded border border-line px-2 py-1.5" value={municipalityName} onChange={(e) => setMunicipalityName(e.target.value)} />
-        </label>
-        <label className="block text-sm">
-          시작일
-          <input type="date" className="mt-1 w-full rounded border border-line px-2 py-1.5" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </label>
-        <label className="block text-sm">
-          종료일
-          <input type="date" className="mt-1 w-full rounded border border-line px-2 py-1.5" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </label>
-        <label className="block text-sm">
-          주기
-          <select className="mt-1 w-full rounded border border-line px-2 py-1.5" value={frequency} onChange={(e) => setFrequency(e.target.value as "weekly" | "biweekly")}>
-            <option value="weekly">매주</option>
-            <option value="biweekly">격주</option>
-          </select>
-        </label>
-        <label className="block text-sm">
-          요일 (0=일 … 6=토)
-          <input type="number" min={0} max={6} className="mt-1 w-full rounded border border-line px-2 py-1.5" value={fixedDay} onChange={(e) => setFixedDay(Number(e.target.value))} />
-        </label>
-        <label className="block text-sm">
-          시작 시각
-          <input className="mt-1 w-full rounded border border-line px-2 py-1.5" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-        </label>
-        <label className="block text-sm">
-          종료 시각
-          <input className="mt-1 w-full rounded border border-line px-2 py-1.5" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-        </label>
-        <label className="block text-sm sm:col-span-2">
-          장소
-          <input className="mt-1 w-full rounded border border-line px-2 py-1.5" value={location} onChange={(e) => setLocation(e.target.value)} />
-        </label>
-        <label className="block text-sm sm:col-span-2">
-          휴무일 (YYYY-MM-DD, 쉼표 구분)
-          <input className="mt-1 w-full rounded border border-line px-2 py-1.5" value={excludedDates} onChange={(e) => setExcludedDates(e.target.value)} placeholder="2026-10-03" />
-        </label>
-      </div>
+        <SectionLabel>일정</SectionLabel>
+        <Card>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="첫 수업일" htmlFor="run-start" required>
+              <input id="run-start" type="date" className={inputClass} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </Field>
+            <Field label="주기" htmlFor="run-freq">
+              <Select id="run-freq" value={frequency} onChange={(e) => setFrequency(e.target.value as "weekly" | "biweekly")}>
+                <option value="weekly">매주</option>
+                <option value="biweekly">격주</option>
+              </Select>
+            </Field>
+            <Field label="요일" htmlFor="run-day">
+              <Select id="run-day" value={fixedDay} onChange={(e) => setFixedDay(Number(e.target.value))}>
+                {WEEKDAYS.map((d, i) => (
+                  <option key={d} value={i}>
+                    {d}요일
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="반 개수" htmlFor="run-sections">
+              <Select id="run-sections" value={sectionCount} onChange={(e) => setSectionCount(Number(e.target.value))}>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                  <option key={n} value={n}>
+                    {n}개 반
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="시작" htmlFor="run-st">
+              <input id="run-st" type="time" className={inputClass} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            </Field>
+            <Field label="종료" htmlFor="run-et">
+              <input id="run-et" type="time" className={inputClass} value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            </Field>
+          </div>
+          <div className="mt-3">
+            <Field label="쉬는 날" htmlFor="run-excluded" hint="YYYY-MM-DD 를 쉼표로 · 그날은 건너뛰고 다음 주기로">
+              <input id="run-excluded" className={inputClass} value={excludedDates} onChange={(e) => setExcludedDates(e.target.value)} placeholder="2027-01-02" />
+            </Field>
+          </div>
+        </Card>
 
-      <div>
-        <h2 className="mb-2 font-semibold">회차</h2>
-        <ul className="space-y-2">
-          {sessions.map((s, i) => (
-            <li key={i} className="flex flex-wrap gap-2">
-              <input className="flex-1 rounded border border-line px-2 py-1 text-sm" value={s.topic} onChange={(e) => {
-                const next = [...sessions];
-                next[i] = { ...s, topic: e.target.value };
-                setSessions(next);
-              }} placeholder="주제" />
-              <input type="number" min={1} max={6} className="w-16 rounded border border-line px-2 py-1 text-sm" value={s.lessonCount} onChange={(e) => {
-                const next = [...sessions];
-                next[i] = { ...s, lessonCount: Number(e.target.value) };
-                setSessions(next);
-              }} title="교시 수" />
-            </li>
-          ))}
-        </ul>
-        <button type="button" onClick={addSession} className="mt-2 text-sm underline">+ 회차 추가</button>
-      </div>
+        <SectionLabel right={`${sessions.length}회`}>회차</SectionLabel>
+        <Card>
+          {sessions.length === 0 ? (
+            <p className="text-[15px] text-sub">프로그램을 고르면 회차가 채워져요.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {sessions.map((s, i) => (
+                <li key={s.sessionTemplateId} className="flex items-center gap-2">
+                  <span className="w-[3em] shrink-0 text-[14px] font-bold text-sub">{i + 1}회</span>
+                  <input aria-label={`${i + 1}회차 주제`} className={`${inputClass} py-2`} value={s.topic} onChange={(e) => setSessions(sessions.map((x, j) => (j === i ? { ...x, topic: e.target.value } : x)))} />
+                  <input
+                    aria-label={`${i + 1}회차 차시 수`}
+                    type="number"
+                    min={1}
+                    max={8}
+                    className={`${inputClass} w-[4.5em] py-2 text-center`}
+                    value={s.lessonCount}
+                    onChange={(e) => setSessions(sessions.map((x, j) => (j === i ? { ...x, lessonCount: Number(e.target.value) || 1 } : x)))}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
-      <button type="button" disabled={loading} onClick={submit} className="rounded-lg bg-gold px-4 py-2 text-sm font-medium text-bg disabled:opacity-50">
-        {loading ? "생성 중…" : "운영 건 생성"}
-      </button>
-      {error && <p className="text-sm text-danger">{error}</p>}
-      {result && <p className="text-sm text-fg2">{result}</p>}
+        <SectionLabel>리포트 정책</SectionLabel>
+        <Card>
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3">
+            <input type="checkbox" checked={requireCompanyApproval} onChange={(e) => setRequireCompanyApproval(e.target.checked)} className="h-5 w-5 accent-[#d4b06a]" />
+            <span className="text-[16px] text-fg">센터 검수 뒤 회사 승인을 거쳐 학부모에게 공개</span>
+          </label>
+        </Card>
+
+        {error && <ErrorBox message={error} />}
+        <Button type="submit" size="lg" loading={create.pending}>
+          운영 건 만들기
+        </Button>
+      </form>
     </div>
   );
 }

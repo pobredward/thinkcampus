@@ -1,19 +1,21 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Suspense } from "react";
 import "./globals.css";
 import { NavigationTracker } from "@/components/NavigationTracker";
-import { DemoPortalBanner } from "@/components/demo/DemoPortalBanner";
+import { DemoBanner } from "@/components/demo/DemoBanner";
+import { DEMO_COOKIE, isDemoRole } from "@/lib/demoMode";
 import { AuthProvider } from "@/providers/AuthProvider";
-import { DemoPortalProvider } from "@/providers/DemoPortalProvider";
+import { DemoProvider } from "@/providers/DemoProvider";
 import { DialogProvider } from "@/providers/DialogProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
 
 export const metadata: Metadata = {
   title: {
-    default: "ThinkCampus 학부모",
+    default: "ThinkCampus",
     template: "%s · ThinkCampus",
   },
-  description: "자녀의 교육 일정, 출결, 학습 리포트를 확인하는 ThinkCampus 학부모 전용 서비스",
+  description: "자녀의 교육 일정, 출결, 학습 리포트를 확인하는 ThinkCampus 학부모 서비스",
   applicationName: "ThinkCampus",
   appleWebApp: {
     capable: true,
@@ -32,7 +34,14 @@ export const viewport: Viewport = {
   themeColor: "#0c0e13",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/**
+ * 루트 레이아웃 (서버) — 체험 쿠키(tc_demo)를 읽어 DemoProvider 에 넘긴다.
+ * 서버가 첫 렌더부터 역할을 알고 있으므로 클라이언트와 같은 화면을 그린다 (하이드레이션 오류 없음).
+ */
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieRole = (await cookies()).get(DEMO_COOKIE)?.value;
+  const demoRole = isDemoRole(cookieRole) ? cookieRole : null;
+
   return (
     <html lang="ko">
       <head>
@@ -45,19 +54,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <div id="app-frame">
-          <ToastProvider>
-            <DialogProvider>
-              <DemoPortalProvider>
+          <DemoProvider role={demoRole}>
+            <ToastProvider>
+              <DialogProvider>
                 <AuthProvider>
                   <Suspense fallback={null}>
                     <NavigationTracker />
-                    <DemoPortalBanner />
+                    <DemoBanner />
                     {children}
                   </Suspense>
                 </AuthProvider>
-              </DemoPortalProvider>
-            </DialogProvider>
-          </ToastProvider>
+              </DialogProvider>
+            </ToastProvider>
+          </DemoProvider>
         </div>
       </body>
     </html>

@@ -1,122 +1,98 @@
 "use client";
 
+/**
+ * 센터 · 소통 — 공지 보내기(제목 · 내용 · 대상 반) + 보낸 공지
+ * 보내면 대상 학생의 보호자 앱 알림에 바로 나타난다.
+ */
+
 import { useState } from "react";
-import { httpsCallable } from "firebase/functions";
-import { PrimaryButton } from "@/components/ui/Button";
+import { Button, Card, Empty, ErrorBox, Field, fmtDateTime, inputClass, Loading, PageTitle, SectionLabel, Select } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useCenterSummary } from "@/hooks/useCenterSummary";
-import { DEMO_CENTER_NOTIFICATIONS } from "@/lib/demoCenterOps";
 import { useCenterRun } from "@/providers/CenterRunProvider";
-import { useDemoPortal } from "@/providers/DemoPortalProvider";
-import { getFns } from "@/lib/firebase";
-import { Spinner } from "@/components/ui/Spinner";
+import { useToast } from "@/providers/ToastProvider";
+import { useApi, useMutation, useQuery } from "@/services";
 
 export default function CenterCommsPage() {
-  usePageTitle("소통");
-  const { selectedRun } = useCenterRun();
-  const hasRun = Boolean(selectedRun);
-  const { role, active } = useDemoPortal();
-  const isDemo = active && role === "center";
-  const { loading, error } = useCenterSummary(selectedRun?.id);
-  const items = isDemo ? DEMO_CENTER_NOTIFICATIONS : [];
-
+  usePageTitle("공지");
+  const api = useApi();
+  const toast = useToast();
+  const { selectedRun, runsLoading } = useCenterRun();
+  const runId = selectedRun?.id ?? null;
+  const { data, loading, error, refetch } = useQuery(() => (runId ? api.center.listNotifications(runId) : null), [api, runId]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [sectionId, setSectionId] = useState("");
+  const send = useMutation(() => api.center.createNotice({ programRunId: runId!, title, body, sectionId: sectionId || undefined }));
 
-  async function submitNotice(e: React.FormEvent) {
+  if (runsLoading) return <Loading />;
+  if (!selectedRun) return <Empty title="운영 건을 먼저 골라 주세요" />;
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (isDemo || !selectedRun) return;
-    const t = title.trim();
-    if (!t) {
-      setFormError("제목을 입력하세요.");
+    if (!title.trim()) {
+      toast.show("제목을 입력해 주세요");
       return;
     }
-    setSaving(true);
-    setFormError(null);
     try {
-      const fn = httpsCallable<
-        { programRunId: string; title: string; body?: string },
-        { notificationId: string }
-      >(getFns(), "createCenterNotice");
-      await fn({ programRunId: selectedRun.id, title: t, body: body.trim() || undefined });
+      const r = await send.run();
+      toast.show(`보호자 ${r.recipients}명에게 보냈어요`);
       setTitle("");
       setBody("");
-      // 목록은 notifications API 분리 전까지 페이지 새로고침으로 갱신
-      window.location.reload();
     } catch (err) {
-      setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
+      toast.show((err as Error).message || "보내지 못했어요");
     }
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-[20px] font-bold text-fg">소통</h2>
-        <p className="mt-1 text-sm text-sub">
-          {selectedRun
-            ? `${selectedRun.contractCode} 공지·알림 이력`
-            : "운영 건 공지와 발송 이력"}
-        </p>
-      </div>
-
-      {isDemo ? (
-        <p className="rounded-xl border border-dashed border-line bg-elev px-4 py-3 text-sm text-sub">
-          체험판에서는 공지 작성이 비활성화됩니다. 로그인 센터 계정에서 작성할 수 있습니다.
-        </p>
-      ) : (
-        <form onSubmit={submitNotice} className="space-y-3 rounded-[18px] border border-line bg-card p-4">
-          <h3 className="text-[15px] font-bold text-fg">공지 작성</h3>
-          <input
-            className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-[15px]"
-            placeholder="제목"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={200}
-            disabled={!hasRun || saving}
-          />
-          <textarea
-            className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-[15px]"
-            placeholder="내용 (선택)"
-            rows={3}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            disabled={!hasRun || saving}
-          />
-          {formError && <p className="text-sm text-red-600">{formError}</p>}
-          <PrimaryButton type="submit" disabled={!hasRun || saving}>
-            {saving ? "저장 중…" : "공지 등록"}
-          </PrimaryButton>
+    <div>
+      <PageTitle title="공지 보내기" desc="보낸 공지는 학부모 앱 알림에 바로 나타나요." />
+      <Card>
+        <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-3">
+          <Field label="대상" htmlFor="notice-target">
+            <Select id="notice-target" value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
+              <option value="">전체 · {selectedRun.studentCount}명</option>
+              {selectedRun.sections.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label} · {s.studentCount}명
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="제목" htmlFor="notice-title" required>
+            <input id="notice-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="예: 다음 주 수업 준비물 안내" className={inputClass} />
+          </Field>
+          <Field label="내용" htmlFor="notice-body">
+            <textarea id="notice-body" value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder="학부모님께 보여 줄 내용" className={inputClass} />
+          </Field>
+          <Button type="submit" size="lg" loading={send.pending}>
+            보내기
+          </Button>
         </form>
-      )}
+      </Card>
 
-      <section>
-        <h3 className="text-[15px] font-bold text-fg">발송 이력</h3>
-        {loading && (
-          <div className="flex justify-center py-6">
-            <Spinner />
-          </div>
-        )}
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-        {!loading && hasRun && items.length === 0 && (
-          <p className="mt-2 rounded-xl border border-line bg-elev px-4 py-8 text-center text-sub">
-            이력이 없습니다.
-          </p>
-        )}
-        {!loading && items.length > 0 && (
-          <ul className="mt-2 space-y-2">
-            {items.map((n) => (
-              <li key={n.id} className="rounded-xl border border-line bg-card px-4 py-3">
-                <p className="font-medium text-fg">{n.title}</p>
-                <p className="mt-1 text-sm text-sub">{n.sentAt} · {n.channel}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <SectionLabel>보낸 공지</SectionLabel>
+      {error ? (
+        <ErrorBox message={error} onRetry={() => void refetch()} />
+      ) : loading && !data ? (
+        <Loading />
+      ) : !data || data.length === 0 ? (
+        <Empty title="아직 보낸 공지가 없어요" />
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {data.map((n) => (
+            <li key={n.id} className="rounded-[16px] border border-line bg-card px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-[16px] font-bold text-fg">{n.title}</p>
+                <span className="shrink-0 text-[14px] text-sub">{fmtDateTime(n.createdAt)}</span>
+              </div>
+              {n.body && <p className="mt-1 text-[15px] leading-[22px] text-fg2">{n.body}</p>}
+              <p className="mt-1 text-[14px] text-sub">
+                {n.sectionLabel ?? "전체"} · 보호자 {n.recipients}명 · {n.createdByName}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

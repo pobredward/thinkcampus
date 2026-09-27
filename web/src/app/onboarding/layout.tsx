@@ -5,9 +5,9 @@
  * step3: 전화 OTP 인증 (/onboarding/otp)
  * 기존 학부모 로그인 (/onboarding/login)
  *
- * 체험 모드(lib/demo.ts)에서는 등록코드 없이 바로 메인으로 보낸다.
+ * 체험 중(DemoProvider)에는 등록코드 없이 체험 역할의 홈으로 보낸다.
  */
-import { DemoRedirect } from "@/components/DemoRedirect";
+import { DemoRedirect } from "@/components/demo/DemoRedirect";
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (

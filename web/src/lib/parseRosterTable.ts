@@ -11,6 +11,8 @@ export interface ParsedRosterRow {
   guardianPhone?: string;
   parentPhone?: string;
   externalStudentId?: string;
+  /** 반 이름 (운영 건의 sections.label) — 없으면 첫 반 */
+  sectionLabel?: string;
 }
 
 export const HEADER_ALIASES: Record<string, keyof ParsedRosterRow> = {
@@ -32,6 +34,9 @@ export const HEADER_ALIASES: Record<string, keyof ParsedRosterRow> = {
   연락처: "parentPhone",
   externalstudentid: "externalStudentId",
   external_student_id: "externalStudentId",
+  sectionlabel: "sectionLabel",
+  section: "sectionLabel",
+  반: "sectionLabel",
 };
 
 function normalizeHeader(h: string): string {

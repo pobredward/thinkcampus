@@ -1,44 +1,41 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { useGuardianDemoData } from "@/hooks/useDemoExperience";
-import { getDb } from "@/lib/firebase";
-import type { FirestoreSessionAttendance } from "@/lib/mapSessionAttendance";
+import { useApi, type AttendanceRecordDto } from "@/services";
+import { cacheGet, cacheSet } from "@/services/cache";
 
-/** 학생의 전체 sessionAttendance — programRunId별 그룹 */
+type Grouped = Record<string, AttendanceRecordDto[]>;
+
+/** 학생의 전체 출결 — programRunId별 그룹 (홈 카드 진도용) */
 export function useAllSessionAttendance(studentId: string | null | undefined, enabled: boolean) {
-  const guardianDemo = useGuardianDemoData();
-  const [byProgramRunId, setByProgramRunId] = useState<Record<string, FirestoreSessionAttendance[]>>({});
+  const api = useApi();
+  const key = `attendanceAll|${studentId ?? ""}`;
+  const cached = enabled && studentId ? cacheGet<Grouped>(key) : undefined;
+  const [byProgramRunId, setByProgramRunId] = useState<Grouped>(cached ?? {});
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
-    if (!enabled || !studentId || guardianDemo) {
+    if (!enabled || !studentId) {
       setByProgramRunId({});
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!cacheGet(key)) setLoading(true);
     try {
-      const db = getDb();
-      const snap = await getDocs(
-        query(collection(db, "sessionAttendance"), where("studentId", "==", studentId)),
-      );
-      const grouped: Record<string, FirestoreSessionAttendance[]> = {};
-      for (const doc of snap.docs) {
-        const data = doc.data() as FirestoreSessionAttendance;
-        const runId = data.programRunId;
-        if (!runId) continue;
-        if (!grouped[runId]) grouped[runId] = [];
-        grouped[runId].push(data);
+      const records = await api.guardian.listAttendance(studentId);
+      const grouped: Grouped = {};
+      for (const r of records) {
+        if (!r.programRunId) continue;
+        (grouped[r.programRunId] ??= []).push(r);
       }
+      cacheSet(key, grouped);
       setByProgramRunId(grouped);
     } catch {
       setByProgramRunId({});
     } finally {
       setLoading(false);
     }
-  }, [enabled, studentId, guardianDemo]);
+  }, [enabled, studentId, api, key]);
 
   useEffect(() => {
     void load();

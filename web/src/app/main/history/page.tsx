@@ -7,15 +7,14 @@
 
 import { useMemo } from "react";
 import { Spinner } from "@/components/ui/Spinner";
-import { DUMMY_PAST_PROGRAMS, type PastProgram } from "@/data/dummyHistory";
+import type { PastProgram } from "@/data/dummyHistory";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { HOME_CRUMB } from "@/lib/crumbs";
 import { useChildren } from "@/hooks/useChildren";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useSelectedChild } from "@/hooks/useSelectedChild";
 import { useStudentPrograms } from "@/hooks/useStudentPrograms";
-import { useGuardianDemoData } from "@/hooks/useDemoExperience";
-import { useMainRouter } from "@/hooks/useMainRouter";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 
 function bundleToPastProgram(b: { programRunId: string; program: { title: string; subtitle: string; startDate: string; endDate: string; totalSessions: number; totalHours: number } }): PastProgram {
@@ -32,23 +31,15 @@ function bundleToPastProgram(b: { programRunId: string; program: { title: string
 
 export default function HistoryPage() {
   usePageTitle("이전 수강 이력");
-  const { pushMain } = useMainRouter();
-  const guardianDemo = useGuardianDemoData();
+  const router = useRouter();
   const { user } = useAuth();
   const { children, loading: childrenLoading } = useChildren({ activeOnly: true });
   const { selected } = useSelectedChild(children, user?.uid);
   const { completed, loading: programsLoading } = useStudentPrograms(selected?.studentId);
 
-  const items = useMemo((): PastProgram[] => {
-    if (!selected) return [];
-    if (!guardianDemo && completed.length > 0) {
-      return completed.map(bundleToPastProgram);
-    }
-    if (guardianDemo) return DUMMY_PAST_PROGRAMS;
-    return [];
-  }, [selected, completed, guardianDemo]);
+  const items = useMemo((): PastProgram[] => (selected ? completed.map(bundleToPastProgram) : []), [selected, completed]);
 
-  const loading = childrenLoading || (!guardianDemo && programsLoading && !!selected);
+  const loading = childrenLoading || (programsLoading && !!selected);
 
   const open = (p: PastProgram) => {
     if (!selected) return;
@@ -58,7 +49,7 @@ export default function HistoryPage() {
       sid: selected.studentId,
       via: "history", // 상단 경로: 홈 › 이전 수강 이력 › 프로그램
     });
-    pushMain(`/main/program/${p.programId}?${qs.toString()}`);
+    router.push(`/main/program/${p.programId}?${qs.toString()}`);
   };
 
   return (

@@ -129,8 +129,10 @@ const switcherIs = (child) => page.getByRole("button", { name: `자녀 전환, �
 const namePrompt = () => page.getByRole("region", { name: "학부모님 성함을 알려 주세요" });
 
 // ── 1. 진입 → 온보딩 ─────────────────────────────────────
-await check("루트(/) 미인증 → /onboarding 리다이렉트", async () => {
+await check("루트(/) → 체험판 허브(/demo) · 허브의 링크로 /onboarding", async () => {
   await page.goto(BASE + "/");
+  await page.waitForURL("**/demo", { timeout: 20000 });
+  await page.getByRole("link", { name: "등록코드·로그인" }).click();
   await page.waitForURL("**/onboarding", { timeout: 20000 });
   await page.getByText("ThinkCampus").first().waitFor();
 });
@@ -241,6 +243,16 @@ await check("SMS OTP(에뮬레이터) 입력 → 커스텀토큰 로그인 → /
   if (me?.displayName !== "박지영") throw new Error("계정 표시 이름 " + me?.displayName);
   if (await page.getByRole("button", { name: /자녀 전환/ }).count()) throw new Error("자녀 1명인데 전환 버튼이 보임");
   return `code=${code}`;
+});
+await check("등록 직후 형제 연동 안내(같은 가구 이○○) → 모달 [취소] · 배너 [나중에] → 홈 그대로", async () => {
+  const dlg = page.locator('[role="dialog"]').filter({ hasText: "학생 연결" });
+  await dlg.waitFor({ timeout: 10000 });
+  await dlg.getByRole("button", { name: "취소" }).click();
+  await dlg.waitFor({ state: "detached" });
+  const banner = page.getByRole("region", { name: "같은 가구의 다른 자녀가 있어요" });
+  await banner.getByRole("button", { name: "나중에" }).click();
+  await banner.waitFor({ state: "detached" });
+  await hello().waitFor();
 });
 await sleep(400);
 await shot("05-home");
@@ -687,6 +699,7 @@ await check("홈: 맨 위 상단 경로 [홈](다른 화면과 같은 줄) · �
   await page.getByRole("heading", { level: 1, name: /이전 수강 이력/ }).waitFor();
   await page.getByText("김민준 학생").waitFor();
   const items = page.getByRole("button", { name: /수강 이력 보기$/ });
+  await items.first().waitFor({ timeout: 15000 }); // 수강 목록은 서버에서 읽어 온 뒤에 나온다
   if ((await items.count()) !== 2) throw new Error("이력 수 " + (await items.count()));
   await page.getByText("2026.07.20 ~ 2026.08.14").waitFor();
   await sleep(200);

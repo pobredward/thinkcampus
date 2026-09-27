@@ -3,20 +3,30 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { httpsCallable } from "firebase/functions";
 import { PrimaryButton } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { errMessage } from "@/lib/errors";
-import { getFns, signInWithStaffEmail } from "@/lib/firebase";
-import { resolveStaffDestination, staffHomePath, type StaffAccess } from "@/lib/staffAccess";
-import { DEMO_MODE } from "@/lib/demo";
+import { signInWithStaffEmail } from "@/lib/firebase";
+import { resolveStaffDestination, staffHomePath } from "@/lib/staffAccess";
+import { DEMO_HUB_PATH } from "@/lib/demoMode";
 import { useStaffAccess } from "@/hooks/useStaffAccess";
 import { useAuth } from "@/providers/AuthProvider";
+import { useApi } from "@/services";
+import { DemoRedirect } from "@/components/demo/DemoRedirect";
 
 export default function AdminLoginPage() {
-  usePageTitle("관리자 로그인");
+  return (
+    <DemoRedirect>
+      <StaffLoginForm />
+    </DemoRedirect>
+  );
+}
+
+function StaffLoginForm() {
+  usePageTitle("직원 로그인");
   const router = useRouter();
+  const api = useApi();
   const params = useSearchParams();
   const nextParam = params.get("next");
   const { user, signOut } = useAuth();
@@ -35,10 +45,6 @@ export default function AdminLoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (DEMO_MODE) {
-      setError("체험 모드에서는 관리자 로그인을 사용할 수 없습니다.");
-      return;
-    }
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
       setError("이메일과 비밀번호를 입력해 주세요.");
@@ -48,13 +54,11 @@ export default function AdminLoginPage() {
     setError(null);
     try {
       await signInWithStaffEmail(trimmedEmail, password);
-      const fn = httpsCallable<Record<string, never>, StaffAccess>(getFns(), "checkStaffAccess");
-      const res = await fn({});
-      const access = res.data;
+      const access = await api.staff.checkAccess();
       const dest = resolveStaffDestination(access, nextParam);
       if (!dest) {
         await signOut();
-        setError("관리자 권한이 없는 계정입니다. (companyAdmin / centerAdmin)");
+        setError("직원 권한이 없는 계정이에요. 회사 관리자에게 권한을 요청해 주세요.");
         return;
       }
       router.replace(dest);
@@ -66,16 +70,21 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-6 py-8">
-      <h1 className="text-2xl font-bold text-fg">관리자 로그인</h1>
-      <p className="text-sm text-fg2 leading-relaxed">
-        회사·센터 직원 계정(이메일)으로 로그인합니다. 학부모는{" "}
-        <Link href="/onboarding/login" className="text-gold underline">전화번호 로그인</Link>을 사용하세요.
-      </p>
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6 py-10">
+      <div>
+        <h1 className="text-[26px] font-extrabold text-fg">직원 로그인</h1>
+        <p className="mt-2 text-[16px] leading-[24px] text-sub">
+          회사·센터 직원과 강사는 이메일 계정으로 로그인해요. 학부모는{" "}
+          <Link href="/onboarding/login" className="text-gold underline">
+            전화번호 로그인
+          </Link>
+          을 써 주세요.
+        </p>
+      </div>
 
       <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
         <div>
-          <label htmlFor="admin-email" className="mb-2 block text-sm font-semibold text-fg2">이메일</label>
+          <label htmlFor="admin-email" className="mb-2 block text-[15px] font-semibold text-fg2">이메일</label>
           <TextField
             id="admin-email"
             type="email"
@@ -86,7 +95,7 @@ export default function AdminLoginPage() {
           />
         </div>
         <div>
-          <label htmlFor="admin-password" className="mb-2 block text-sm font-semibold text-fg2">비밀번호</label>
+          <label htmlFor="admin-password" className="mb-2 block text-[15px] font-semibold text-fg2">비밀번호</label>
           <TextField
             id="admin-password"
             type="password"
@@ -95,15 +104,18 @@ export default function AdminLoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <p className="text-[15px] text-danger">{error}</p>}
         <PrimaryButton type="submit" loading={loading} className="w-full">
           로그인
         </PrimaryButton>
       </form>
 
-      <p className="text-xs text-sub">
-        최초 계정:{" "}
-        <code className="text-fg">scripts/createStaffUser.ts</code> (에뮬레이터·운영 공통)
+      <p className="text-[14px] text-faint">
+        계정이 없다면{" "}
+        <Link href={DEMO_HUB_PATH} className="text-gold underline">
+          역할별 체험판
+        </Link>
+        으로 화면을 먼저 둘러볼 수 있어요.
       </p>
     </div>
   );

@@ -4,81 +4,196 @@
       "collectionGroup": "studentProgramEnrollments",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "programRunId", "order": "ASCENDING" }
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "programRunId",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "enrollmentCodes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "used", "order": "ASCENDING" }
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "used",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "runSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "programRunId", "order": "ASCENDING" },
-        { "fieldPath": "sessionNumber", "order": "ASCENDING" }
+        {
+          "fieldPath": "programRunId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sessionNumber",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "sessionAttendance",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "programRunId", "order": "ASCENDING" }
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "programRunId",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "studentProgramEnrollments",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "runSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "programRunId", "order": "ASCENDING" },
-        { "fieldPath": "scheduledDate", "order": "ASCENDING" }
+        {
+          "fieldPath": "programRunId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "scheduledDate",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "programRuns",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "campusId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "campusId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "studentProgramEnrollments",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "programRunId", "order": "ASCENDING" },
-        { "fieldPath": "studentName", "order": "ASCENDING" }
+        {
+          "fieldPath": "programRunId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "studentName",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "studentProgramEnrollments",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "programRunId", "order": "ASCENDING" },
-        { "fieldPath": "sectionId", "order": "ASCENDING" },
-        { "fieldPath": "studentName", "order": "ASCENDING" }
+        {
+          "fieldPath": "programRunId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sectionId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "studentName",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "programRunId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "programRunId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "staff",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "campusIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "role",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "programRunId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "sessionReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "runSessionId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rosterImports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],

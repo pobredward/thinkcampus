@@ -1,18 +1,10 @@
 import type { Program } from "@/data/dummyProgram";
 import { calcSummary, type SessionRecord, type StudentAttendance } from "@/data/dummyAttendance";
 
-export interface FirestoreSessionAttendance {
-  runSessionId: string;
-  programRunId: string;
-  studentId: string;
-  status: "present" | "late" | "absent";
-  lateMinutes?: number;
-  participationScore?: number;
-  homeworkDone?: boolean | null;
-  feedback?: string;
-  highlights?: string[];
-  improvements?: string[];
-}
+import type { AttendanceRecordDto } from "@/services/types";
+
+/** sessionAttendance 문서 (services/types.ts 의 AttendanceRecordDto 와 같다) */
+export type FirestoreSessionAttendance = AttendanceRecordDto;
 
 export function mapFirestoreAttendanceToStudentAttendance(
   program: Program,
@@ -48,6 +40,7 @@ export function mapFirestoreAttendanceToStudentAttendance(
       programIcon: "📚",
       instructorName: session.instructor.name,
       status: att.status,
+      checkinTime: att.checkinTime,
       lateMinutes: att.lateMinutes,
       participationScore: att.participationScore ?? null,
       homeworkDone: att.homeworkDone ?? null,
@@ -67,7 +60,12 @@ export function mapFirestoreAttendanceToStudentAttendance(
   };
 }
 
-/** Firestore 출결만으로 홈 카드용 완료 회차 수 */
+/** 출결 기록이 아직 없는 학생 — 모든 회차가 예정 */
+export function emptyAttendance(program: Program, studentId: string | null | undefined, studentName: string): StudentAttendance {
+  return mapFirestoreAttendanceToStudentAttendance(program, studentId ?? "", studentName, []);
+}
+
+/** 출결 기록만으로 홈 카드용 완료 회차 수 */
 export function doneSessionCountFromRecords(
   program: Program,
   studentId: string,

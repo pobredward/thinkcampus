@@ -212,3 +212,44 @@
     display: none !important;
   }
 }
+
+/* 명단 등록 표(react-datasheet-grid) — 미드나잇 토큰으로 */
+.dsg-container {
+  --dsg-border-color: #343a47;
+  --dsg-cell-background-color: #161a22;
+  --dsg-cell-disabled-background-color: #11141a;
+  --dsg-header-text-color: #9aa0ab;
+  --dsg-header-active-text-color: #d4b06a;
+  --dsg-selection-border-color: #d4b06a;
+  --dsg-selection-background-color: rgba(212, 176, 106, 0.12);
+  --dsg-selection-disabled-border-color: #6e5b34;
+  --dsg-selection-disabled-background-color: rgba(212, 176, 106, 0.06);
+  --dsg-scroll-shadow-color: rgba(0, 0, 0, 0.5);
+  --dsg-corner-indicator-width: 8px;
+  color: #f2f2f0;
+  font-size: 15px;
+}
+.dsg-cell-header,
+.dsg-cell-gutter {
+  background: #1e232d;
+  font-size: 14px;
+}
+.dsg-input {
+  color: #f2f2f0;
+  font-size: 15px;
+}
+.dsg-add-row {
+  background: #11141a;
+  color: #9aa0ab;
+  font-size: 14px;
+}
+.dsg-add-row-input {
+  background: #1e232d;
+  color: #f2f2f0;
+  border-color: #343a47;
+}
+.dsg-add-row-btn {
+  background: #1e232d;
+  color: #f2f2f0;
+  border-color: #343a47;
+}

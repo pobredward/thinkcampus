@@ -110,5 +110,20 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
+
+    // 회차 리포트 · 알림 · 읽음 · 명단 등록 기록 — 모두 Functions 로만 읽고 쓴다
+    // (학부모는 공개된 피드백을 sessionAttendance 에서, 알림은 listGuardianNotifications 로 본다)
+    match /sessionReports/{doc} {
+      allow read, write: if false;
+    }
+    match /notifications/{doc} {
+      allow read, write: if false;
+    }
+    match /notificationReads/{doc} {
+      allow read, write: if false;
+    }
+    match /rosterImports/{doc} {
+      allow read, write: if false;
+    }
   }
 }

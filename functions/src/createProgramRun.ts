@@ -28,6 +28,8 @@ export interface CreateProgramRunRequest {
   reportPolicy?: { requireCompanyApproval: boolean };
   logoUrl?: string;
   host?: string;
+  title?: string;
+  sections?: Array<{ id: string; label: string }>;
 }
 
 export interface CreateProgramRunResponse {
@@ -77,13 +79,23 @@ export const createProgramRun = onCall(
       fillSessionCount: data.fillSessionCount ?? true,
     });
 
+    // 반: 없으면 1반 하나. 회차는 날짜 × 반 으로 만든다
+    const sections = (Array.isArray(data.sections) && data.sections.length > 0 ? data.sections : [{ id: 'sec-1', label: '1반' }]).map((s, i) => ({
+      id: String(s.id ?? '').trim() || `sec-${i + 1}`,
+      label: String(s.label ?? '').trim() || `${i + 1}반`,
+      sortOrder: i + 1,
+    }));
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
+
     const batch = getDb().batch();
     batch.set(runRef, {
       contractCode,
       programTemplateId: data.programTemplateId,
       campusId: data.campusId,
       municipalityName: data.municipalityName,
-      status: 'scheduled',
+      ...(data.title?.trim() ? { title: data.title.trim() } : {}),
+      sections,
+      status: data.startDate <= today ? 'active' : 'scheduled',
       startDate: data.startDate,
       endDate: data.endDate ?? null,
       frequency: data.frequency,
@@ -99,24 +111,30 @@ export const createProgramRun = onCall(
       createdByUid: req.auth!.uid,
     });
 
+    let runSessionCount = 0;
     for (const d of drafts) {
       const plan = data.sessionPlan[d.sessionNumber - 1];
       const topic = plan?.topic?.trim() || plan?.sessionTemplateId || `회차 ${d.sessionNumber}`;
-      const sessRef = getDb().collection('runSessions').doc();
-      batch.set(sessRef, {
-        programRunId: runRef.id,
-        sessionNumber: d.sessionNumber,
-        sessionTemplateId: d.sessionTemplateId,
-        topic,
-        scheduledDate: d.scheduledDate,
-        startTime: d.startTime,
-        endTime: d.endTime,
-        lessonCount: d.lessonCount,
-        location: d.location,
-        status: 'scheduled',
-        source: 'generated',
-        createdAt: FieldValue.serverTimestamp(),
-      });
+      for (const section of sections) {
+        const sessRef = getDb().collection('runSessions').doc();
+        batch.set(sessRef, {
+          programRunId: runRef.id,
+          sessionNumber: d.sessionNumber,
+          sessionTemplateId: d.sessionTemplateId,
+          sectionId: section.id,
+          instructorId: null,
+          topic,
+          scheduledDate: d.scheduledDate,
+          startTime: d.startTime,
+          endTime: d.endTime,
+          lessonCount: d.lessonCount,
+          location: d.location,
+          status: 'scheduled',
+          source: 'generated',
+          createdAt: FieldValue.serverTimestamp(),
+        });
+        runSessionCount += 1;
+      }
     }
 
     await batch.commit();
@@ -124,7 +142,7 @@ export const createProgramRun = onCall(
     return {
       programRunId: runRef.id,
       contractCode,
-      runSessionCount: drafts.length,
+      runSessionCount,
     };
   },
 );

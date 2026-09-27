@@ -9,7 +9,6 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { httpsCallable } from "firebase/functions";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Spinner } from "@/components/ui/Spinner";
 import { TextField } from "@/components/ui/TextField";
@@ -17,8 +16,7 @@ import { useChildren } from "@/hooks/useChildren";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { GuardianNameSheet } from "@/components/GuardianNameSheet";
 import { errMessage } from "@/lib/errors";
-import { getFns } from "@/lib/firebase";
-import { DEMO_BLOCKED, DEMO_MODE, DEMO_NOTICE_TITLE } from "@/lib/demo";
+import { useApi } from "@/services";
 import { e164ToLocal } from "@/lib/phone";
 import { useAuth } from "@/providers/AuthProvider";
 import { useDialog } from "@/providers/DialogProvider";
@@ -29,6 +27,7 @@ const RELATION_PRESETS = ["부(아빠)", "조모(할머니)", "조부(할아버�
 export default function ProfileScreen() {
   usePageTitle("내 정보");
   const dialog = useDialog();
+  const api = useApi();
   const toast = useToast();
   const { user, signOut, guardianName, saveGuardianName } = useAuth();
   const [nameSheet, setNameSheet] = useState(false);
@@ -50,10 +49,6 @@ export default function ProfileScreen() {
   }, []);
 
   function handleSignOut() {
-    if (DEMO_MODE) {
-      void dialog.alert(DEMO_NOTICE_TITLE, DEMO_BLOCKED.signOut);
-      return;
-    }
     void dialog.alert("로그아웃", "정말 로그아웃하시겠습니까?", [
       { text: "취소", style: "cancel" },
       {
@@ -81,21 +76,9 @@ export default function ProfileScreen() {
       void dialog.alert("확인", "관계를 선택하거나 입력해주세요.");
       return;
     }
-    if (DEMO_MODE) {
-      void dialog.alert(DEMO_NOTICE_TITLE, DEMO_BLOCKED.invite);
-      return;
-    }
     setInviteLoading(true);
     try {
-      const fn = httpsCallable<{ studentId: string; phone: string; relation: string }, unknown>(
-        getFns(),
-        "addGuardianPhone",
-      );
-      await fn({
-        studentId: inviteModal.studentId,
-        phone: invitePhone.trim(),
-        relation: inviteRelation.trim(),
-      });
+      await api.guardian.addGuardianPhone(inviteModal.studentId, invitePhone.trim(), inviteRelation.trim());
       void dialog.alert(
         "초대 완료",
         `${invitePhone} 번호를 추가했습니다.\n해당 번호로 앱에 로그인하면 자동으로 연결됩니다.`,
@@ -137,13 +120,7 @@ export default function ProfileScreen() {
         </div>
         <button
           type="button"
-          onClick={() => {
-            if (DEMO_MODE) {
-              void dialog.alert(DEMO_NOTICE_TITLE, DEMO_BLOCKED.guardianName);
-              return;
-            }
-            setNameSheet(true);
-          }}
+          onClick={() => setNameSheet(true)}
           className="tap shrink-0 rounded-lg border border-line bg-elev px-3 py-[9px]"
         >
           <span className="text-[15px] font-semibold text-gold">{guardianName ? "이름 수정" : "이름 입력"}</span>

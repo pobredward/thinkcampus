@@ -2,7 +2,7 @@
  * 명단 import — react-datasheet-grid 행 모델 ↔ importRoster
  */
 
-import { parseRosterText, type ParsedRosterRow } from "./parseRosterTable";
+import type { ParsedRosterRow } from "./parseRosterTable";
 
 export type RosterColumnKey = keyof Pick<
   ParsedRosterRow,
@@ -13,6 +13,7 @@ export type RosterColumnKey = keyof Pick<
   | "parentPhone"
   | "householdKey"
   | "externalStudentId"
+  | "sectionLabel"
 >;
 
 export const ROSTER_COLUMNS: { key: RosterColumnKey; label: string; hint?: string; required?: boolean }[] = [
@@ -20,6 +21,7 @@ export const ROSTER_COLUMNS: { key: RosterColumnKey; label: string; hint?: strin
   { key: "birthDate", label: "생년월일", hint: "YYYYMMDD", required: true },
   { key: "contractCode", label: "운영 건 코드", hint: "contractCode", required: true },
   { key: "campusId", label: "캠퍼스 ID", required: true },
+  { key: "sectionLabel", label: "반", hint: "선택 · 예: 1반" },
   { key: "parentPhone", label: "학부모 번호", hint: "선택" },
   { key: "householdKey", label: "가구 키", hint: "선택" },
   { key: "externalStudentId", label: "외부 학생 ID", hint: "선택" },
@@ -36,6 +38,7 @@ export interface RosterGridRow {
   parentPhone: string;
   householdKey: string;
   externalStudentId: string;
+  sectionLabel: string;
 }
 
 function cell(v: string | null | undefined): string {
@@ -52,6 +55,7 @@ export function createEmptyRosterRow(): RosterGridRow {
     parentPhone: "",
     householdKey: "",
     externalStudentId: "",
+    sectionLabel: "",
   };
 }
 
@@ -67,7 +71,8 @@ export function rowHasData(r: RosterGridRow): boolean {
       cell(r.campusId) ||
       cell(r.parentPhone) ||
       cell(r.householdKey) ||
-      cell(r.externalStudentId),
+      cell(r.externalStudentId) ||
+      cell(r.sectionLabel),
   );
 }
 
@@ -80,6 +85,7 @@ function rosterRowToParsed(r: RosterGridRow): ParsedRosterRow {
     ...(cell(r.parentPhone) ? { parentPhone: cell(r.parentPhone) } : {}),
     ...(cell(r.householdKey) ? { householdKey: cell(r.householdKey) } : {}),
     ...(cell(r.externalStudentId) ? { externalStudentId: cell(r.externalStudentId) } : {}),
+    ...(cell(r.sectionLabel) ? { sectionLabel: cell(r.sectionLabel) } : {}),
   };
 }
 
@@ -138,6 +144,7 @@ export function parsedToRosterRows(parsed: ParsedRosterRow[]): RosterGridRow[] {
     parentPhone: r.parentPhone ?? r.guardianPhone ?? "",
     householdKey: r.householdKey ?? "",
     externalStudentId: r.externalStudentId ?? "",
+    sectionLabel: r.sectionLabel ?? "",
   }));
   while (rows.length < DEFAULT_EMPTY_ROWS) rows.push(createEmptyRosterRow());
   return rows;

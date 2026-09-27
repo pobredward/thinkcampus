@@ -44,5 +44,6 @@ next-env.d.ts
 # E2E 산출물 / 에뮬레이터 전용 빌드
 /e2e/shots/
 /e2e/results.json
+/e2e/demo-results.json
 /.next-emu/
 /.next-demo/

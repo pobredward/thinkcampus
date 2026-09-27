@@ -1,6 +1,6 @@
 # 씽크캠퍼스 학부모 앱 — Web 버전 (결정 기록 & 현황)
 
-최종 갱신: 2026-09-22 (홈 상단 경로 · 보호자 이름 인사말 · 체험 모드 이름)
+최종 갱신: 2026-09-26 (역할별 체험판 재구축 · 데이터 계층 · 직원 앱 · Functions 보강)
 
 ## 결정
 
@@ -128,12 +128,24 @@ E2E 56개 시나리오 통과 (`web/e2e`, 체험 모드 8개 별도). 모바일�
 | `hooks/useGuardianName.ts` · `lib/guardianName.ts` | 보호자 이름 (계정 표시 이름) 읽기·저장 · 입력 규칙·인사말 호칭 |
 | `hooks/`, `lib/`, `data/programView.ts`, `data/programGuide.ts` | 자녀 조회·선택, 날짜·에러 메시지·연락처, 회차 화면 뷰 모델, 안내 항목·기본 규정·Q&A (웹과 같은 로직) |
 
-### 임시 공개용 체험 모드 (2026-09-17)
+### 역할별 체험판 재구축 · 데이터 계층 (2026-09-26)
 
-- 웹을 열면 등록코드·전화 인증 없이 바로 메인 — **010-7656-7933** 계정(달성캠퍼스, 자녀 김민준·이서연)으로 보인다. `web/src/lib/demo.ts`
-- Firebase 에 전혀 접속하지 않음(운영 데이터를 바꿀 수 없음). 로그아웃·보호자 초대·회원 탈퇴는 안내만, 공유는 미리보기 링크
-- 기본값이 **켜짐** — 실서비스로 바꿀 때 Vercel 환경변수 `NEXT_PUBLIC_DEMO_MODE=0` 후 재배포. 에뮬레이터 E2E 는 영향 없음, 체험 모드는 `npm run e2e:demo` 로 따로 확인
-- 모바일 앱은 그대로(로그인 필요)
+예전 체험판(`/demo/*` rewrite + 화면마다 `if (isDemo)` 분기 + 역할별로 따로 만든 더미 7벌)은 하이드레이션 오류·역할 간 데이터 불일치·13px 글자·이모지 문제가 있어 구조부터 다시 만들었다. 자세한 구조는 **`web/docs/DEMO_ARCHITECTURE.md`**.
+
+| 항목 | 결정 |
+|---|---|
+| 진입 | **쿠키 방식** — `/demo` 허브에서 역할을 고르면 `/demo/<role>` 이 `tc_demo` 쿠키를 심고 **실서비스 주소**(`/main` · `/instructor` · `/admin/center` · `/admin`)로 보낸다. 루트 layout(서버)이 쿠키를 읽어 첫 렌더부터 역할을 안다. 배너: 초기화 · 역할 바꾸기 · 체험 종료(`/demo/exit`) |
+| 데이터 계층 | `web/src/services/` — `types.ts`(DTO 계약) · `api.ts`(역할별 인터페이스) · `demo/`(체험 세계) · `live/`(Firebase). 화면은 `useApi()` 만 부르고 체험 여부를 모른다. **데이터만 실데이터로 바꾸면 서비스 이용 가능** |
+| 체험 세계 | `services/demo/world.ts` 한 벌 — Firestore 와 같은 컬렉션 모양. **오늘 기준**(토요 창의융합 4회차 = 오늘, 1~3반 10:00 · 4~6반 13:00, 72명 · 강사 3명 · 반별 리포트 상태가 다름). 저장은 진짜처럼(sessionStorage, 탭 닫으면 사라짐). 네 역할이 같은 세계 → 강사가 넣은 출결이 센터 대시보드·학부모 알림에 바로 반영 |
+| 직원 앱 | 센터(`/admin/center` 홈·수업·출결·학생·리포트 검수·강사 배정·공지·내 정보) · 강사(`/instructor` 오늘·내 수업·회차 화면 교수 방안/자료/출결/리포트 작성·제출) · 회사(`/admin` 홈·운영 건 목록/상세/생성·명단 등록(반 열)·리포트 정책/승인·직원·캠퍼스). 공통 틀 `components/staff/StaffShell`(한 줄 헤더 + 하단 탭 ≤5개), 글자 14px 이상, 이모지·그림자 없음, 미드나잇 토큰, 넓은 표 없이 카드 |
+| 리포트 흐름 | `draft`(작성 중) → `submitted`(검수 대기) → `reviewed`(승인 대기, 회사 승인 정책일 때) → `published`(학부모 공개). 반려는 `draft` 로 + 사유. 공개 시 `sessionAttendance` 에 피드백을 같이 적어 학부모 앱이 그대로 본다 |
+| Functions | `checkStaffAccess`(강사 역할·프로필) · `listCenterRuns` · `getCenterRunSummary`(새 KPI) · `listCenterSchedule` · `getProgramRunAttendanceSheet`(회차 단위) · `recordSessionAttendance`(여러 명, draft 리포트·알림 생성) · `listCenterRoster`(형제·등록코드·연락처·출결) · `listCenterInstructors` / `getCenterInstructor` / `assignInstructorToSession`(겹침 검사) · `listSessionReports` / `saveSessionReportDrafts` / `submitSessionReports` / `reviewSessionReports` · `createCenterNotice`(반 대상) / `listCenterNotifications` · `getInstructorHome` / `listInstructorSessions` / `getInstructorSessionWorkspace` · `getCompanyHome` / `listProgramRuns` / `getProgramRun` / `listProgramTemplates` / `listCampuses` / `updateProgramRunPolicy` / `listStaff` · `listGuardianNotifications` / `markNotificationRead` · `createProgramRun`(반·이름) · `importRoster`(반 열) · `listStudentProgramBundles`(반별 회차·수업 내용·강사). `getCenterRunOps` 삭제. 규칙·색인 추가. `scripts/createStaffUser.ts` 에 `instructor` 역할 + `staff` 프로필 |
+| 실서비스 초기 | 서버에 수강 정보가 없는 학부모 계정은 예시 프로그램으로 화면을 채운다(`services/live/dummyFallback.ts`, 모바일과 같은 규칙). 예전 `NEXT_PUBLIC_DEMO_MODE` · `build:demo` 는 삭제 |
+| 검증 | 웹 tsc·lint·build, Functions tsc, 체험판 E2E 25개(네 역할 · 역할 간 반영 · 초기화 · 종료 · 글자 14px · Firebase 요청 0건), 에뮬레이터 학부모 E2E 60개(루트 → 허브 → 등록코드 링크 · 등록 직후 형제 연동 안내 닫기 추가), 에뮬레이터 직원 E2E 5개(`e2e/staff.e2e.mjs` — 실제 Functions 로 명단 등록 → 강사 배정 → 출결·리포트 제출 → 공개) |
+
+### (예전) 임시 공개용 체험 모드 (2026-09-17) — 위 구조로 대체됨
+
+- 웹을 열면 등록코드·전화 인증 없이 바로 메인 — **010-7656-7933** 계정(보호자 신선웅, 자녀 신민준·신서연). 지금은 `/demo/guardian` 이 같은 계정으로 체험
 - 홈 "수강 예정 프로그램" 섹션은 웹·모바일 모두 잠시 숨김 (`SHOW_UPCOMING_ON_HOME`)
 
 ## 다음 단계
@@ -142,4 +154,5 @@ E2E 56개 시나리오 통과 (`web/e2e`, 체험 모드 8개 별도). 모바일�
 2. Vercel 프로젝트 생성(Root = `web`) → 배포 도메인을 Firebase *승인된 도메인*에 추가
 3. 실기기(iOS Safari, 카카오톡 인앱 브라우저, 안드로이드 크롬)에서 테스트 번호로 로그인 확인
 4. 모바일: 위 변경 모두 반영 완료(2026-09-17). 실기기에서 확인 필요 — 새 네이티브 모듈은 추가하지 않아 **기존 dev client 로 `npx expo start` 만 하면 됨**. 회원 탈퇴(App Store 필수)는 모바일 내 정보 → 회원 탈퇴, Google Play 계정 삭제 URL 은 웹 `/main/profile/withdraw`
-5. 실데이터 스키마 확정 후 `packages/shared` 로 타입·조회 로직 공유 (모바일·웹 동시 전환)
+5. 실데이터 전환: `programTemplates` · `sessionTemplates` 에 수업 내용, `programRuns.sections` 에 반, `staff` 에 강사 프로필을 넣고 Functions 배포(`web/docs/DEMO_ARCHITECTURE.md` "실서비스로 바꾸려면"). 모바일은 `listStudentProgramBundles` 의 새 필드(반별 회차 · 수업 내용 · 강사)를 같은 `lib/mapProgramRun` 규칙으로 받으면 된다
+6. 직원 계정 관리 화면(회사 설정에서 직원 추가·권한), 회차 휴강·보강 처리, 종합 리포트(`reports`) 발급 흐름

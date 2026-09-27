@@ -39,6 +39,10 @@ export function ReportPanel({
 
       {absent && <Note>결석한 회차라 참여도와 평가가 없어요.</Note>}
 
+      {!absent && !record.feedback && record.participationScore == null && (
+        <Note>선생님이 피드백을 정리하고 있어요. 센터 확인이 끝나면 여기에 올라와요.</Note>
+      )}
+
       {record.feedback && (
         <Card title={absent ? "선생님 안내" : "선생님 한마디"} icon="💬">
           <blockquote className="rounded-2xl border-l-4 border-gold bg-elev px-4 py-4">

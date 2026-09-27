@@ -11,16 +11,14 @@
  */
 
 import { useState } from "react";
-import { httpsCallable } from "firebase/functions";
 import { Spinner } from "@/components/ui/Spinner";
 import { useBack } from "@/hooks/useBack";
 import { useChildren } from "@/hooks/useChildren";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { clearSelectedChild } from "@/hooks/useSelectedChild";
 import { CALL_CENTER_PHONE } from "@/lib/contact";
-import { DEMO_BLOCKED, DEMO_MODE, DEMO_NOTICE_TITLE } from "@/lib/demo";
 import { errMessage } from "@/lib/errors";
-import { getFns } from "@/lib/firebase";
+import { useApi } from "@/services";
 import { e164ToLocal } from "@/lib/phone";
 import { useAuth } from "@/providers/AuthProvider";
 import { useDialog } from "@/providers/DialogProvider";
@@ -30,6 +28,7 @@ export default function WithdrawPage() {
   usePageTitle("회원 탈퇴");
   const goBack = useBack("/main/profile");
   const dialog = useDialog();
+  const api = useApi();
   const { user, signOut } = useAuth();
   const { children, loading } = useChildren();
   const [agreed, setAgreed] = useState(false);
@@ -46,16 +45,11 @@ export default function WithdrawPage() {
       destructive: true,
     });
     if (!ok) return;
-    if (DEMO_MODE) {
-      void dialog.alert(DEMO_NOTICE_TITLE, DEMO_BLOCKED.withdraw);
-      return;
-    }
 
     setWorking(true);
     const uid = user.uid;
     try {
-      const fn = httpsCallable<{ confirm: boolean }, { deleted: boolean }>(getFns(), "deleteAccount");
-      await fn({ confirm: true });
+      await api.guardian.deleteAccount();
     } catch (e) {
       setWorking(false);
       void dialog.alert(

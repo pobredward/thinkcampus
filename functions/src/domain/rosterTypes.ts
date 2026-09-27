@@ -11,6 +11,8 @@ export interface RosterImportRow {
   /** CSV 헤더 alias */
   parentPhone?: string;
   externalStudentId?: string;
+  /** 반 이름 (programRuns.sections[].label). 없으면 첫 반 */
+  sectionLabel?: string;
 }
 
 export interface ImportRosterRequest {
@@ -27,6 +29,7 @@ export interface ImportRosterRowPreview {
   programRunId: string;
   contractCode: string;
   enrollmentCode: string;
+  sectionLabel?: string;
   isNewStudent: boolean;
   isNewProgramEnrollment: boolean;
   isNewCode: boolean;

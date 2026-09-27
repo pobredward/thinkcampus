@@ -6,7 +6,7 @@ import type { StudentProgramBundle } from "@/hooks/useStudentPrograms";
 export interface StudentProgramBundleDto {
   enrollmentId: string;
   programRunId: string;
-  status: string;
+  status: "upcoming" | "active" | "completed" | "withdrawn";
   run: FirestoreProgramRun;
   sessions: Array<FirestoreRunSession & { id: string }>;
 }

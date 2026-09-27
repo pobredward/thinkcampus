@@ -18,25 +18,20 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Spinner } from "@/components/ui/Spinner";
-import { DUMMY_PROGRAM } from "@/data/dummyProgram";
-import { DUMMY_UPCOMING_PROGRAM } from "@/data/dummyUpcomingProgram";
-import { DUMMY_PAST_PROGRAMS } from "@/data/dummyHistory";
-import { calcSummary } from "@/data/dummyAttendance";
-import { pickDummyAttendance, SHOW_UPCOMING_ON_HOME } from "@/data/programView";
+import { SHOW_UPCOMING_ON_HOME } from "@/data/programView";
 import { useAllSessionAttendance } from "@/hooks/useAllSessionAttendance";
 import { useStudentPrograms } from "@/hooks/useStudentPrograms";
 import { buildProgramCardsFromBundles, type ProgramCard } from "@/lib/programCards";
 import { daysBetween, dDayLabel, dotDateToKey, formatShortDate, todayKey } from "@/lib/dates";
-import { useGuardianDemoData } from "@/hooks/useDemoExperience";
-import { useMainRouter } from "@/hooks/useMainRouter";
 import { guardianTitle } from "@/lib/guardianName";
 import { ChildSwitcher } from "@/components/ChildSwitcher";
 import { GuardianNamePrompt } from "@/components/GuardianNamePrompt";
 import { HouseholdLinkPrompt } from "@/components/HouseholdLinkPrompt";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { useChildren, type Child } from "@/hooks/useChildren";
+import { useChildren } from "@/hooks/useChildren";
 import { usePendingHousehold } from "@/hooks/usePendingHousehold";
 import { consumeHouseholdPromptFlag } from "@/lib/householdPrompt";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -64,85 +59,21 @@ function writeFlag(key: string | null): void {
   }
 }
 
-// ── 더미: 선택된 자녀의 프로그램 목록 시뮬레이션 ────────
-// (나중에 Firestore 에서 studentId 기준으로 조회)
-
-function buildDummyProgramCards(child: Child | null): {
-  active: ProgramCard[];
-  upcoming: ProgramCard[];
-  pastCount: number;
-} {
-  if (!child) return { active: [], upcoming: [], pastCount: 0 };
-
-  // 자녀마다 진도가 다르게 보이도록 더미 출결 선택 (프로그램 상세와 같은 규칙)
-  const attendance = pickDummyAttendance(child.studentId);
-  const summary = calcSummary(attendance);
-  const doneCount = summary.doneCount;
-  const nextSession = DUMMY_PROGRAM.sessions[doneCount] ?? null;
-
-  const active: ProgramCard[] = [child].map((child) => ({
-    programId: DUMMY_PROGRAM.id,
-    studentId: child.studentId,
-    studentName: child.studentName,
-    title: DUMMY_PROGRAM.title,
-    subtitle: DUMMY_PROGRAM.subtitle,
-    totalSessions: DUMMY_PROGRAM.totalSessions,
-    totalHours: DUMMY_PROGRAM.totalHours,
-    completedSessions: doneCount,
-    nextSessionDate: nextSession?.date ?? null,
-    nextSessionTopic: nextSession?.topic ?? null,
-    nextSessionStartTime: nextSession?.startTime ?? null,
-    nextSessionEndTime: nextSession?.endTime ?? null,
-    nextSessionLocation: nextSession?.location ?? null,
-    fixedDay: DUMMY_PROGRAM.fixedDay,
-    frequency: DUMMY_PROGRAM.frequency === "biweekly" ? "격주" : "매주",
-    status: "active" as const,
-  }));
-
-  // 수강 예정 (더미: 겨울방학 특강 — 수강 확정, 아직 시작 전)
-  const up = DUMMY_UPCOMING_PROGRAM;
-  const firstSession = up.sessions[0] ?? null;
-  const upcoming: ProgramCard[] = [
-    {
-      programId: up.id,
-      studentId: child.studentId,
-      studentName: child.studentName,
-      title: up.title,
-      subtitle: up.subtitle,
-      totalSessions: up.totalSessions,
-      totalHours: up.totalHours,
-      completedSessions: 0,
-      nextSessionDate: firstSession?.date ?? null,
-      nextSessionTopic: firstSession?.topic ?? null,
-      nextSessionStartTime: firstSession?.startTime ?? null,
-      nextSessionEndTime: firstSession?.endTime ?? null,
-      nextSessionLocation: up.location,
-      fixedDay: up.fixedDay,
-      frequency: up.frequency === "biweekly" ? "격주" : "매주",
-      status: "upcoming",
-      startDate: up.startDate,
-      endDate: up.endDate,
-    },
-  ];
-
-  return { active, upcoming, pastCount: DUMMY_PAST_PROGRAMS.length };
-}
-
 // ── 메인 컴포넌트 ────────────────────────────────────────
 
 export default function HomeScreen() {
   usePageTitle("홈");
-  const { pushMain } = useMainRouter();
+  const router = useRouter();
+  const pushMain = (href: string) => router.push(href);
   const toast = useToast();
-  const guardianDemo = useGuardianDemoData();
   const { user, guardianName, saveGuardianName } = useAuth();
   // 이름을 묻는 카드: 이름이 없는 계정에만, [나중에]를 누른 기기에서는 다시 묻지 않음
   const laterKey = user ? `tc.namePrompt.later.${user.uid}` : null;
   const [laterNow, setLaterNow] = useState<string | null>(null); // 저장이 막힌 브라우저에서도 이번에는 숨김
   const promptLater = useMemo(() => laterNow === laterKey || readFlag(laterKey), [laterKey, laterNow]);
-  const showNamePrompt = !!user && !guardianDemo && !guardianName && !promptLater;
+  const showNamePrompt = !!user && !guardianName && !promptLater;
   const { children, loading, refresh: refreshChildren } = useChildren({ activeOnly: true });
-  const { pending: pendingHousehold, refetch: refetchHousehold } = usePendingHousehold(!!user && !guardianDemo);
+  const { pending: pendingHousehold, refetch: refetchHousehold } = usePendingHousehold(!!user);
   const hhLaterKey = user ? `tc.householdBanner.later.${user.uid}` : null;
   const [hhLaterNow, setHhLaterNow] = useState<string | null>(null);
   const hhBannerLater = useMemo(
@@ -156,24 +87,13 @@ export default function HomeScreen() {
   const { selected, selectedIndex, select } = useSelectedChild(children, user?.uid);
   const hasMultiple = children.length >= 2;
   const { bundles, loading: programsLoading } = useStudentPrograms(selected?.studentId);
-  const { byProgramRunId: attendanceByRunId } = useAllSessionAttendance(
-    selected?.studentId,
-    !guardianDemo && !!selected,
-  );
+  const { byProgramRunId: attendanceByRunId } = useAllSessionAttendance(selected?.studentId, !!selected);
 
-  const firestoreCards = useMemo(() => {
-    if (!selected || guardianDemo || bundles.length === 0) return null;
-    return buildProgramCardsFromBundles(
-      selected.studentId,
-      selected.studentName,
-      bundles,
-      attendanceByRunId,
-    );
+  const { active, upcoming, pastCount } = useMemo(() => {
+    if (!selected) return { active: [], upcoming: [], pastCount: 0 };
+    return buildProgramCardsFromBundles(selected.studentId, selected.studentName, bundles, attendanceByRunId);
   }, [selected, bundles, attendanceByRunId]);
-
-  const dummyCards = useMemo(() => buildDummyProgramCards(selected), [selected]);
-  const { active, upcoming, pastCount } = firestoreCards ?? dummyCards;
-  const cardsLoading = !guardianDemo && programsLoading && !!selected;
+  const cardsLoading = programsLoading && !!selected;
 
   const goToProgram = (card: ProgramCard) => {
     const qs = new URLSearchParams({
@@ -209,8 +129,7 @@ export default function HomeScreen() {
       </div>
 
       {/* ── 보호자 이름 묻기 (이름이 없는 계정만) ─── */}
-      {!guardianDemo &&
-        pendingHousehold.length > 0 &&
+      {pendingHousehold.length > 0 &&
         !hhBannerLater &&
         user && (
           <HouseholdLinkPrompt
@@ -257,6 +176,22 @@ export default function HomeScreen() {
             <br />
             자녀를 등록해주세요.
           </p>
+        </div>
+      )}
+
+      {/* ── 프로그램 불러오는 중 ─────────────────── */}
+      {!loading && cardsLoading && (
+        <div className="mx-5 flex items-center gap-3 rounded-[20px] border border-line bg-card px-6 py-7">
+          <Spinner size="small" />
+          <p className="text-[16px] text-sub">수강 중인 프로그램을 불러오는 중...</p>
+        </div>
+      )}
+
+      {/* ── 수강 중인 프로그램이 없을 때 ─────────── */}
+      {!loading && !cardsLoading && children.length > 0 && active.length === 0 && upcoming.length === 0 && (
+        <div className="mx-5 rounded-[20px] border border-dashed border-line bg-card px-6 py-7 text-center">
+          <p className="text-[18px] font-bold text-fg2">지금 수강 중인 프로그램이 없어요</p>
+          <p className="mt-2 text-[16px] leading-[24px] text-sub">새 프로그램이 배정되면 여기에 보여요.</p>
         </div>
       )}
 

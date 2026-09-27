@@ -66,14 +66,9 @@ async function allocateEnrollmentCode(campusId: string): Promise<string> {
 
 async function loadProgramRunsByContract(
   contractCodes: string[],
-): Promise<
-  Map<string, { id: string; campusId: string; status: string; contractCode: string; municipalityName: string }>
-> {
+): Promise<Map<string, RunLite>> {
   const unique = [...new Set(contractCodes)];
-  const map = new Map<
-    string,
-    { id: string; campusId: string; status: string; contractCode: string; municipalityName: string }
-  >();
+  const map = new Map<string, RunLite>();
 
   for (const code of unique) {
     const snap = await getDb()
@@ -101,9 +96,33 @@ async function loadProgramRunsByContract(
       status: (data.status as string) ?? 'draft',
       contractCode: code,
       municipalityName: (data.municipalityName as string) ?? '',
+      sections: Array.isArray(data.sections)
+        ? (data.sections as Array<{ id?: unknown; label?: unknown }>).map((x) => ({ id: String(x.id ?? ''), label: String(x.label ?? '') })).filter((x) => x.id && x.label)
+        : [],
     });
   }
   return map;
+}
+
+interface RunLite {
+  id: string;
+  campusId: string;
+  status: string;
+  contractCode: string;
+  municipalityName: string;
+  sections: Array<{ id: string; label: string }>;
+}
+
+/** CSV 의 반 이름(sectionLabel) → 운영 건 sections 의 id. 없으면 첫 반, 반이 없는 운영 건은 null */
+function resolveSectionId(run: RunLite, label: string | undefined, rowIndex: number): string | null {
+  if (run.sections.length === 0) return null;
+  const want = label?.trim();
+  if (!want) return run.sections[0].id;
+  const found = run.sections.find((s) => s.label === want || s.id === want);
+  if (!found) {
+    throw new HttpsError('invalid-argument', `행 ${rowIndex + 1}: 반을 찾을 수 없습니다 (${want}). 운영 건의 반: ${run.sections.map((s) => s.label).join(', ')}`);
+  }
+  return found.id;
 }
 
 function enrollmentStatusFromRun(runStatus: string): 'upcoming' | 'active' | 'completed' {
@@ -275,6 +294,8 @@ export const importRoster = onCall(
         programTitle,
       };
 
+      const sectionId = resolveSectionId(run, row.sectionLabel, rowIndex);
+      const sectionLabel = sectionId ? run.sections.find((s) => s.id === sectionId)?.label : undefined;
       const isNewProgramEnrollment = peQuery.empty;
       if (isNewProgramEnrollment) {
         const peRef = getDb().collection('studentProgramEnrollments').doc();
@@ -285,6 +306,7 @@ export const importRoster = onCall(
             campusId,
             status: enrollmentStatusFromRun(run.status),
             externalRef: row.externalStudentId?.trim() ?? null,
+            ...(sectionId ? { sectionId } : {}),
             ...peDenorm,
             createdAt: FieldValue.serverTimestamp(),
             importedByUid: req.auth!.uid,
@@ -293,7 +315,7 @@ export const importRoster = onCall(
         }
         createdProgramEnrollments++;
       } else if (!dryRun) {
-        batch.update(peQuery.docs[0].ref, peDenorm);
+        batch.update(peQuery.docs[0].ref, { ...peDenorm, ...(row.sectionLabel?.trim() && sectionId ? { sectionId } : {}) });
         batchOps++;
       }
 
@@ -349,6 +371,7 @@ export const importRoster = onCall(
         programRunId: run.id,
         contractCode,
         enrollmentCode,
+        sectionLabel,
         isNewStudent,
         isNewProgramEnrollment,
         isNewCode,
@@ -360,6 +383,19 @@ export const importRoster = onCall(
     }
 
     await flush();
+
+    if (!dryRun) {
+      // 회사 홈의 "마지막 명단 등록"
+      await getDb().collection('rosterImports').add({
+        rowCount: rows.length,
+        contractCode: parsed[0]?.row.contractCode.trim() ?? '',
+        createdStudents,
+        updatedStudents,
+        createdProgramEnrollments,
+        importedByUid: req.auth!.uid,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
 
     return {
       dryRun,

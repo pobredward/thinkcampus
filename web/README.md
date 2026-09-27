@@ -1,15 +1,18 @@
-# ThinkCampus 학부모 웹 (Next.js)
+# ThinkCampus 웹 (Next.js)
 
-모바일 앱(`../app`, Expo)과 **같은 화면·같은 흐름·같은 Firebase 백엔드**를 쓰는 웹 버전.
+학부모 앱(모바일 `../app`, Expo 와 **같은 화면·같은 흐름·같은 Firebase 백엔드**) + 직원 앱(센터 관리자 · 강사 · 회사 관리자).
 Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Firebase JS SDK v12 · Vercel 배포.
 
 ```
 web/
-├── src/app/                  # 라우트 — 모바일 expo-router 경로를 1:1 로 미러링
-│   ├── page.tsx              #   /            → 인증 상태 보고 /onboarding 또는 /main
+├── src/app/                  # 라우트
+│   ├── demo/                 #   /demo 역할별 체험판 허브 · /demo/[role] 쿠키 진입 · /demo/exit  (docs/DEMO_ARCHITECTURE.md)
+│   ├── admin/                #   /admin 회사 관리자 (홈 · runs 운영 건 · import 명단 · policy 리포트 · settings) · /admin/login 직원 로그인
+│   │   └── center/           #   /admin/center 센터 관리자 (홈 · lessons 수업 · attendance 출결 · students · reports 검수 · instructors 배정 · comms 공지 · more · profile)
+│   ├── instructor/           #   /instructor 강사 (오늘 · sessions 내 수업 · session/[id] 교수 방안·자료·출결·리포트 · profile)
 │   ├── onboarding/           #   /onboarding (등록코드) → /verify → /otp,  /onboarding/login
 │   ├── goodbye/              #   회원 탈퇴 완료 안내
-│   └── main/                 #   /main (인증 가드 + 하단 탭바)
+│   └── main/                 #   /main 학부모 (인증 가드 + 하단 탭바)
 │       ├── page.tsx          #     홈
 │       ├── notification/     #     알림
 │       ├── profile/          #     내 정보 (보호자 초대 / 로그아웃) · withdraw/ 회원 탈퇴
@@ -27,24 +30,27 @@ web/
 │           ├── [programId]/report/           # 종합 학습 리포트
 │           ├── [programId]/{attendance,sessions}/  # (예전 탭 주소 → 회차 목록으로 리디렉션)
 │           └── session/[sessionId]/          # (예전 회차 상세 → 회차 화면 "내용" 탭으로 리디렉션)
-├── src/components/           # ChildSwitcher(자녀 전환) · program/(ProgramHeader · GuideMenu 안내 버튼 · GuidePage 안내 페이지 틀 · UpcomingProgram · session/ 회차 탭 패널) · ui/ (Spinner, Button, TextField, OtpInput, TabBar, Collapse, ProgressBar, BottomSheet …)
-├── src/providers/            # AuthProvider(로그인 상태) · DialogProvider(Alert.alert 대체) · ToastProvider
-├── src/hooks/                # useChildren(자녀 조회) · useSelectedChild(선택 자녀 기억) · useShare · useBack · useCountdown · usePageTitle
-├── src/lib/                  # firebase(초기화 + 전화 OTP/reCAPTCHA) · dates · phone · errors · share · print · navHistory
-├── src/data/                 # 더미 데이터(모바일 ../data 와 같은 내용) · programView(회차 목록·회차 화면용 조합 함수, 탭 정의, 공통 Q&A) · programGuide(안내 항목·기본 규정·기본 Q&A) · dummyHistory
-├── docs/PORTING_GUIDE.md     # RN 화면 → Next.js 페이지 옮기는 규칙 (새 화면 추가할 때 참고)
-└── e2e/                      # 에뮬레이터 대상 브라우저 E2E (59개 시나리오)
+├── src/services/             # 데이터 계층 — types(DTO 계약) · api(인터페이스) · demo/(체험 세계) · live/(Firebase) · useApi · useQuery/useMutation
+├── src/components/           # ChildSwitcher · program/(학부모 프로그램·회차) · staff/(직원 앱 틀 StaffShell·StaffGuard·StaffNav · AttendanceEditor · ReportEditor · ReportReview · ui) · demo/(DemoBanner · DemoRedirect) · admin/RosterPasteGrid · ui/
+├── src/providers/            # DemoProvider(체험 역할) · AuthProvider(로그인 상태) · CenterRunProvider(센터의 현재 운영 건) · DialogProvider · ToastProvider
+├── src/hooks/                # useChildren · useStudentPrograms · useProgramBundle · useSessionAttendance · useFinalReport · useStaffAccess · useSelectedChild · useShare · useBack …
+├── src/lib/                  # firebase · demoMode(쿠키·역할) · staffAccess · staffAppNav · dates · phone · errors · share · print · navHistory · mapProgramRun · rosterGrid
+├── src/data/                 # 더미 데이터(모바일 ../data 와 같은 내용 — 체험 세계의 수업 내용 템플릿으로도 쓴다) · programView · programGuide · dummyHistory
+├── docs/DEMO_ARCHITECTURE.md # 체험판 · 데이터 계층 · 실서비스 전환 방법
+├── docs/PORTING_GUIDE.md     # RN 화면 → Next.js 페이지 옮기는 규칙
+└── e2e/                      # flow.e2e.mjs 에뮬레이터 학부모 흐름(60) · staff.e2e.mjs 에뮬레이터 직원 흐름(5) · demo.e2e.mjs 체험판 네 역할(25)
 ```
 
 ---
 
-## 0. 지금은 체험 모드 (임시 공개 페이지)
+## 0. 체험판 (역할별 · 쿠키)
 
-- 주소를 열면 **등록코드·전화 인증 없이 바로 메인 화면**. 보이는 계정은 **010-7656-7933** (보호자 **신선웅** · 달성캠퍼스, 자녀 **신민준 · 신서연** — 운영 DB 연결 정보를 2026-09-17 에 옮겨 두고 이름만 체험용으로 바꾼 고정값, `src/lib/demo.ts`. 알림 문구의 학생 이름도 체험용으로 바뀜, 이름 수정은 막고 안내만)
-- **Firebase 에 접속하지 않는다** — 로그인·자녀 조회는 고정값, **로그아웃 · 보호자 초대 · 회원 탈퇴는 막고 "체험용 화면이에요" 안내**만, 리포트 공유는 서버 호출 없이 미리보기 링크 복사. `/onboarding` 으로 들어와도 메인으로 보낸다
-- 켜기/끄기: `NEXT_PUBLIC_DEMO_MODE` — 값이 없으면 **켜짐**(에뮬레이터 빌드는 꺼짐). **실제 서비스로 바꿀 때 Vercel 환경변수에 `NEXT_PUBLIC_DEMO_MODE=0` 을 넣고 다시 배포**
-- 체험 모드만 따로 확인: `npm run build:demo && npm run start:demo` (포트 3200) → `npm run e2e:demo` (8개 시나리오)
-- 홈의 "🗓 수강 예정 프로그램" 섹션은 잠시 숨김 (`data/programView.ts` 의 `SHOW_UPCOMING_ON_HOME`, 모바일도 같음). 화면은 `/main/program/prog-002` 로 열린다
+- `/` → `/demo` 허브. 역할(학부모 · 강사 · 센터 관리자 · 회사 관리자)을 고르면 `/demo/<role>` 이 쿠키 `tc_demo` 를 심고 **실서비스 주소**(`/main` · `/instructor` · `/admin/center` · `/admin`)로 보낸다. Firebase 값이 없어도 동작
+- 네 역할이 **같은 예시 세계**(`src/services/demo/world.ts`, 오늘 기준으로 생성)를 본다. 저장(출결 · 리포트 · 공지 · 명단 등록 · 운영 건 생성)은 진짜처럼 되고 이 브라우저 탭(sessionStorage)에서만 유지된다. 배너의 **초기화**로 처음 상태로, **체험 종료**(`/demo/exit`)로 쿠키 삭제
+- 학부모 체험 계정: **010-7656-7933** 보호자 **신선웅**, 자녀 **신민준(1반) · 신서연(4반)**. 강사 박지훈 · 센터 이정민 · 회사 김도현
+- 화면 코드에는 체험 분기가 없다 — `src/services` 가 체험(demo) / 실서비스(live) 를 고른다. 구조와 실서비스 전환은 **`docs/DEMO_ARCHITECTURE.md`**
+- 체험판 확인: `npm run build && npm run start` → `npm run e2e:demo` (25개 시나리오)
+- 홈의 "수강 예정 프로그램" 섹션은 잠시 숨김 (`data/programView.ts` 의 `SHOW_UPCOMING_ON_HOME`, 모바일도 같음)
 
 ## 1. 로컬 실행
 
@@ -72,9 +78,8 @@ Firebase 콘솔 → 프로젝트 설정 → 일반 → **내 앱 → 웹 앱(</>
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | 숫자 |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | `1:…:web:…` |
 | `NEXT_PUBLIC_USE_EMULATORS` | `0` (로컬 에뮬레이터면 `1`) |
-| `NEXT_PUBLIC_DEMO_MODE` | 비우면 체험 모드(0번). 실서비스는 `0` |
 
-값이 비어 있으면 앱이 죽지 않고 "서비스 설정이 완료되지 않았습니다" 화면을 띄운다. (체험 모드에서는 Firebase 값이 없어도 동작)
+값이 비어 있으면 앱이 죽지 않고 "서비스 설정이 완료되지 않았습니다" 화면을 띄운다. (체험판 `/demo/*` 은 Firebase 값이 없어도 동작. 예전 `NEXT_PUBLIC_DEMO_MODE` 는 더 이상 쓰지 않는다)
 
 ## 3. Vercel 배포
 

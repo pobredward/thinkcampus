@@ -5,6 +5,7 @@ import { assertCompanyAdmin } from './assertCompanyAdmin';
  * 센터 출결·일정 등 campus 스코프 작업
  * - companyAdmin: 전체
  * - centerAdmin: token.campusIds 에 포함된 캠퍼스만
+ * (강사 본인 회차까지 허용하려면 auth/staffClaims.ts 의 assertCanWorkSession)
  */
 export function assertCenterStaffForCampus(req: CallableRequest<unknown>, campusId: string): string {
   if (!req.auth?.uid) {

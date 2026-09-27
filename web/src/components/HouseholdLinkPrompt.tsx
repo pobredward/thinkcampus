@@ -5,12 +5,11 @@
  */
 
 import { useEffect, useState } from "react";
-import { httpsCallable } from "firebase/functions";
 import { PrimaryButton } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { formatBirth } from "@/lib/phone";
 import { errMessage } from "@/lib/errors";
-import { getFns } from "@/lib/firebase";
+import { useApi } from "@/services";
 import type { PendingHouseholdMember } from "@/hooks/usePendingHousehold";
 
 export function HouseholdLinkPrompt({
@@ -37,6 +36,7 @@ export function HouseholdLinkPrompt({
     }
   }, [autoOpen, pending]);
 
+  const api = useApi();
   if (pending.length === 0) return null;
 
   async function link() {
@@ -47,11 +47,7 @@ export function HouseholdLinkPrompt({
     setLoading(true);
     setError(null);
     try {
-      const fn = httpsCallable<{ studentId: string; birthDate: string }, { linked: boolean }>(
-        getFns(),
-        "linkHouseholdMember",
-      );
-      await fn({ studentId: target.studentId, birthDate });
+      await api.guardian.linkHouseholdMember(target.studentId, birthDate);
       setOpen(false);
       setBirthDate("");
       setTarget(null);

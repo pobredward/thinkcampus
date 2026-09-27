@@ -1,167 +1,134 @@
 "use client";
 
+/**
+ * 센터 홈 — 오늘 할 일이 먼저
+ *   1. 오늘 브리핑 (오늘 수업 · 출결 미입력 · 다음 수업일)
+ *   2. 할 일 카드 4개 (오늘 출결 · 검수 대기 리포트 · 보호자 미연결 · 강사 미배정)
+ *   3. 바로 가기 (공지 보내기 · 학생 명단 · 강사 배정)
+ *   4. 최근 공지
+ */
+
 import Link from "next/link";
+import { Badge, Button, Card, Empty, ErrorBox, fmtDate, fmtDateTime, Loading, PageTitle, SectionLabel, Stat } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useCenterSummary } from "@/hooks/useCenterSummary";
-import { centerStaffBase } from "@/lib/staffAppNav";
+import { todayKey } from "@/lib/dates";
 import { useCenterRun } from "@/providers/CenterRunProvider";
-import { useDemoPortal } from "@/providers/DemoPortalProvider";
-import { usePathname } from "next/navigation";
-import { Spinner } from "@/components/ui/Spinner";
+import { PROGRAM_RUN_STATUS_LABEL, useApi, useQuery } from "@/services";
 
 export default function CenterHomePage() {
   usePageTitle("센터 홈");
-  const pathname = usePathname();
-  const { role, active } = useDemoPortal();
-  const demoCenter = active && role === "center";
-  const base = centerStaffBase(pathname, demoCenter);
-  const { selectedRun, runsLoading } = useCenterRun();
-  const { data: summary, loading, error } = useCenterSummary(selectedRun?.id);
+  const api = useApi();
+  const { runs, runsLoading, runsError, selectedRun, summary, summaryLoading, refetch } = useCenterRun();
+  const runId = selectedRun?.id ?? null;
+  const { data: notices } = useQuery(() => (runId ? api.center.listNotifications(runId) : null), [api, runId]);
 
-  const d = summary?.dashboard;
+  if (runsLoading) return <Loading label="운영 건을 불러오는 중..." />;
+  if (runsError) return <ErrorBox message={runsError} onRetry={() => void refetch()} />;
+  if (!selectedRun || runs.length === 0) {
+    return <Empty title="담당 운영 건이 아직 없어요" desc="회사에서 운영 건을 만들고 명단을 등록하면 여기에 보여요." />;
+  }
 
-  const urgentTasks = d
-    ? [
-        {
-          id: "attendance",
-          label: "출결 미완료",
-          value: `${d.attendancePendingSessions}회차`,
-          href: `${base}/lessons`,
-          warn: d.attendancePendingSessions > 0,
-          desc: "오늘 수업 출결 등록 필요",
-          badge: d.attendancePendingSessions > 0 ? "처리 필요" : "완료",
-        },
-        {
-          id: "reports",
-          label: "리포트 검수 대기",
-          value: `${d.reportsPendingReview}건`,
-          href: `${base}/reports`,
-          warn: d.reportsPendingReview > 0,
-          desc: "강사 제출 리포트 검수",
-          badge: d.reportsPendingReview > 0 ? "검수 대기" : "완료",
-        },
-        {
-          id: "guardian",
-          label: "학부모 미연결",
-          value: `${d.studentsWithoutGuardian}명`,
-          href: `${base}/students?guardian=unlinked`,
-          warn: d.studentsWithoutGuardian > 0,
-          desc: "앱 초대 및 등록코드 안내",
-          badge: d.studentsWithoutGuardian > 0 ? "안내 필요" : "완료",
-        },
-        {
-          id: "instructor",
-          label: "강사 미배정",
-          value: `${d.sessionsWithoutInstructor}회차`,
-          href: `${base}/instructors`,
-          warn: d.sessionsWithoutInstructor > 0,
-          desc: "이번 주 회차 강사 매칭",
-          badge: d.sessionsWithoutInstructor > 0 ? "배정 필요" : "완료",
-        },
-      ]
-    : [];
+  const k = summary?.dashboard;
+  const today = todayKey();
+  const base = "/admin/center";
 
   return (
-    <div className="space-y-4">
-      {/* 최상단 요약 배너 */}
-      <div>
-        <h2 className="text-[19px] font-bold text-fg">오늘의 캠퍼스 운영</h2>
-        <p className="text-[12px] text-sub">
-          {selectedRun
-            ? `${selectedRun.contractCode} (${selectedRun.municipalityName}) 현황 및 긴급 조치`
-            : runsLoading
-              ? "운영 정보를 불러오는 중…"
-              : "부여된 운영 건이 없습니다."}
-        </p>
-      </div>
+    <div>
+      <PageTitle
+        eyebrow={`${selectedRun.campusName} · ${selectedRun.municipalityName}`}
+        title={selectedRun.title}
+        desc={`${selectedRun.contractCode} · ${selectedRun.sections.length}개 반 · 수강 ${selectedRun.studentCount}명`}
+        right={<Badge tone={selectedRun.status === "active" ? "gold" : "neutral"}>{PROGRAM_RUN_STATUS_LABEL[selectedRun.status]}</Badge>}
+      />
 
-      {(loading || runsLoading) && (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
-      )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      {d && !loading && (
+      {summaryLoading || !k ? (
+        <Loading />
+      ) : (
         <>
-          {/* 오늘 수업 브리핑 카드 */}
-          <Link
-            href={`${base}/lessons`}
-            className="tap block rounded-2xl border border-gold/30 bg-gradient-to-br from-card via-card to-elev p-4 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-semibold text-gold">오늘의 로테이션</span>
-              <span className="text-[12px] font-semibold text-gold">수업 보드 보기 ›</span>
-            </div>
-            <p className="mt-1 text-[18px] font-bold text-fg">
-              {d.parallelSlotsToday}개 타임 · 총 {d.sessionsToday}개 회차 진행
-            </p>
-            <p className="mt-0.5 text-[12px] text-sub">
-              활성 {d.sectionsActive}개 반 (총 수강 {d.totalStudents}명) · 터치하여 실시간 반별 출결 확인
-            </p>
-          </Link>
-
-          {/* 긴급 조치 카드 (Action Center) */}
-          <section className="space-y-2">
-            <h3 className="text-[14px] font-bold text-fg">오늘 처리할 일</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {urgentTasks.map((t) => (
-                <Link
-                  key={t.id}
-                  href={t.href}
-                  className={`tap flex flex-col justify-between rounded-xl border p-3 transition-colors ${
-                    t.warn
-                      ? "border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10"
-                      : "border-line bg-card hover:bg-elev"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-sub">{t.label}</span>
-                    <span
-                      className={`rounded px-1.5 py-0.2 text-[10px] font-bold ${
-                        t.warn ? "bg-amber-500/20 text-amber-900" : "bg-line text-sub"
-                      }`}
-                    >
-                      {t.badge}
-                    </span>
+          {/* 오늘 브리핑 */}
+          <Card tone="gold" className="mb-3">
+            <p className="text-[14px] font-bold text-gold">{fmtDate(today)} 오늘</p>
+            {k.sessionsToday > 0 ? (
+              <>
+                <p className="mt-1 text-[20px] font-extrabold leading-[28px] text-fg">
+                  수업 {k.sessionsToday}개 · {k.parallelSlotsToday}개 시간대
+                </p>
+                <p className="mt-1 text-[15px] leading-[22px] text-sub">
+                  {k.attendancePendingToday > 0 ? `출결이 아직 안 들어온 학생 ${k.attendancePendingToday}명` : "오늘 출결이 모두 입력됐어요"}
+                </p>
+                <div className="mt-3">
+                  <Button href={`${base}/lessons?date=${today}`} size="lg" className="w-full">
+                    오늘 수업 보기
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 text-[20px] font-extrabold leading-[28px] text-fg">오늘은 수업이 없어요</p>
+                <p className="mt-1 text-[15px] text-sub">{k.nextSessionDate ? `다음 수업 ${fmtDate(k.nextSessionDate)}` : "남은 수업이 없어요"}</p>
+                {k.nextSessionDate && (
+                  <div className="mt-3">
+                    <Button href={`${base}/lessons?date=${k.nextSessionDate}`} variant="secondary" size="lg" className="w-full">
+                      다음 수업 준비하기
+                    </Button>
                   </div>
-                  <p className="mt-1.5 text-[20px] font-bold text-fg">{t.value}</p>
-                  <p className="mt-0.5 truncate text-[11px] text-faint">{t.desc}</p>
-                </Link>
-              ))}
-            </div>
-          </section>
+                )}
+              </>
+            )}
+          </Card>
 
-          {/* 빠른 실행 바로가기 (Quick Shortcuts) */}
-          <section className="space-y-2 pt-1">
-            <h3 className="text-[14px] font-bold text-fg">빠른 실행</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <Link
-                href={`${base}/comms`}
-                className="tap flex items-center gap-2.5 rounded-xl border border-line bg-card p-3"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 text-gold">
-                  💬
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-[13px] text-fg">공지 및 소통</p>
-                  <p className="text-[11px] text-sub truncate">알림톡 발송·공지 이력</p>
-                </div>
+          {/* 할 일 */}
+          <SectionLabel>할 일</SectionLabel>
+          <div className="grid grid-cols-2 gap-3">
+            <Stat label="검수 대기 리포트" value={k.reportsPendingReview} unit="건" tone={k.reportsPendingReview > 0 ? "gold" : "fg"} href={`${base}/reports?status=pending`} />
+            <Stat label="보호자 미연결" value={k.studentsWithoutGuardian} unit="명" tone={k.studentsWithoutGuardian > 0 ? "late" : "fg"} href={`${base}/students?guardian=unlinked`} />
+            <Stat label="강사 미배정 회차" value={k.sessionsWithoutInstructor} unit="개" tone={k.sessionsWithoutInstructor > 0 ? "danger" : "fg"} href={`${base}/instructors`} />
+            <Stat label="수강생" value={k.totalStudents} unit="명" hint={`${k.sectionsActive}개 반`} href={`${base}/students`} />
+          </div>
+
+          {/* 바로 가기 */}
+          <SectionLabel>바로 가기</SectionLabel>
+          <div className="grid grid-cols-3 gap-2">
+            <Button href={`${base}/comms`} variant="secondary" className="min-h-[52px]">
+              공지 보내기
+            </Button>
+            <Button href={`${base}/students`} variant="secondary" className="min-h-[52px]">
+              학생 명단
+            </Button>
+            <Button href={`${base}/instructors`} variant="secondary" className="min-h-[52px]">
+              강사 배정
+            </Button>
+          </div>
+
+          {/* 최근 공지 */}
+          <SectionLabel
+            right={
+              <Link href={`${base}/comms`} className="text-gold underline underline-offset-2">
+                전체 보기
               </Link>
-              <Link
-                href={`${base}/reports`}
-                className="tap flex items-center gap-2.5 rounded-xl border border-line bg-card p-3"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 text-gold">
-                  📄
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-[13px] text-fg">회차 리포트</p>
-                  <p className="text-[11px] text-sub truncate">검수 및 학부모 공개</p>
-                </div>
-              </Link>
-            </div>
-          </section>
+            }
+          >
+            최근 공지
+          </SectionLabel>
+          {!notices ? (
+            <Loading />
+          ) : notices.length === 0 ? (
+            <Empty title="보낸 공지가 없어요" />
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {notices.slice(0, 3).map((n) => (
+                <li key={n.id} className="rounded-[16px] border border-line bg-card px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-[16px] font-bold text-fg">{n.title}</p>
+                    <span className="shrink-0 text-[14px] text-sub">{fmtDateTime(n.createdAt)}</span>
+                  </div>
+                  <p className="mt-1 text-[14px] text-sub">
+                    {n.sectionLabel ?? "전체"} · 보호자 {n.recipients}명 · {n.createdByName}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
     </div>

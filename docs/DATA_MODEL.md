@@ -231,9 +231,33 @@
 }
 ```
 
-**sessionReports** / **programReports**: `draft` → `centerReviewed` → `published` (+ `reportPolicy`).
+**sessionReports** (`runSessionId__studentId`, `functions/src/sessionReports.ts`):
 
-**notifications**: 출결·휴강·공지·리포트 발행 시 Functions가 생성 + FCM.
+```ts
+{
+  runSessionId, programRunId, campusId, studentId,
+  instructorId: string | null,
+  status: 'draft' | 'submitted' | 'reviewed' | 'published',
+  //  작성 중(강사) → 검수 대기(센터) → 승인 대기(회사, reportPolicy.requireCompanyApproval 일 때만) → 학부모 공개
+  //  반려(return)는 어느 단계에서든 draft 로 + returnNote
+  participationScore: number | null, homeworkDone: boolean | null,
+  feedback: string, highlights: string[], improvements: string[],
+  returnNote?: string,
+  submittedAt?, reviewedAt?, reviewedByUid?, publishedAt?, publishedByUid?, createdAt, updatedAt
+}
+```
+
+출결(`recordSessionAttendance`)을 넣으면 draft 문서가 자동으로 생기고, 공개(`published`)될 때 `sessionAttendance` 문서에 `participationScore · homeworkDone · feedback · highlights · improvements` 를 같이 적는다 → 학부모 앱은 `sessionAttendance` 만 읽어도 된다.
+
+**programReports**(종합 리포트)는 아직 `reports` 컬렉션(§ 기존) 그대로.
+
+**notifications**: 출결·공지·리포트 공개 시 Functions 가 생성 (`type: 'attendance' | 'notice' | 'report' | 'schedule'`, `programRunId`, `campusId`, 공지는 `sectionId?` · `recipients`, 개인 알림은 `studentId`). 학부모는 `listGuardianNotifications` 로 자기 자녀 것만 본다. 읽음은 `notificationReads/{uid}_{notificationId}`. FCM 은 이후.
+
+**staff**: `role: 'companyAdmin' | 'centerAdmin' | 'instructor'`, `campusIds`, `displayName`, `email`, `phone?`, 강사는 `title?`(소속) · `bio?` · `specialties: string[]` · `photoUrl?` (학부모 앱 강사 카드 · 센터 강사 목록). `scripts/createStaffUser.ts` 가 Claims 와 함께 만든다.
+
+**runSessions.sectionId / instructorId**: 회차 = (날짜, 반) 한 문서. `createProgramRun` 이 `sections` 개수만큼 만든다. 강사 배정은 `assignInstructorToSession` (같은 시간 겹침 검사). `programRuns.title?` 은 화면 이름(없으면 "지자체 계약코드").
+
+**rosterImports**: `importRoster` 실행 기록 (회사 홈의 "마지막 명단 등록").
 
 ---
 
@@ -248,6 +272,7 @@
 | `householdKey` | ⬜ | 있으면 **동일 키 = 동일 가구** (형제는 같은 값) |
 | `guardianPhone` 또는 `parentPhone` | ⬜ | **선택**. 지자체 CSV에 없는 경우 많음. 있으면 동일 번호 = 동일 가구 (보호자 여부는 import 시 검증하지 않음) |
 | `externalStudentId` | ⬜ | 지자체 원본 id |
+| `sectionLabel` (`반`) | ⬜ | 운영 건 `sections[].label` 과 같은 반 이름. 없으면 첫 반 |
 
 **가구 ID 부여 규칙** (`shared/lib/resolveHouseholdIds.ts`):
 

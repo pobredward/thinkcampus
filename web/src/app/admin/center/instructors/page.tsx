@@ -1,78 +1,50 @@
 "use client";
 
-import Link from "next/link";
+/**
+ * 센터 · 강사 — 내 캠퍼스 강사 목록 (이번 주 · 이 운영 건 담당 회차 수) → 강사 화면에서 회차 배정
+ */
+
+import { Photo } from "@/components/staff/Photo";
+import { Badge, Empty, ErrorBox, Loading, PageTitle, RowLink } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useCenterSummary } from "@/hooks/useCenterSummary";
-import { centerStaffBase } from "@/lib/staffAppNav";
-import { CenterInstructorList } from "@/components/admin/center/CenterInstructorList";
-import { DEMO_INSTRUCTOR_PROFILES } from "@/lib/demoInstructorStaff";
 import { useCenterRun } from "@/providers/CenterRunProvider";
-import { useDemoPortal } from "@/providers/DemoPortalProvider";
-import { usePathname } from "next/navigation";
-import { Spinner } from "@/components/ui/Spinner";
+import { useApi, useQuery } from "@/services";
 
-export default function CenterInstructorsListPage() {
+export default function CenterInstructorsPage() {
   usePageTitle("강사");
-  const pathname = usePathname();
-  const { role, active } = useDemoPortal();
-  const demoCenter = active && role === "center";
-  const base = centerStaffBase(pathname, demoCenter);
-  const { selectedRun } = useCenterRun();
-  const { data: summary, loading } = useCenterSummary(selectedRun?.id);
+  const api = useApi();
+  const { selectedRun, runsLoading, summary } = useCenterRun();
+  const runId = selectedRun?.id ?? null;
+  const { data, loading, error, refetch } = useQuery(() => (runId ? api.center.listInstructors(runId) : null), [api, runId]);
 
-  const unassignedCount = summary?.dashboard.sessionsWithoutInstructor ?? 0;
+  if (runsLoading || (loading && !data)) return <Loading />;
+  if (!selectedRun) return <Empty title="운영 건을 먼저 골라 주세요" />;
+  if (error) return <ErrorBox message={error} onRetry={() => void refetch()} />;
+
+  const unassigned = summary?.dashboard.sessionsWithoutInstructor ?? 0;
 
   return (
-    <div className="space-y-3.5">
-      {/* 상단 타이틀 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-[19px] font-bold text-fg">강사 관리</h2>
-          <p className="text-[12px] text-sub">강사 프로필 조회 및 수업 회차 배정</p>
-        </div>
-        <span className="text-[12px] font-medium text-sub">
-          등록 강사 <strong className="text-fg">{DEMO_INSTRUCTOR_PROFILES.length}</strong>명
-        </span>
-      </div>
-
-      {/* 미배정 회차 경고 블록 (있을 경우) */}
-      {unassignedCount > 0 && (
-        <div className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-[13px]">
-          <div className="flex items-center gap-2">
-            <span className="text-amber-800">⚠️</span>
-            <span className="font-medium text-amber-900">
-              강사 미배정 회차가 <strong>{unassignedCount}건</strong> 있습니다.
-            </span>
-          </div>
-          <Link
-            href={`${base}/lessons`}
-            className="tap rounded-md bg-amber-500/20 px-2 py-1 text-[11px] font-bold text-amber-900"
-          >
-            배정하기 ›
-          </Link>
-        </div>
+    <div>
+      <PageTitle title="강사" desc={`${selectedRun.campusName} 강사 ${data?.length ?? 0}명 · 강사를 누르면 회차를 배정할 수 있어요`} />
+      {unassigned > 0 && (
+        <div className="mb-3 rounded-[16px] border border-danger-border bg-danger-bg px-4 py-3 text-[15px] text-danger">강사가 정해지지 않은 회차가 {unassigned}개 있어요.</div>
       )}
-
-      {loading && (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
-      )}
-
-      {demoCenter ? (
-        <CenterInstructorList
-          instructors={DEMO_INSTRUCTOR_PROFILES}
-          basePath={base}
-          sessionsThisWeek={{
-            "demo-instructor": 4,
-            "demo-instructor-2": 3,
-            "demo-instructor-3": 2,
-          }}
-        />
+      {!data || data.length === 0 ? (
+        <Empty title="이 캠퍼스에 등록된 강사가 없어요" desc="회사 설정에서 강사 계정을 만들면 여기에 보여요." />
       ) : (
-        <p className="rounded-xl border border-line bg-elev px-4 py-8 text-center text-sub">
-          로그인 센터에서 강사 목록 API(listCenterInstructors) 연동 예정
-        </p>
+        <ul className="flex flex-col gap-2">
+          {data.map((i) => (
+            <li key={i.staffId}>
+              <RowLink
+                href={`/admin/center/instructors/${encodeURIComponent(i.staffId)}`}
+                left={<Photo id={i.staffId} name={i.name} photoUrl={i.photoUrl} size={44} />}
+                title={i.name}
+                desc={`${i.specialties.length ? i.specialties.join(" · ") : "전담 멘토"} · 이번 주 ${i.sessionsThisWeek}회`}
+                badge={<Badge tone={i.sessionsInRun > 0 ? "gold" : "neutral"}>이 운영 건 {i.sessionsInRun}회</Badge>}
+              />
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

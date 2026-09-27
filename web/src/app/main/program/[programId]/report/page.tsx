@@ -16,20 +16,17 @@ import { useParams, useSearchParams } from "next/navigation";
 import { ProgramHeader } from "@/components/program/ProgramHeader";
 import { getDummyProgram } from "@/data/programView";
 import { programCrumbs } from "@/lib/crumbs";
-import { httpsCallable } from "firebase/functions";
 import { Collapse } from "@/components/ui/Collapse";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Spinner } from "@/components/ui/Spinner";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useShare } from "@/hooks/useShare";
-import { DEMO_MODE } from "@/lib/demo";
-import { getFns } from "@/lib/firebase";
+import { useFinalReport } from "@/hooks/useFinalReport";
+import { useApi } from "@/services";
 import { useDialog } from "@/providers/DialogProvider";
 import {
-  DUMMY_REPORT,
   getGradeColor,
   getGradeBg,
-  type StudentReport,
   type ProgramReport,
 } from "@/data/dummyReport";
 
@@ -38,6 +35,8 @@ export default function ProgramReportPage() {
   const sp = useSearchParams();
   const { programId } = useParams<{ programId: string }>();
   const studentName = sp.get("studentName");
+  const sid = sp.get("sid");
+  const api = useApi();
   const programTitle = sp.get("programTitle") ?? getDummyProgram(programId).title;
   const header = (
     <ProgramHeader
@@ -52,52 +51,50 @@ export default function ProgramReportPage() {
   const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
 
-  // TODO: Firestore에서 studentId+programId 기준 조회
-  const report: StudentReport = DUMMY_REPORT;
-  const isReportReady = true; // TODO: 실제로는 issueDate 확인
+  const { report, loading } = useFinalReport(sid, programId);
 
   function toggleProgram(id: string) {
     setExpandedProgram((prev) => (prev === id ? null : id));
   }
 
   async function handleShare() {
+    if (!report) return;
     setSharing(true);
     try {
-      if (DEMO_MODE) throw new Error("demo"); // 체험 모드: 서버 호출 없이 미리보기 링크로
-      const fn = httpsCallable<{ reportId: string }, { url: string }>(getFns(), "createShareToken");
-      const result = await fn({ reportId: report.reportId });
-      const data = result.data;
+      const link = await api.guardian.createShareLink(report.reportId);
       await share({
         title: `${report.studentName} 학생 리포트`,
-        message: `ThinkCampus 리포트 링크: ${data.url}`,
-        url: data.url,
+        message: `ThinkCampus 리포트 링크: ${link.url}`,
+        url: link.url,
       });
     } catch {
-      // 공유 기능 미구현 시 더미 URL로 대체
-      try {
-        await share({
-          title: `${report.studentName} 학생 리포트`,
-          message: `ThinkCampus 리포트 (미리보기): https://thinkcampus.app/report/${report.reportId}`,
-          url: `https://thinkcampus.app/report/${report.reportId}`,
-        });
-      } catch {
-        void dialog.alert("오류", "공유 중 문제가 발생했습니다.");
-      }
+      void dialog.alert("오류", "공유 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
       setSharing(false);
     }
   }
 
-  if (!isReportReady) {
+  if (loading) {
+    return (
+      <div className="flex flex-1 flex-col bg-paper">
+        {header}
+        <div className="flex flex-1 items-center justify-center p-12">
+          <Spinner size="large" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!report) {
     return (
       <div className="flex flex-1 flex-col bg-paper">
         {header}
         <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-paper p-8">
           <p className="text-[20px] font-bold text-fg2">리포트 준비 중</p>
           <p className="text-center text-[16px] leading-[25px] text-sub">
-            캠프 종료 후 영업일 기준
+            프로그램이 끝나면 영업일 기준
             <br />
-            3~5일 내에 업로드됩니다.
+            3~5일 안에 올라와요.
           </p>
         </div>
       </div>

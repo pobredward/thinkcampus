@@ -1,41 +1,39 @@
 "use client";
 
-import Link from "next/link";
+/**
+ * 회사 · 운영 건 목록
+ */
+
+import { Badge, Button, Empty, ErrorBox, fmtDate, Loading, PageTitle, RowLink } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { DEMO_CENTER_RUNS } from "@/lib/demoPortal";
-import { companyStaffBase } from "@/lib/staffAppNav";
-import { useDemoPortal } from "@/providers/DemoPortalProvider";
-import { usePathname } from "next/navigation";
+import { PROGRAM_RUN_STATUS_LABEL, useApi, useQuery } from "@/services";
 
 export default function CompanyRunsPage() {
   usePageTitle("운영 건");
-  const pathname = usePathname();
-  const { role, active } = useDemoPortal();
-  const base = companyStaffBase(pathname, active && role === "company");
+  const api = useApi();
+  const { data, loading, error, refetch } = useQuery(() => api.company.listRuns(), [api]);
 
-  const runs = active && role === "company" ? DEMO_CENTER_RUNS : [];
+  if (loading && !data) return <Loading />;
+  if (error) return <ErrorBox message={error} onRetry={() => void refetch()} />;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[20px] font-bold text-fg">운영 건</h2>
-        <Link href={`${base}/runs/new`} className="text-sm font-semibold text-gold underline">
-          + 새 운영 건
-        </Link>
-      </div>
-      <p className="text-sm text-sub">
-        contractCode는 회사에서 지정합니다. 센터에는 부여된 건만 노출됩니다.
-      </p>
-      <ul className="space-y-2">
-        {runs.map((r) => (
-          <li key={r.id} className="rounded-xl border border-line bg-card px-4 py-4">
-            <p className="font-bold text-fg">{r.contractCode}</p>
-            <p className="text-sm text-sub">{r.municipalityName} · {r.campusName ?? r.campusId}</p>
-          </li>
-        ))}
-      </ul>
-      {runs.length === 0 && (
-        <p className="text-center text-sub py-8">등록된 운영 건이 없습니다.</p>
+    <div>
+      <PageTitle title="운영 건" desc="지자체 계약 한 건 = 운영 건 하나. 반과 회차 일정이 여기서 만들어져요." right={<Button href="/admin/runs/new" size="sm">새 운영 건</Button>} />
+      {!data || data.length === 0 ? (
+        <Empty title="운영 건이 없어요" action={<Button href="/admin/runs/new">첫 운영 건 만들기</Button>} />
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {data.map((r) => (
+            <li key={r.id}>
+              <RowLink
+                href={`/admin/runs/${encodeURIComponent(r.id)}`}
+                title={r.title}
+                desc={`${r.contractCode} · ${r.campusName} · ${fmtDate(r.startDate)}부터 ${r.totalSessions}회 · ${r.studentCount}명`}
+                badge={<Badge tone={r.status === "active" ? "gold" : r.status === "scheduled" ? "neutral" : "dim"}>{PROGRAM_RUN_STATUS_LABEL[r.status]}</Badge>}
+              />
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

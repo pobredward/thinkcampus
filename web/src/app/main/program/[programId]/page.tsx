@@ -19,9 +19,7 @@ import { useMemo } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { useProgramBundle } from "@/hooks/useProgramBundle";
 import { useSessionAttendance } from "@/hooks/useSessionAttendance";
-import { useGuardianDemoData } from "@/hooks/useDemoExperience";
-import { useMainRouter } from "@/hooks/useMainRouter";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { GuideMenu, MenuRow } from "@/components/program/GuideMenu";
 import { ProgramHeader } from "@/components/program/ProgramHeader";
 import { SectionHeading } from "@/components/program/SectionHeading";
@@ -40,36 +38,32 @@ import {
 } from "@/data/programView";
 import { programCrumbs } from "@/lib/crumbs";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { emptyAttendance } from "@/lib/mapSessionAttendance";
 
 export default function ProgramSessionsPage() {
   const { programId } = useParams<{ programId: string }>();
   const sp = useSearchParams();
-  const { pushMain } = useMainRouter();
-  const guardianDemo = useGuardianDemoData();
+  const router = useRouter();
 
   const studentName = sp.get("studentName") ?? "";
   const sid = sp.get("sid");
 
-  const { program: loadedProgram, loading: programLoading, fromFirestore } = useProgramBundle(programId, sid);
+  const { program: loadedProgram, loading: programLoading, fromServer } = useProgramBundle(programId, sid);
   const program = loadedProgram ?? getDummyProgram(programId);
   const programTitle = sp.get("programTitle") ?? program.title;
   usePageTitle(programTitle);
 
-  const { attendance: firestoreAttendance } = useSessionAttendance(
-    sid,
-    programId,
-    loadedProgram,
-    studentName,
-    fromFirestore,
-  );
+  // 출결: 서버(또는 체험 세계)의 기록. 서버에 프로그램이 없는 초기 단계에서만 더미 출결로 화면을 채운다
+  const { attendance: serverAttendance, loading: attendanceLoading } = useSessionAttendance(sid, programId, loadedProgram, studentName, fromServer);
   const attendance = useMemo(() => {
-    if (fromFirestore && firestoreAttendance) return firestoreAttendance;
+    if (fromServer) return serverAttendance ?? emptyAttendance(program, sid, studentName);
     return pickDummyAttendance(sid);
-  }, [fromFirestore, firestoreAttendance, sid]);
+  }, [fromServer, serverAttendance, program, sid, studentName]);
   const items = useMemo(() => buildDayItems(program, attendance), [program, attendance]);
   const qs = sp.toString();
+  const pushMain = (href: string) => router.push(href);
 
-  if (!guardianDemo && programLoading) {
+  if (programLoading || (fromServer && attendanceLoading && !serverAttendance)) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-12">
         <Spinner size="large" />

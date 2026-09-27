@@ -14,7 +14,6 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useMapMainPath } from "@/hooks/useMainBase";
 import { goUpTo } from "@/lib/navHistory";
 
 export interface Crumb {
@@ -49,7 +48,6 @@ export function Breadcrumbs({
   trailing?: ReactNode;
 }) {
   const router = useRouter();
-  const mapMain = useMapMainPath();
   const scroller = useRef<HTMLDivElement>(null);
 
   // 길면 끝(지금 화면)이 보이도록
@@ -66,7 +64,7 @@ export function Breadcrumbs({
             {items.map((c, i) => {
               const last = i === items.length - 1;
               const isHome = i === 0 && c.label === "홈";
-              const href = c.href ? mapMain(c.href) : undefined;
+              const href = c.href;
               return (
                 <li key={`${i}-${c.label}`} className="flex shrink-0 items-center">
                   {last || !href ? (

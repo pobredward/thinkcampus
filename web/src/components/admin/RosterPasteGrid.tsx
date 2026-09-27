@@ -42,10 +42,7 @@ export function RosterPasteGrid({ rows, onRowsChange }: RosterPasteGridProps) {
 
   return (
     <div className="space-y-2 [&_.dsg-container]:rounded-lg [&_.dsg-container]:border [&_.dsg-container]:border-line">
-      <p className="text-sm text-fg2 leading-relaxed">
-        엑셀형 그리드(react-datasheet-grid): 드래그·Shift
-        선택, ⌘A 전체 선택, Delete/Backspace로 셀 비우기, 엑셀 복사·붙여넣기.
-      </p>
+      <p className="text-[14px] leading-[20px] text-sub">엑셀에서 복사한 표를 그대로 붙여 넣을 수 있어요. 드래그로 여러 칸을 고르고 Delete 로 비워요.</p>
       <div className="min-h-[360px] w-full overflow-hidden rounded-lg">
         <DataSheetGrid<RosterGridRow>
           value={rows}
@@ -60,11 +57,11 @@ export function RosterPasteGrid({ rows, onRowsChange }: RosterPasteGridProps) {
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={addRows} className="rounded-lg border border-line px-3 py-1.5 text-sm">
-          + 5행 추가
+        <button type="button" onClick={addRows} className="tap min-h-[44px] rounded-lg border border-line bg-elev px-4 text-[15px] font-semibold text-fg2">
+          5행 추가
         </button>
-        <button type="button" onClick={clearAll} className="rounded-lg border border-line px-3 py-1.5 text-sm text-fg2">
-          전체 비우기 ({DEFAULT_EMPTY_ROWS}행으로 초기화)
+        <button type="button" onClick={clearAll} className="tap min-h-[44px] rounded-lg border border-line bg-elev px-4 text-[15px] font-semibold text-fg2">
+          전체 비우기 ({DEFAULT_EMPTY_ROWS}행)
         </button>
       </div>
     </div>

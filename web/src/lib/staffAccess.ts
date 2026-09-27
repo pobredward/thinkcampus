@@ -1,49 +1,44 @@
-/** checkStaffAccess Callable 응답과 동일 */
-export interface StaffAccess {
-  allowed: boolean;
-  companyAdmin: boolean;
-  centerAdmin: boolean;
-  campusIds: string[];
-}
+/** checkStaffAccess Callable 응답과 동일 (services/types.ts 의 StaffAccess) */
+import type { StaffAccess } from "@/services/types";
 
+export type { StaffAccess };
+
+export const EMPTY_STAFF_ACCESS: StaffAccess = {
+  allowed: false,
+  companyAdmin: false,
+  centerAdmin: false,
+  instructor: false,
+  campusIds: [],
+};
+
+/** 역할별 첫 화면 — 회사 → 센터 → 강사 순 */
 export function staffHomePath(access: StaffAccess): string | null {
   if (access.companyAdmin) return "/admin";
   if (access.centerAdmin) return "/admin/center";
+  if (access.instructor) return "/instructor";
   return null;
 }
 
-/** 오픈 리다이렉트 방지 — Admin 영역만 */
-export function safeAdminNext(next: string | null | undefined): string | null {
+/** 오픈 리다이렉트 방지 — 직원 영역만 */
+export function safeStaffNext(next: string | null | undefined): string | null {
   if (!next) return null;
-  if (/^\/admin(\/|$)/.test(next)) return next;
+  if (/^\/(admin|instructor)(\/|$)/.test(next)) return next;
   return null;
 }
 
-/**
- * 로그인 후 이동 경로 — role에 맞게 next를 허용하거나 홈으로
- */
+/** 이 계정이 그 경로를 볼 수 있는지 */
+export function canOpenStaffPath(access: StaffAccess, path: string): boolean {
+  if (path === "/instructor" || path.startsWith("/instructor/")) return access.instructor || access.companyAdmin;
+  if (path === "/admin/center" || path.startsWith("/admin/center/")) return access.centerAdmin || access.companyAdmin;
+  if (path === "/admin" || path.startsWith("/admin/")) return access.companyAdmin;
+  return false;
+}
+
+/** 로그인 후 이동 경로 — 권한에 맞으면 next, 아니면 홈 */
 export function resolveStaffDestination(access: StaffAccess, next: string | null | undefined): string | null {
   const home = staffHomePath(access);
   if (!home) return null;
-
-  const safe = safeAdminNext(next);
+  const safe = safeStaffNext(next);
   if (!safe) return home;
-
-  if (access.companyAdmin) return safe;
-
-  // 센터만: 회사 전용 경로는 센터 홈으로
-  if (safe === "/admin" || safe.startsWith("/admin/import") || safe.startsWith("/admin/runs")) {
-    return home;
-  }
-  if (safe.startsWith("/admin/center")) return safe;
-
-  return home;
-}
-
-export function canAccessCompanyAdmin(access: StaffAccess): boolean {
-  return access.companyAdmin;
-}
-
-export function canAccessStaffArea(access: StaffAccess): boolean {
-  return access.allowed;
+  return canOpenStaffPath(access, safe) ? safe : home;
 }

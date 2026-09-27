@@ -1,17 +1,22 @@
-/** 센터·회사 스태프 앱 하단 탭 (모바일 우선, 학부모 TabBar와 동일 높이) */
+/**
+ * 직원 앱(센터 · 회사 · 강사) 하단 탭 — 주소는 고정 (/admin/center · /admin · /instructor)
+ * 학부모 TabBar 와 같은 높이·모양. 탭은 최대 5개, 글자 14px.
+ */
+
+export type StaffVariant = "center" | "company" | "instructor";
 
 export type StaffNavIcon =
   | "home"
   | "lessons"
   | "students"
   | "instructors"
-  | "people"
   | "reports"
   | "comms"
   | "import"
   | "runs"
   | "policy"
-  | "settings";
+  | "settings"
+  | "user";
 
 export interface StaffNavItem {
   href: string;
@@ -20,68 +25,43 @@ export interface StaffNavItem {
   match: (pathname: string) => boolean;
 }
 
-export function centerStaffBase(pathname: string, demoCenter: boolean): string {
-  return demoCenter || pathname.startsWith("/demo/center") ? "/demo/center" : "/admin/center";
-}
+export const STAFF_BASE: Record<StaffVariant, string> = {
+  center: "/admin/center",
+  company: "/admin",
+  instructor: "/instructor",
+};
 
-export function companyStaffBase(pathname: string, demoCompany: boolean): string {
-  if (demoCompany || pathname.startsWith("/demo/company")) return "/demo/company";
-  return "/admin";
-}
+export const STAFF_TITLE: Record<StaffVariant, string> = {
+  center: "센터 관리",
+  company: "회사 관리",
+  instructor: "강사",
+};
 
-export function buildCenterNavItems(base: string): StaffNavItem[] {
+const startsWith = (base: string, seg: string) => (p: string) => p === `${base}/${seg}` || p.startsWith(`${base}/${seg}/`);
+
+export function buildStaffNavItems(variant: StaffVariant): StaffNavItem[] {
+  const base = STAFF_BASE[variant];
+  if (variant === "center") {
+    return [
+      { href: base, label: "홈", icon: "home", match: (p) => p === base },
+      { href: `${base}/lessons`, label: "수업", icon: "lessons", match: (p) => startsWith(base, "lessons")(p) || startsWith(base, "attendance")(p) },
+      { href: `${base}/students`, label: "학생", icon: "students", match: startsWith(base, "students") },
+      { href: `${base}/reports`, label: "리포트", icon: "reports", match: startsWith(base, "reports") },
+      { href: `${base}/more`, label: "더보기", icon: "settings", match: (p) => ["more", "instructors", "comms", "profile"].some((s) => startsWith(base, s)(p)) },
+    ];
+  }
+  if (variant === "company") {
+    return [
+      { href: base, label: "홈", icon: "home", match: (p) => p === base },
+      { href: `${base}/runs`, label: "운영 건", icon: "runs", match: startsWith(base, "runs") },
+      { href: `${base}/import`, label: "명단", icon: "import", match: startsWith(base, "import") },
+      { href: `${base}/policy`, label: "리포트", icon: "policy", match: startsWith(base, "policy") },
+      { href: `${base}/settings`, label: "설정", icon: "settings", match: startsWith(base, "settings") },
+    ];
+  }
   return [
-    { href: base, label: "홈", icon: "home", match: (p) => p === base },
-    {
-      href: `${base}/lessons`,
-      label: "수업",
-      icon: "lessons",
-      match: (p) => p.startsWith(`${base}/lessons`) || p.startsWith(`${base}/attendance`),
-    },
-    {
-      href: `${base}/students`,
-      label: "학생",
-      icon: "students",
-      match: (p) =>
-        p.startsWith(`${base}/students`) ||
-        p.startsWith(`${base}/roster`) ||
-        (p.startsWith(`${base}/people`) && !p.includes("/instructors")),
-    },
-    {
-      href: `${base}/instructors`,
-      label: "강사",
-      icon: "instructors",
-      match: (p) => p.startsWith(`${base}/instructors`),
-    },
-  ];
-}
-
-export function buildCompanyNavItems(base: string): StaffNavItem[] {
-  return [
-    { href: base, label: "홈", icon: "home", match: (p) => p === base },
-    {
-      href: `${base}/import`,
-      label: "명단",
-      icon: "import",
-      match: (p) => p.startsWith(`${base}/import`),
-    },
-    {
-      href: `${base}/runs`,
-      label: "운영 건",
-      icon: "runs",
-      match: (p) => p.startsWith(`${base}/runs`),
-    },
-    {
-      href: `${base}/policy`,
-      label: "정책",
-      icon: "policy",
-      match: (p) => p.startsWith(`${base}/policy`),
-    },
-    {
-      href: `${base}/settings`,
-      label: "설정",
-      icon: "settings",
-      match: (p) => p.startsWith(`${base}/settings`) || p.startsWith(`${base}/profile`),
-    },
+    { href: base, label: "오늘", icon: "home", match: (p) => p === base },
+    { href: `${base}/sessions`, label: "내 수업", icon: "lessons", match: (p) => startsWith(base, "sessions")(p) || startsWith(base, "session")(p) },
+    { href: `${base}/profile`, label: "내 정보", icon: "user", match: startsWith(base, "profile") },
   ];
 }

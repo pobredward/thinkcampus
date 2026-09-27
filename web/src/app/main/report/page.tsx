@@ -1,21 +1,19 @@
 "use client";
 
 /**
- * 리포트 탭 (모바일 app/main/report.tsx)
+ * 리포트 탭 (모바일 app/main/report.tsx) — 예전 화면. 지금은 프로그램 화면의 "종합 리포트"(/main/program/[id]/report)를 쓴다.
  * - 자녀 2명 이상 → 상단 탭으로 전환
  * - 별도 상세 화면 없이 전체 리포트를 인라인으로 표시
  * - 임시 URL 생성(클립보드 복사) + PDF 공유
  */
 
 import { useState } from "react";
-import { httpsCallable } from "firebase/functions";
 import { Collapse } from "@/components/ui/Collapse";
 import { Spinner } from "@/components/ui/Spinner";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useShare } from "@/hooks/useShare";
 import { errMessage } from "@/lib/errors";
-import { DEMO_MODE } from "@/lib/demo";
-import { getFns } from "@/lib/firebase";
+import { useApi } from "@/services";
 import { printHtml } from "@/lib/print";
 import { useDialog } from "@/providers/DialogProvider";
 import {
@@ -142,6 +140,7 @@ function buildPdfHtml(report: StudentReport): string {
 export default function ReportScreen() {
   usePageTitle("학습 리포트");
   const dialog = useDialog();
+  const api = useApi();
   const share = useShare();
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
@@ -165,15 +164,7 @@ export default function ReportScreen() {
       // 에러 시 Clipboard 복사 fallback 처리
       let url: string;
       try {
-        if (DEMO_MODE) throw new Error("demo"); // 체험 모드: 서버 호출 없이 임시 링크로
-        // ── 공유 URL 생성 (Cloud Function 호출) ──
-        // getFns() 는 프리렌더 단계에서 실행되면 안 되므로 모듈 최상위가 아닌 핸들러 안에서 만든다.
-        const createShareTokenFn = httpsCallable<
-          { reportId: string },
-          { url: string; expiresAt: string }
-        >(getFns(), "createShareToken");
-        const result = await createShareTokenFn({ reportId: report.reportId });
-        url = result.data.url;
+        url = (await api.guardian.createShareLink(report.reportId)).url;
       } catch {
         // 더미 데이터 / 개발 환경 fallback: btoa 기반 임시 URL
         const raw = `${report.reportId}:${Date.now()}`;

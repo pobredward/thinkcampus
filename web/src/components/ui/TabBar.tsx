@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMainBase } from "@/hooks/useMainBase";
 
 /**
  * 하단 메인 탭바 — 홈 / 알림 / 내 정보 (모바일 main/(tabs)/_layout.tsx 와 동일)
@@ -10,6 +9,8 @@ import { useMainBase } from "@/hooks/useMainBase";
  * 프로그램·출결·리포트·FAQ 등 하위 화면에서는 어떤 탭도 활성화되지 않는다.
  */
 type IconName = "home" | "bell" | "user";
+
+const MAIN_BASE = "/main";
 
 function buildTabs(base: string) {
   return [
@@ -64,8 +65,7 @@ function TabIcon({ name }: { name: IconName }) {
 
 export function TabBar() {
   const pathname = usePathname();
-  const mainBase = useMainBase();
-  const tabs = buildTabs(mainBase);
+  const tabs = buildTabs(MAIN_BASE);
   return (
     <nav
       aria-label="메인 탭"

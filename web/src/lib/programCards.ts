@@ -1,6 +1,4 @@
 import type { Program } from "@/data/dummyProgram";
-import { calcSummary } from "@/data/dummyAttendance";
-import { pickDummyAttendance } from "@/data/programView";
 import type { StudentProgramBundle } from "@/hooks/useStudentPrograms";
 import {
   doneSessionCountFromRecords,
@@ -65,7 +63,7 @@ function cardFromProgram(
   };
 }
 
-/** Firestore 수강 목록 → 홈 카드 (출결 있으면 sessionAttendance 기준 진도) */
+/** 수강 목록 → 홈 카드 (출결 기록이 있으면 그 기준으로 진도, 없으면 0회) */
 export function buildProgramCardsFromBundles(
   studentId: string,
   studentName: string,
@@ -78,19 +76,8 @@ export function buildProgramCardsFromBundles(
 
   for (const b of bundles) {
     const records = attendanceByRunId?.[b.programRunId];
-    const doneFromFirestore =
-      records && records.length > 0
-        ? doneSessionCountFromRecords(b.program, studentId, records)
-        : null;
-    const att = pickDummyAttendance(studentId);
-    const summary = calcSummary(att);
-    const fallbackDone = Math.min(summary.doneCount, b.program.totalSessions);
-    const done =
-      b.status === "completed"
-        ? b.program.totalSessions
-        : doneFromFirestore !== null
-          ? Math.min(doneFromFirestore, b.program.totalSessions)
-          : fallbackDone;
+    const doneFromRecords = records && records.length > 0 ? doneSessionCountFromRecords(b.program, studentId, records) : 0;
+    const done = b.status === "completed" ? b.program.totalSessions : Math.min(doneFromRecords, b.program.totalSessions);
 
     if (b.status === "completed") {
       pastCount++;

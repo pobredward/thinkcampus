@@ -1,39 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { httpsCallable } from "firebase/functions";
-import { useGuardianDemoData } from "@/hooks/useDemoExperience";
-import { getFns } from "@/lib/firebase";
+import { useApi, type PendingHouseholdMember } from "@/services";
 
-export interface PendingHouseholdMember {
-  studentId: string;
-  maskedName: string;
-}
+export type { PendingHouseholdMember };
 
+/** 같은 가구인데 아직 내 계정에 연결되지 않은 자녀 (형제 연동 안내) */
 export function usePendingHousehold(enabled: boolean) {
-  const guardianDemo = useGuardianDemoData();
+  const api = useApi();
   const [pending, setPending] = useState<PendingHouseholdMember[]>([]);
   const [loading, setLoading] = useState(false);
 
   const refetch = useCallback(async () => {
-    if (!enabled || guardianDemo) {
+    if (!enabled) {
       setPending([]);
       return;
     }
     setLoading(true);
     try {
-      const fn = httpsCallable<Record<string, never>, { pending: PendingHouseholdMember[] }>(
-        getFns(),
-        "listPendingHouseholdMembers",
-      );
-      const res = await fn({});
-      setPending(res.data.pending ?? []);
+      setPending(await api.guardian.listPendingHousehold());
     } catch {
       setPending([]);
     } finally {
       setLoading(false);
     }
-  }, [enabled, guardianDemo]);
+  }, [enabled, api]);
 
   useEffect(() => {
     void refetch();
