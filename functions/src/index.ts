@@ -7,7 +7,7 @@
  *   redeemCode   – 생년월일·전화번호 검증 후 계정 연결 or 신규 생성
  *   addGuardianPhone / linkGuardianByPhone – 보호자 초대 / 초대받은 번호 자동 연결
  *   deleteAccount – 회원 탈퇴 (내 연결 정보 정리 + Auth 계정 삭제)
- *   createShareToken / viewReport – 리포트 공유 링크
+ *   createShareToken / getSharedReport / viewReport – 리포트 공유 링크 (sharedReport.ts)
  *   listPendingHouseholdMembers / linkHouseholdMember – 형제 가구 연동
  *   (직원 앱 Callable 은 아래 export 목록과 각 파일 머리말 참고 — web/src/services/live 가 호출)
  */
@@ -20,6 +20,7 @@ import * as crypto from 'crypto';
 import { sha256, toE164Korea } from './lib/crypto';
 import { findPendingHouseholdMembers } from './householdLink';
 import { COL_GUARDIAN_LINKS } from './lib/collections';
+import { SHARE_TOKEN_TTL_MS, sharedReportUrl } from './sharedReport';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -537,7 +538,8 @@ export const deleteAccount = onCall(
 // ────────────────────────────────────────────
 // createShareToken
 // 인증된 보호자가 자신의 리포트에 대해 7일짜리 공유 토큰 발급
-// → shareTokens/{token} 에 저장 후 URL 반환
+// → shareTokens/{token} 에 저장 후 웹 공개 페이지 주소(/r/<token>) 반환
+//   링크를 받은 사람은 로그인 없이 리포트를 보고 PDF 로 저장한다 (web/src/app/r/[token])
 // ────────────────────────────────────────────
 interface CreateShareTokenRequest {
   reportId: string;
@@ -574,9 +576,9 @@ export const createShareToken = onCall(
       throw new HttpsError('permission-denied', '이 리포트에 대한 접근 권한이 없습니다.');
     }
 
-    // 고유 토큰 생성 (32바이트 랜덤 hex)
+    // 고유 토큰 생성 (20바이트 랜덤 hex)
     const token = crypto.randomBytes(20).toString('hex');
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7일
+    const expiresAt = new Date(Date.now() + SHARE_TOKEN_TTL_MS);
 
     await db.collection('shareTokens').doc(token).set({
       reportId,
@@ -585,271 +587,30 @@ export const createShareToken = onCall(
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    // viewReport 함수 URL (asia-northeast3 리전)
-    const projectId = process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT ?? 'thinkcampus';
-    const url = `https://asia-northeast3-${projectId}.cloudfunctions.net/viewReport?t=${token}`;
-
-    return { url, expiresAt: expiresAt.toISOString() };
+    return { url: sharedReportUrl(token), expiresAt: expiresAt.toISOString() };
   },
 );
 
 // ────────────────────────────────────────────
-// viewReport  (HTTP GET)
-// 브라우저에서 직접 접근 — 토큰 검증 후 HTML 리포트 반환
-// URL: https://asia-northeast3-{project}.cloudfunctions.net/viewReport?t={token}
+// viewReport  (HTTP GET) — 예전 공유 링크 호환
+// 예전 앱이 만든 https://asia-northeast3-{project}.cloudfunctions.net/viewReport?t={token} 링크를
+// 웹 공개 페이지(/r/<token>)로 보낸다. 토큰 검증·만료 처리는 그 페이지가 getSharedReport 로 한다.
 // ────────────────────────────────────────────
-
-/** 등급 → CSS 색상 */
-function gradeColor(grade: string): string {
-  switch (grade) {
-    case 'S': return '#7c3aed';
-    case 'A': return '#1d4ed8';
-    case 'B': return '#0369a1';
-    default:  return '#6b7280';
-  }
-}
-function gradeBgColor(grade: string): string {
-  switch (grade) {
-    case 'S': return '#f5f3ff';
-    case 'A': return '#eff6ff';
-    case 'B': return '#f0f9ff';
-    default:  return '#f9fafb';
-  }
-}
-
-function buildReportHtml(report: admin.firestore.DocumentData, studentName: string): string {
-  const gc = gradeColor(report.totalGrade);
-
-  const programsHtml = (report.programs ?? []).map((p: any) => {
-    const pc = gradeColor(p.grade);
-    const compRows = (p.competencies ?? []).map((c: any) => `
-      <tr>
-        <td style="padding:8px 10px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151;">${c.label}</td>
-        <td style="padding:8px 10px;border-bottom:1px solid #f3f4f6;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="position:relative;flex:1;background:#f3f4f6;border-radius:4px;height:8px;">
-              <div style="width:${c.score}%;background:${pc};height:8px;border-radius:4px;"></div>
-              <div style="position:absolute;top:-2px;bottom:-2px;left:${c.benchmark}%;width:2px;background:#f59e0b;border-radius:1px;"></div>
-            </div>
-            <b style="color:${pc};min-width:28px;font-size:13px;">${c.score}</b>
-            <span style="font-size:11px;color:${c.score - c.benchmark >= 0 ? '#16a34a' : '#dc2626'}">
-              ${c.score - c.benchmark >= 0 ? '+' : ''}${c.score - c.benchmark}
-            </span>
-          </div>
-        </td>
-      </tr>`).join('');
-
-    return `
-      <div style="background:#fff;border-radius:16px;border:1px solid #e5e7eb;padding:20px;margin-bottom:16px;break-inside:avoid;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-          <span style="font-size:24px;">${p.programIcon}</span>
-          <div style="flex:1;">
-            <div style="font-size:16px;font-weight:700;color:#111827;">${p.programName}</div>
-            <div style="font-size:12px;color:#9ca3af;">강사 ${p.instructorName} · 출석 ${p.attendance}%</div>
-          </div>
-          <div style="background:${gradeBgColor(p.grade)};border-radius:10px;padding:6px 14px;text-align:center;">
-            <div style="font-size:22px;font-weight:900;color:${pc};">${p.grade}</div>
-            <div style="font-size:12px;color:${pc};font-weight:700;">${p.overallScore}점</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-          <div style="background:#f3f4f6;border-radius:8px;padding:8px 16px;text-align:center;flex:1;">
-            <div style="font-size:11px;color:#9ca3af;margin-bottom:2px;">캠프 전</div>
-            <div style="font-size:18px;font-weight:800;color:#374151;">${p.preScore}점</div>
-          </div>
-          <div style="color:#9ca3af;font-size:18px;">→</div>
-          <div style="background:${gradeBgColor(p.grade)};border-radius:8px;padding:8px 16px;text-align:center;flex:1;">
-            <div style="font-size:11px;color:${pc};margin-bottom:2px;">캠프 후</div>
-            <div style="font-size:18px;font-weight:800;color:${pc};">${p.postScore}점</div>
-          </div>
-          <div style="background:#f0fdf4;border-radius:8px;padding:8px 12px;text-align:center;">
-            <div style="font-size:15px;font-weight:800;color:#16a34a;">+${p.growthIndex}</div>
-            <div style="font-size:10px;color:#16a34a;">향상</div>
-          </div>
-        </div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
-          <thead><tr style="background:#f8fafc;">
-            <th style="padding:7px 10px;text-align:left;font-size:11px;color:#9ca3af;border-bottom:1px solid #e5e7eb;font-weight:600;">역량</th>
-            <th style="padding:7px 10px;text-align:left;font-size:11px;color:#9ca3af;border-bottom:1px solid #e5e7eb;font-weight:600;">점수 (🟡 또래평균)</th>
-          </tr></thead>
-          <tbody>${compRows}</tbody>
-        </table>
-        <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:10px;">
-          <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:5px;">강사 총평</div>
-          <div style="font-size:13px;color:#374151;line-height:1.75;">${p.instructorComment}</div>
-        </div>
-        ${p.highlights?.length ? `
-        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:10px;">
-          <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:5px;">인상적이었던 점</div>
-          ${p.highlights.map((h: string) => `<div style="font-size:12px;color:#78350f;margin-bottom:3px;">★ ${h}</div>`).join('')}
-        </div>` : ''}
-        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px;">
-          <div style="font-size:11px;font-weight:700;color:#1e40af;margin-bottom:5px;">향후 발전 방향</div>
-          ${(p.nextSteps ?? []).map((s: string, i: number) => `
-            <div style="display:flex;gap:8px;margin-bottom:4px;align-items:flex-start;">
-              <div style="width:18px;height:18px;border-radius:9px;background:#1d4ed8;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i + 1}</div>
-              <div style="font-size:12px;color:#1e40af;line-height:1.6;">${s}</div>
-            </div>`).join('')}
-        </div>
-      </div>`;
-  }).join('');
-
-  return `<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>${studentName} 학습 리포트 · ThinkCampus</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f8fafc;color:#111827;min-height:100vh;}
-    .wrap{max-width:720px;margin:0 auto;padding:24px 16px 48px;}
-    .tc-badge{display:inline-block;font-size:11px;font-weight:700;color:#1d4ed8;background:#eff6ff;padding:4px 10px;border-radius:20px;margin-bottom:10px;letter-spacing:0.5px;}
-    .hero{background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%);border-radius:20px;padding:28px;color:#fff;margin-bottom:20px;}
-    .hero-name{font-size:26px;font-weight:900;margin-bottom:2px;}
-    .hero-sub{font-size:13px;color:#bfdbfe;margin-bottom:20px;}
-    .hero-scores{display:flex;gap:12px;flex-wrap:wrap;}
-    .hero-score-box{background:rgba(255,255,255,0.15);border-radius:12px;padding:12px 20px;text-align:center;min-width:90px;}
-    .hero-score-num{font-size:34px;font-weight:900;}
-    .hero-score-label{font-size:11px;color:#bfdbfe;margin-top:2px;}
-    .card{background:#fff;border-radius:16px;border:1px solid #e5e7eb;padding:20px;margin-bottom:16px;}
-    .section-label{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
-    .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
-    .tag-green{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;}
-    .tag-blue{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;}
-    .score-bar-wrap{margin-bottom:6px;}
-    .score-bar-bg{height:8px;background:#f3f4f6;border-radius:4px;overflow:hidden;}
-    .score-bar-fill{height:8px;border-radius:4px;}
-    .prog-section-title{font-size:18px;font-weight:700;color:#111827;margin:24px 0 6px;}
-    .prog-section-hint{font-size:12px;color:#9ca3af;margin-bottom:14px;}
-    footer{text-align:center;font-size:12px;color:#9ca3af;margin-top:32px;padding-top:20px;border-top:1px solid #e5e7eb;}
-    .expire-notice{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:20px;}
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="tc-badge">ThinkCampus 공식 리포트</div>
-    <div class="expire-notice">⏱ 이 링크는 7일 후 만료됩니다. 내용을 저장하려면 인쇄하거나 PDF로 저장하세요.</div>
-
-    <!-- 히어로 -->
-    <div class="hero">
-      <div class="hero-name">${studentName} 학생</div>
-      <div class="hero-sub">${report.campusName} · ${report.campPeriod}</div>
-      <div class="hero-scores">
-        <div class="hero-score-box">
-          <div class="hero-score-num" style="color:${gc};">${report.totalGrade}</div>
-          <div class="hero-score-label">종합 등급</div>
-        </div>
-        <div class="hero-score-box">
-          <div class="hero-score-num">${report.totalScore}</div>
-          <div class="hero-score-label">종합 점수</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 성향 유형 -->
-    <div class="card">
-      <div class="section-label">학습 성향 유형</div>
-      <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:6px;">${report.personalityType}</div>
-      <div style="font-size:13px;color:#374151;line-height:1.75;">${report.personalityDesc}</div>
-    </div>
-
-    <!-- 강점 / 발전 -->
-    <div class="card" style="display:flex;gap:16px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:140px;">
-        <div class="section-label" style="color:#16a34a;">강점 분야</div>
-        <div class="tag-row">${(report.strengthAreas ?? []).map((s: string) => `<span class="tag-green">${s}</span>`).join('')}</div>
-      </div>
-      <div style="flex:1;min-width:140px;">
-        <div class="section-label" style="color:#1d4ed8;">발전 권장</div>
-        <div class="tag-row">${(report.growthAreas ?? []).map((s: string) => `<span class="tag-blue">${s}</span>`).join('')}</div>
-      </div>
-    </div>
-
-    <!-- 담임 총평 -->
-    <div class="card">
-      <div class="section-label">담임 강사 종합 총평</div>
-      <div style="font-size:14px;color:#374151;line-height:1.8;">${report.overallComment}</div>
-    </div>
-
-    <!-- 종합 점수 바 -->
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <div class="section-label" style="margin-bottom:0;">종합 점수</div>
-        <b style="color:${gc};">${report.totalScore}점</b>
-      </div>
-      <div class="score-bar-bg">
-        <div class="score-bar-fill" style="width:${report.totalScore}%;background:${gc};"></div>
-      </div>
-    </div>
-
-    <!-- 프로그램별 상세 -->
-    <div class="prog-section-title">프로그램별 상세 평가</div>
-    <div class="prog-section-hint">🟡 황색 선 = 또래 평균 · 점수 우측 숫자 = 또래 대비 차이</div>
-    ${programsHtml}
-
-    <footer>
-      발급일 ${report.issueDate} · ThinkCampus 공식 학습 리포트<br/>
-      이 페이지는 로그인 없이 열람 가능한 임시 공유 페이지입니다.
-    </footer>
-  </div>
-</body>
-</html>`;
-}
-
 export const viewReport = onRequest(
   { region: 'asia-northeast3', maxInstances: 10 },
   async (req, res) => {
-    const token = req.query['t'] as string | undefined;
-
-    if (!token) {
+    const token = req.query['t'];
+    if (typeof token !== 'string' || !/^[a-f0-9]{20,64}$/.test(token)) {
       res.status(400).send('<h2>잘못된 요청입니다. 공유 링크를 다시 확인해주세요.</h2>');
       return;
     }
-
-    // 토큰 조회
-    const tokenSnap = await db.collection('shareTokens').doc(token).get();
-    if (!tokenSnap.exists) {
-      res.status(404).send('<h2>유효하지 않은 링크입니다.</h2>');
-      return;
-    }
-
-    const tokenData = tokenSnap.data()!;
-
-    // 만료 확인
-    if (tokenData.expiresAt.toDate() < new Date()) {
-      res.status(410).send(`
-        <html><body style="font-family:sans-serif;text-align:center;padding:60px;">
-          <h2>⏰ 링크가 만료되었습니다</h2>
-          <p style="color:#6b7280;margin-top:12px;">새 공유 링크는 ThinkCampus 앱에서 생성해주세요.</p>
-        </body></html>`);
-      return;
-    }
-
-    // 리포트 조회
-    const reportSnap = await db.collection('reports').doc(tokenData.reportId).get();
-    if (!reportSnap.exists) {
-      res.status(404).send('<h2>리포트를 찾을 수 없습니다.</h2>');
-      return;
-    }
-
-    const report = reportSnap.data()!;
-
-    // 학생 이름 조회
-    let studentName = '학생';
-    const studentSnap = await db.collection('students').doc(report.studentId).get();
-    if (studentSnap.exists) {
-      studentName = studentSnap.data()?.name ?? '학생';
-    }
-
-    const html = buildReportHtml(report, studentName);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
-    res.status(200).send(html);
+    res.redirect(302, sharedReportUrl(token));
   },
 );
 
 // ── 학부모 ──
+export { getSharedReport } from './sharedReport';
 export { listPendingHouseholdMembers, linkHouseholdMember } from './householdLink';
 export { listStudentProgramBundles } from './listStudentProgramBundles';
 export { listGuardianNotifications, markNotificationRead } from './guardianNotifications';
@@ -870,3 +631,22 @@ export { getInstructorHome, listInstructorSessions, getInstructorSessionWorkspac
 export { importRoster } from './importRoster';
 export { createProgramRun } from './createProgramRun';
 export { getCompanyHome, listProgramRuns, getProgramRun, listProgramTemplates, listCampuses, updateProgramRunPolicy, listStaff } from './companyApi';
+
+// 학부모 채팅 · 민원 · 만족도 · 발주처 담당자 (docs/OFFICER_PORTAL_PLAN.md)
+export { listGuardianChatRooms, listCenterChatRooms, getChatRoom, sendChatMessage, markChatRead } from './chat';
+export { listInquiries, getInquiry, fileInquiry, updateInquiry } from './inquiries';
+export { listPendingSurveys, getSurvey, submitSurvey, getSurveyResults, upsertProgramRunSurvey } from './survey';
+export { listOfficers, inviteOfficer, revokeOfficer, updateProgramRunPartnerSettings } from './officers';
+export {
+  getPartnerAccess,
+  completeOfficerPasswordChange,
+  listPartnerRuns,
+  getPartnerHome,
+  listPartnerLessons,
+  listPartnerInquiries,
+  setOfficerNote,
+  getPartnerParticipation,
+  getPartnerSurveyResults,
+  listPartnerInstructors,
+  getPartnerReportData,
+} from './partnerApi';

@@ -19,6 +19,18 @@ import type {
 } from "@/services/types";
 import { applyReportReview, listReportRows } from "./reports";
 import {
+  buildRoomDetail,
+  fileInquiryInWorld,
+  inquiryToDto,
+  chatKpi,
+  markReadInWorld,
+  sendMessageInWorld,
+  staffRooms,
+  updateInquiryInWorld,
+  type ChatViewer,
+} from "./chat";
+import { surveyResults } from "./survey";
+import {
   activeEnrollments,
   delay,
   instructorName,
@@ -118,6 +130,7 @@ export function buildDashboard(w: DemoWorld, programRunId: string): CenterDashbo
     studentsWithoutGuardian: withoutGuardian,
     sessionsWithoutInstructor: sessions.filter((s) => !s.instructorId && s.scheduledDate >= today).length,
     nextSessionDate: future[0] ?? null,
+    ...chatKpi(w, programRunId),
   };
 }
 
@@ -139,6 +152,7 @@ export function buildInstructorDto(w: DemoWorld, staffUid: string, programRunId:
 }
 
 export function createDemoCenterApi(campusIds: string[], actorUid: string): CenterApi {
+  const viewer: ChatViewer & { kind: "staff" } = { kind: "staff", uid: actorUid, campusIds };
   return {
     async listRuns() {
       const w = getDemoWorld();
@@ -389,6 +403,72 @@ export function createDemoCenterApi(campusIds: string[], actorUid: string): Cent
         created = { id, recipients: uids.size };
       });
       return delay(created, 200);
+    },
+
+    // ── 학부모 채팅 ──
+    async listChatRooms(programRunId) {
+      return delay(staffRooms(getDemoWorld(), viewer, programRunId));
+    },
+
+    async getChatRoom(roomId) {
+      return delay(buildRoomDetail(getDemoWorld(), viewer, roomId));
+    },
+
+    async sendChatMessage(input) {
+      mutateDemoWorld((w) => sendMessageInWorld(w, viewer, input));
+      await delay(undefined, 150);
+    },
+
+    async markChatRead(roomId) {
+      const w = getDemoWorld();
+      const room = w.chatRooms.find((r) => r.id === roomId);
+      const unread = room ? w.chatMessages.some((m) => m.roomId === roomId && m.fromRole === "guardian" && m.createdAt > (room.lastReadAt.staff ?? "")) : false;
+      if (unread) mutateDemoWorld((world) => markReadInWorld(world, viewer, roomId));
+    },
+
+    watchChat() {
+      // 체험판: 세계가 바뀌면 useQuery 가 다시 조회한다 (services/hooks.ts)
+      return () => {};
+    },
+
+    // ── 민원 · 문의 ──
+    async listInquiries(filter) {
+      const w = getDemoWorld();
+      const list = w.inquiries
+        .filter((q) => campusIds.includes(q.campusId))
+        .filter((q) => !filter.programRunId || q.programRunId === filter.programRunId)
+        .filter((q) => !filter.kind || q.kind === filter.kind)
+        .filter((q) => !filter.status || (filter.status === "open" ? q.status !== "resolved" : q.status === filter.status))
+        .sort((a, b) => (a.status === "resolved" ? 1 : 0) - (b.status === "resolved" ? 1 : 0) || b.createdAt.localeCompare(a.createdAt))
+        .map((q) => inquiryToDto(w, q));
+      return delay(list);
+    },
+
+    async getInquiry(inquiryId) {
+      const w = getDemoWorld();
+      const q = w.inquiries.find((x) => x.id === inquiryId && campusIds.includes(x.campusId));
+      if (!q) throw new Error("민원을 찾을 수 없어요.");
+      return delay(inquiryToDto(w, q));
+    },
+
+    async fileInquiry(input) {
+      let id = "";
+      mutateDemoWorld((w) => {
+        id = fileInquiryInWorld(w, actorUid, campusIds, input).id;
+      });
+      const w = getDemoWorld();
+      return delay(inquiryToDto(w, w.inquiries.find((q) => q.id === id)!), 150);
+    },
+
+    async updateInquiry(input) {
+      mutateDemoWorld((w) => updateInquiryInWorld(w, actorUid, campusIds, input));
+      await delay(undefined, 150);
+    },
+
+    async getSurveyResults(programRunId) {
+      const w = getDemoWorld();
+      assertCampus(w, campusIds, programRunId);
+      return delay(surveyResults(w, programRunId, { publicOnly: false, mask: false }));
     },
   };
 }

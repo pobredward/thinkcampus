@@ -60,6 +60,13 @@ function NavIcon({ name }: { name: StaffNavIcon }) {
           <path d="M21 11.5a8.4 8.4 0 0 1-9 8.3 8.4 8.4 0 0 1-4-1L3 21l1.2-3.5A8.4 8.4 0 0 1 3 11.5 8.5 8.5 0 0 1 11.5 3 8.4 8.4 0 0 1 21 11.5z" />
         </svg>
       );
+    case "chat":
+      return (
+        <svg {...common}>
+          <path d="M4.5 6.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H11l-4.2 3.2a.5.5 0 0 1-.8-.4v-2.8h-.5a2 2 0 0 1-2-2z" />
+          <path d="M8.5 9.5h7M8.5 12.5h4.5" />
+        </svg>
+      );
     case "import":
       return (
         <svg {...common}>
@@ -100,22 +107,31 @@ function NavIcon({ name }: { name: StaffNavIcon }) {
   }
 }
 
-export function StaffNav({ items }: { items: StaffNavItem[] }) {
+export function StaffNav({ items, badges }: { items: StaffNavItem[]; badges?: Partial<Record<NonNullable<StaffNavItem["badge"]>, number>> }) {
   const pathname = usePathname();
   return (
     <nav aria-label="메인 탭" className="no-print sticky bottom-0 z-40 border-t border-line bg-paper" style={{ paddingBottom: "var(--sab)" }}>
       <ul className="mx-auto flex max-w-2xl" style={{ height: "var(--tabbar-h)" }}>
         {items.map((t) => {
           const focused = t.match(pathname);
+          const count = t.badge ? (badges?.[t.badge] ?? 0) : 0;
           return (
             <li key={t.href} className="relative flex flex-1 items-center justify-center">
               {focused && <span aria-hidden="true" className="absolute top-0 h-[3px] w-8 rounded-b-full bg-gold" />}
               <Link
                 href={t.href}
                 aria-current={focused ? "page" : undefined}
+                aria-label={count > 0 ? `${t.label} (답을 기다리는 대화 ${count}개)` : undefined}
                 className={`tap flex min-w-[56px] flex-col items-center justify-center gap-[3px] px-2 py-1 ${focused ? "text-gold" : "text-faint"}`}
               >
-                <NavIcon name={t.icon} />
+                <span className="relative">
+                  <NavIcon name={t.icon} />
+                  {count > 0 && (
+                    <span className="absolute -right-[11px] -top-[6px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-late px-[5px] text-[14px] font-bold leading-none text-ink" data-testid={`nav-badge-${t.badge}`}>
+                      {count > 99 ? "99+" : count}
+                    </span>
+                  )}
+                </span>
                 <span className={`text-[14px] ${focused ? "font-bold text-gold" : "font-medium text-sub"}`}>{t.label}</span>
               </Link>
             </li>

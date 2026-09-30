@@ -1,14 +1,24 @@
 /**
- * 더미 리포트 데이터
- * 나중에 Firestore reports 컬렉션으로 교체 예정
+ * 종합 리포트 — 프로그램(6회차)이 모두 끝난 뒤 학생마다 한 번 발급되는 최종 리포트
+ * Firestore reports/{reportId} 문서와 같은 모양 (guardianUids · programRunId 는 서버가 붙이는 필드)
  *
- * 평가 체계:
- *   각 프로그램별로 4~5개의 세부 역량 항목을 평가 (100점 만점)
- *   전체 종합 점수 = 6개 프로그램 평균
- *   성장지수 = (캠프 전 자기평가 대비 캠프 후 강사 평가 차이)
+ * 구성 (화면·PDF·공유 페이지가 같은 순서로 보여 준다)
+ *   1. 표지      학생 · 프로그램 · 기간 · 캠퍼스 · 발급일 · 발급처
+ *   2. 종합      종합 점수·등급, 학습 성향, 강점·발전 분야, 담임 총평
+ *   3. 출석      6회 출석·지각·결석, 과제 제출
+ *   4. 과목별    회차(과목)마다 점수·등급·성장지수, 역량 4~5개(또래 평균 비교), 강사 코멘트, 인상적이었던 점, 다음 단계
+ *   5. 회차별    선생님 한마디 6회 타임라인
+ *   6. 마무리    다음 프로그램 안내 · 인사
+ *
+ * 평가 체계
+ *   과목별 역량(100점)의 평균 = 과목 점수, 과목 점수의 평균 = 종합 점수
+ *   성장지수 = 첫 시간 관찰 점수(preScore) 대비 마지막 관찰 점수(postScore)의 차이
+ *   등급: S 90점 이상 · A 75점 이상 · B 60점 이상 · C 그 미만
  */
 
 // ── 타입 정의 ────────────────────────────────────────────
+
+export type ReportGrade = 'S' | 'A' | 'B' | 'C';
 
 export interface CompetencyScore {
   label: string;          // 역량 이름
@@ -17,21 +27,50 @@ export interface CompetencyScore {
   description: string;    // 역량 설명
 }
 
+/** 과목(회차)별 평가 */
 export interface ProgramReport {
   programId: string;
-  programName: string;
-  programIcon: string;
+  sessionNumber: number;    // 회차 (1~6)
+  date: string;             // 수업일 'YYYY.MM.DD'
+  programName: string;      // 과목명
+  programIcon?: string;     // (예전 화면 호환용 — 새 화면·PDF 에서는 쓰지 않음)
   instructorName: string;
-  attendance: number;       // 출석률 %
-  overallScore: number;     // 프로그램 종합 점수 0~100
-  preScore: number;         // 캠프 전 자기평가 0~100
-  postScore: number;        // 캠프 후 강사 평가 0~100
+  instructorTitle?: string; // 강사 소속
+  attendance: number;       // 출석률 % (3차시 기준)
+  overallScore: number;     // 과목 점수 0~100
+  preScore: number;         // 첫 시간 관찰 점수 0~100
+  postScore: number;        // 마지막 시간 관찰 점수 0~100
   growthIndex: number;      // 성장지수 = postScore - preScore
-  grade: 'S' | 'A' | 'B' | 'C';  // 등급
+  grade: ReportGrade;
   competencies: CompetencyScore[];
   instructorComment: string;      // 강사 총평
-  nextSteps: string[];            // 향후 발전 방향 제안 (2~3개)
-  highlights: string[];           // 캠프 중 인상적이었던 점
+  nextSteps: string[];            // 다음 단계 제안 (2~3개)
+  highlights: string[];           // 인상적이었던 점
+}
+
+export interface AttendanceSummary {
+  total: number;          // 전체 회차
+  present: number;        // 출석
+  late: number;           // 지각
+  absent: number;         // 결석
+  homeworkDone: number;   // 과제 제출 횟수
+  homeworkTotal: number;  // 과제가 있었던 회차 수
+}
+
+/** 회차별 선생님 한마디 */
+export interface SessionNote {
+  sessionNumber: number;
+  date: string;             // 'YYYY.MM.DD'
+  topic: string;            // 과목명
+  instructorName: string;
+  status: 'present' | 'late' | 'absent';
+  note: string;             // 그날 선생님 한마디
+}
+
+export interface NextProgramNotice {
+  title: string;
+  period: string;
+  note: string;
 }
 
 export interface StudentReport {
@@ -39,28 +78,41 @@ export interface StudentReport {
   studentId: string;
   studentName: string;
   campusName: string;
-  campPeriod: string;        // 캠프 기간
-  issueDate: string;         // 발급일
-  totalScore: number;        // 전체 종합 점수
-  totalGrade: 'S' | 'A' | 'B' | 'C';
+  programTitle: string;      // 프로그램 이름
+  campPeriod: string;        // 프로그램 기간 'YYYY.MM.DD – YYYY.MM.DD'
+  issueDate: string;         // 발급일 'YYYY.MM.DD'
+  issuedBy: string;          // 발급처 · 담당 (예: 'ThinkCampus 강남점 · 담당 이정민')
+  totalScore: number;        // 종합 점수
+  totalGrade: ReportGrade;
   overallComment: string;    // 담임 총평
   personalityType: string;   // 학습 성향 유형
   personalityDesc: string;   // 성향 설명
   strengthAreas: string[];   // 강점 분야
-  growthAreas: string[];     // 발전 필요 분야
+  growthAreas: string[];     // 발전 분야
+  attendanceSummary: AttendanceSummary;
   programs: ProgramReport[];
+  sessionNotes: SessionNote[];
+  nextProgram?: NextProgramNotice;
+  closingMessage: string;    // 마무리 인사
 }
 
 // ── 등급 계산 유틸 ────────────────────────────────────────
 
-export function getGrade(score: number): 'S' | 'A' | 'B' | 'C' {
+export function getGrade(score: number): ReportGrade {
   if (score >= 90) return 'S';
   if (score >= 75) return 'A';
   if (score >= 60) return 'B';
   return 'C';
 }
 
-export function getGradeColor(grade: 'S' | 'A' | 'B' | 'C'): string {
+export const GRADE_LABEL: Record<ReportGrade, string> = {
+  S: '최우수',
+  A: '우수',
+  B: '양호',
+  C: '노력 필요',
+};
+
+export function getGradeColor(grade: ReportGrade): string {
   switch (grade) {
     case 'S': return '#d4b06a';
     case 'A': return '#e0c184';
@@ -69,7 +121,7 @@ export function getGradeColor(grade: 'S' | 'A' | 'B' | 'C'): string {
   }
 }
 
-export function getGradeBg(grade: 'S' | 'A' | 'B' | 'C'): string {
+export function getGradeBg(grade: ReportGrade): string {
   switch (grade) {
     case 'S': return '#2a2417';
     case 'A': return '#2a2417';
@@ -78,30 +130,37 @@ export function getGradeBg(grade: 'S' | 'A' | 'B' | 'C'): string {
   }
 }
 
-// ── 더미 데이터 ───────────────────────────────────────────
+// ── 예시 리포트: 김민준 · 2026 ThinkCampus 토요 창의융합 ──────
+//   회차·과목·강사는 data/dummyProgram.ts 의 6회차와 같다.
+//   출석·과제·회차별 한마디는 data/dummyAttendance.ts 의 1~3회차와 이어진다.
 
 export const DUMMY_REPORT: StudentReport = {
   reportId: 'report-2026-001',
   studentId: 'student-001',
   studentName: '김민준',
   campusName: 'ThinkCampus 강남점',
+  programTitle: '2026 ThinkCampus 토요 창의융합',
   campPeriod: '2026.09.05 – 2026.11.14',
-  issueDate: '2026.11.21',
-  totalScore: 82,
+  issueDate: '2026.11.20',
+  issuedBy: 'ThinkCampus 강남점 · 담당 이정민',
+  totalScore: 83,
   totalGrade: 'A',
   personalityType: '탐구형 창의인재 (EXPLORER)',
   personalityDesc:
-    '새로운 지식에 대한 호기심이 강하고, 다양한 분야를 연결하여 사고하는 융합적 사고력이 뛰어납니다. 발표보다 깊이 있는 탐구를 즐기며, 충분한 준비 후 자신 있게 의견을 표현하는 성향입니다.',
+    '궁금한 것이 생기면 끝까지 파고드는 힘이 있습니다. 여러 과목에서 배운 내용을 서로 연결해 자기 생각을 만들어 내고, 충분히 준비한 뒤에는 또박또박 자신 있게 말합니다. 먼저 나서서 발표하기보다 깊이 있게 탐구하는 쪽을 즐기는 아이입니다.',
   overallComment:
-    '민준이는 6회 과정을 통해 눈에 띄는 성장을 보여주었습니다. 특히 AI/SW 코딩 분야에서 타의 추종을 불허하는 집중력을 발휘했으며, 디베이트 수업에서는 초반의 소극적인 자세를 극복하고 마지막 회차에서 팀 발표를 이끄는 리더십을 보여주었습니다. 인문학 계열 과목에서도 꾸준한 노력으로 평균 이상의 역량을 달성했습니다.',
+    '민준이는 6회 수업 동안 눈에 띄게 자랐습니다. 첫 시간에는 영어로 말할 차례가 오면 잠시 머뭇거렸지만, 마지막 시간에는 모둠 발표를 스스로 맡아 이끌었습니다. 특히 AI 코딩 시간에는 수업에서 다룬 범위를 넘어 스스로 코드를 고쳐 오는 열의를 보였고, 과학 시간의 다리 만들기에서는 모둠에서 가장 창의적인 구조를 제안했습니다. 역사·토론처럼 처음엔 낯설어하던 과목에서도 매 시간 조금씩 더 손을 드는 모습이 대견했습니다. 자기 생각을 말로 표현하는 연습을 이어 간다면 탐구력과 표현력을 두루 갖춘 아이로 자랄 것입니다.',
   strengthAreas: ['AI/SW 코딩', '창의 융합 과학', '세계사 인문학'],
-  growthAreas: ['발표·표현력', '토론 논리 구성'],
+  growthAreas: ['영어 말하기 자신감', '토론에서 내 주장 펼치기'],
+  attendanceSummary: { total: 6, present: 5, late: 1, absent: 0, homeworkDone: 5, homeworkTotal: 6 },
   programs: [
     {
       programId: 'prog-eng',
+      sessionNumber: 1,
+      date: '2026.09.05',
       programName: '글로벌 영어 커뮤니케이션',
-      programIcon: '🌍',
       instructorName: '김지수',
+      instructorTitle: '연세대학교 영어영문학과',
       attendance: 100,
       overallScore: 74,
       preScore: 60,
@@ -109,26 +168,28 @@ export const DUMMY_REPORT: StudentReport = {
       growthIndex: 14,
       grade: 'B',
       competencies: [
-        { label: '어휘·표현력', score: 78, benchmark: 70, description: '핵심 표현 습득 및 활용 능력' },
-        { label: '청취 이해력', score: 80, benchmark: 68, description: '원어민 발화 이해 및 요점 파악' },
-        { label: '말하기 유창성', score: 65, benchmark: 65, description: '자연스러운 영어 발화 속도와 흐름' },
-        { label: '토론 참여도', score: 70, benchmark: 67, description: '영어 토론 참여 적극성 및 논리성' },
-        { label: '발표 자신감', score: 72, benchmark: 64, description: '영어 발표 시 자신감과 태도' },
+        { label: '어휘·표현', score: 78, benchmark: 70, description: '수업에서 배운 표현을 기억하고 알맞게 쓰는 힘' },
+        { label: '듣고 이해하기', score: 80, benchmark: 68, description: '선생님의 영어 설명과 친구의 말을 알아듣는 힘' },
+        { label: '말하기', score: 65, benchmark: 65, description: '머뭇거리지 않고 문장으로 이어 말하는 힘' },
+        { label: '토론 참여', score: 70, benchmark: 67, description: '소그룹 토론에서 자기 의견을 내는 적극성' },
+        { label: '발표 자신감', score: 72, benchmark: 64, description: '친구들 앞에서 영어로 발표할 때의 태도' },
       ],
       instructorComment:
-        '어휘력과 청취 능력은 또래보다 우수합니다. 말하기에서 다소 머뭇거리는 모습이 있었으나, 수업 후반부로 갈수록 발화량이 눈에 띄게 늘었습니다. 꾸준한 영어 노출 환경 조성을 권장합니다.',
+        '단어를 많이 알고 있고 설명을 잘 알아듣습니다. 처음에는 말할 차례가 오면 머뭇거렸지만, 소그룹 토론이 두 번째로 돌아왔을 때는 준비한 문장을 끝까지 말했습니다. 틀려도 괜찮다는 걸 몸으로 익히면 말하기 점수는 금방 오를 아이입니다.',
       nextSteps: [
-        '원어민 화상 영어 주 2회 이상 진행 권장',
-        'TEDx 영어 강연 청취로 발표 표현 습득',
-        '영어 일기 쓰기로 작문 능력 보완',
+        '집에서 하루 한 문장 영어로 말해 보기 (오늘 있었던 일 한 가지)',
+        '좋아하는 영어 동화·애니메이션을 자막 없이 한 번, 자막 켜고 한 번 보기',
+        '영어 노트에 정리한 표현 30개를 소리 내어 읽기',
       ],
-      highlights: ['소그룹 토론에서 팀원의 의견을 적극 경청하고 정리하는 모습이 인상적', '어려운 단어도 문맥을 통해 유추하는 능력 탁월'],
+      highlights: ['소그룹 토론에서 친구들 의견을 잘 듣고 정리해 말함', '모르는 단어도 앞뒤 문장을 보고 뜻을 짐작해 냄'],
     },
     {
       programId: 'prog-world',
+      sessionNumber: 2,
+      date: '2026.09.19',
       programName: '세계사 인문학',
-      programIcon: '🌐',
       instructorName: '박민준',
+      instructorTitle: '고려대학교 사학과',
       attendance: 100,
       overallScore: 85,
       preScore: 65,
@@ -136,78 +197,82 @@ export const DUMMY_REPORT: StudentReport = {
       growthIndex: 20,
       grade: 'A',
       competencies: [
-        { label: '역사적 사고력', score: 90, benchmark: 72, description: '사건의 인과관계와 흐름을 파악하는 능력' },
-        { label: '비교·분석력', score: 88, benchmark: 69, description: '다양한 문명·시대를 비교 분석하는 능력' },
-        { label: '비판적 사고', score: 82, benchmark: 67, description: '역사적 관점에서 현대 문제를 바라보는 능력' },
-        { label: '핵심 개념 이해', score: 80, benchmark: 70, description: '주요 역사 개념 및 용어 습득 수준' },
+        { label: '흐름 이해', score: 90, benchmark: 72, description: '사건이 왜 일어났고 무엇으로 이어졌는지 파악하는 힘' },
+        { label: '비교하기', score: 88, benchmark: 69, description: '다른 시대·다른 나라를 견주어 보는 힘' },
+        { label: '내 생각 말하기', score: 82, benchmark: 67, description: '역사 이야기를 오늘의 우리와 연결해 생각하는 힘' },
+        { label: '핵심 개념', score: 80, benchmark: 70, description: '수업에서 다룬 주요 낱말과 개념을 기억하는 정도' },
       ],
       instructorComment:
-        '역사적 사고력이 뛰어나며, 수업 중 질문의 깊이가 타 학생들에 비해 매우 심화된 수준이었습니다. 문명 비교 토론에서는 스스로 새로운 관점을 제시하는 창의성을 보여주었습니다.',
+        '질문의 깊이가 남달랐습니다. 실크로드 이야기에서 "그럼 물건만 오간 게 아니라 병도 같이 옮겨졌겠네요?"라고 물어 반 전체가 감염병 이야기로 토론을 이어 갔습니다. 근대 산업혁명을 요즘 AI와 연결해 발표한 것도 기억에 남습니다.',
       nextSteps: [
-        '세계사 관련 다큐멘터리 시청 (EBS 문명 시리즈 등)',
-        '관심 시대의 역사 소설 읽기',
-        '역사 관련 독서 후 독후감 작성 습관화',
+        '세계사 어린이 만화·다큐멘터리 한 편 보고 가장 놀라운 장면 이야기해 보기',
+        '관심 있는 나라 하나를 골라 지도에서 찾고 그 나라 이야기 찾아보기',
       ],
-      highlights: ['산업혁명 단원에서 현대 AI와의 연결 고리를 스스로 발표', '매 수업 예습 완료로 질문 수준이 월등히 높았음'],
+      highlights: ['산업혁명과 요즘 AI 를 스스로 연결해 발표', '실크로드 토론에서 반 전체 질문을 이끈 한마디'],
     },
     {
       programId: 'prog-korean',
+      sessionNumber: 3,
+      date: '2026.10.03',
       programName: '한국사 인문학',
-      programIcon: '🏯',
       instructorName: '이서연',
+      instructorTitle: '서울대학교 국사학과',
       attendance: 100,
       overallScore: 79,
       preScore: 68,
       postScore: 79,
       growthIndex: 11,
-      grade: 'B',
+      grade: 'A',
       competencies: [
-        { label: '시대적 맥락 이해', score: 82, benchmark: 73, description: '각 시대의 정치·사회·문화적 배경 파악' },
-        { label: '사료 해석 능력', score: 75, benchmark: 64, description: '역사 자료를 읽고 해석하는 능력' },
-        { label: '역사 인물 분석', score: 80, benchmark: 68, description: '주요 역사 인물의 행동과 영향력 분석' },
-        { label: '근현대사 이해', score: 76, benchmark: 70, description: '근현대사 핵심 사건 및 배경 이해 수준' },
+        { label: '시대 이해', score: 82, benchmark: 73, description: '그 시대 사람들이 어떻게 살았는지 그려 보는 힘' },
+        { label: '자료 읽기', score: 75, benchmark: 64, description: '그림·지도·옛 글을 보고 뜻을 찾아내는 힘' },
+        { label: '인물 이해', score: 80, benchmark: 68, description: '역사 인물이 왜 그렇게 행동했는지 생각해 보는 힘' },
+        { label: '근현대사', score: 76, benchmark: 70, description: '가까운 시대의 큰 사건을 알고 있는 정도' },
       ],
       instructorComment:
-        '시대적 맥락을 잘 파악하고, 역사 인물 카드게임에서 적극적으로 참여했습니다. 근현대사 부분에서 더 깊이 있는 학습이 이루어진다면 한국사 전반에 대한 이해도가 한층 높아질 것입니다.',
+        '18분 늦게 왔지만 자리에 앉자마자 바로 활동에 들어갔습니다. 역사 인물 카드 게임에서 인물의 선택을 근거를 들어 설명하는 모습이 좋았고, 조선 시대 정치 구조를 그림으로 그려 설명한 발표가 또렷했습니다. 근현대사는 아직 낯설어하니 이야기 위주로 접해 보면 좋겠습니다.',
       nextSteps: [
-        '한국사능력검정시험 3급 목표 학습 권장',
-        '박물관·전시회 방문으로 역사 실체 체험',
-        '역사 드라마·다큐 비판적으로 시청하기',
+        '가까운 박물관·역사관에 가서 오늘 배운 시대의 유물 하나 찾아보기',
+        '역사 동화나 어린이 역사책 중 근현대 편 한 권 읽기',
       ],
-      highlights: ['조선 시대 정치 구조 발표에서 도식화를 활용한 명쾌한 설명', '역사 인물 카드게임 우승'],
+      highlights: ['조선 시대 정치 구조를 그림으로 정리해 발표', '역사 인물 카드 게임 모둠 1등'],
     },
     {
       programId: 'prog-debate',
+      sessionNumber: 4,
+      date: '2026.10.17',
       programName: '사고·창의력 디베이트',
-      programIcon: '🎙️',
       instructorName: '최현우',
+      instructorTitle: '연세대학교 언론홍보영상학부',
       attendance: 100,
       overallScore: 76,
       preScore: 55,
       postScore: 76,
       growthIndex: 21,
-      grade: 'B',
+      grade: 'A',
       competencies: [
-        { label: '논리적 구성력', score: 80, benchmark: 66, description: '주장-근거-반박 구조로 논점을 전개하는 능력' },
-        { label: '설득력', score: 72, benchmark: 64, description: '상대방을 논리적으로 설득하는 능력' },
-        { label: '반박·재구성', score: 75, benchmark: 62, description: '상대 논점에 즉각적으로 대응하는 능력' },
-        { label: '경청·공감', score: 85, benchmark: 70, description: '상대방 의견을 정확히 이해하고 반영하는 능력' },
-        { label: '발표 자신감', score: 68, benchmark: 65, description: '발표 시 목소리·시선·자세 등 표현력' },
+        { label: '논리 세우기', score: 80, benchmark: 66, description: '주장 → 이유 → 예시 순서로 말하는 힘' },
+        { label: '설득하기', score: 72, benchmark: 64, description: '듣는 사람이 고개를 끄덕이게 말하는 힘' },
+        { label: '반박하기', score: 75, benchmark: 62, description: '상대 말의 빈틈을 찾아 되묻는 힘' },
+        { label: '경청·공감', score: 85, benchmark: 70, description: '상대 의견을 끝까지 듣고 정확히 이해하는 힘' },
+        { label: '발표 태도', score: 68, benchmark: 65, description: '목소리 크기 · 시선 · 자세' },
       ],
       instructorComment:
-        '초반에는 발언 횟수가 적었으나, 4회차부터 급격한 성장세를 보였습니다. 특히 경청 능력이 매우 뛰어나 상대 발언의 허점을 정확히 짚어내는 모습이 인상적이었습니다. 발표 자신감을 더 키운다면 탁월한 토론자가 될 수 있습니다.',
+        '수업 초반에는 발언이 적었지만 상대 팀 말을 누구보다 잘 듣고 있었습니다. 후반 토론에서 "아까 말씀하신 근거는 예외가 있어요"라며 정확히 빈틈을 짚었고, 마지막 팀 발표를 자기가 하겠다고 손을 들었습니다. 목소리를 조금만 더 키우면 훨씬 설득력 있는 토론자가 됩니다.',
       nextSteps: [
-        '학교 토론 동아리 또는 모의 UN 참가 권장',
-        '매일 뉴스 1건 읽고 찬반 정리하는 습관',
-        'TED 강연 보며 발표 기법 학습',
+        '저녁 식탁에서 "오늘의 찬반 한 가지" 정해 두 문장으로 말해 보기',
+        '뉴스나 책에서 한 가지 주장을 고르고 이유를 두 개 찾아보기',
+        '거울 앞에서 발표 연습 — 첫 문장만 크게 말해 보기',
       ],
-      highlights: ['마지막 회차 팀 디베이트에서 팀 발표를 직접 이끔', '경청 역량 부문 전체 1위'],
+      highlights: ['마지막 팀 발표를 스스로 맡아 이끔', '경청 부문 반 전체 1위'],
     },
     {
       programId: 'prog-steam',
+      sessionNumber: 5,
+      date: '2026.10.31',
       programName: '창의 융합 과학 STEAM',
-      programIcon: '🔬',
       instructorName: '정다은',
+      instructorTitle: '카이스트 화학과',
       attendance: 100,
       overallScore: 88,
       preScore: 70,
@@ -215,26 +280,28 @@ export const DUMMY_REPORT: StudentReport = {
       growthIndex: 18,
       grade: 'A',
       competencies: [
-        { label: '과학적 탐구력', score: 90, benchmark: 68, description: '가설 설정 및 실험 설계 능력' },
-        { label: '공학적 사고', score: 88, benchmark: 65, description: '문제를 구조적으로 분석하고 해결책을 설계하는 능력' },
-        { label: '창의적 발상', score: 92, benchmark: 70, description: '기존 방식을 벗어난 독창적 아이디어 제안 능력' },
-        { label: '협업 능력', score: 85, benchmark: 72, description: '모둠 활동에서의 협력과 역할 분담 능력' },
-        { label: '결과 발표력', score: 82, benchmark: 66, description: '실험 결과를 논리적으로 설명하는 능력' },
+        { label: '탐구하기', score: 90, benchmark: 68, description: '"왜 그럴까?"를 실험으로 확인해 보는 힘' },
+        { label: '설계하기', score: 88, benchmark: 65, description: '문제를 나누어 해결 방법을 그려 보는 힘' },
+        { label: '창의적 발상', score: 92, benchmark: 70, description: '남들과 다른 방법을 떠올리는 힘' },
+        { label: '협업', score: 85, benchmark: 72, description: '모둠에서 역할을 나누고 함께 해내는 힘' },
+        { label: '결과 발표', score: 82, benchmark: 66, description: '실험 결과를 이유와 함께 설명하는 힘' },
       ],
       instructorComment:
-        '브릿지 설계 챌린지에서 가장 창의적인 구조를 제안했으며, 팀원들과 협력하여 실제로 구현해냈습니다. 과학·공학적 사고력이 탁월하고, 발명 아이디어 스케치 발표에서 독창성이 돋보였습니다.',
+        '종이 다리 만들기에서 삼각형을 겹치면 튼튼해진다는 걸 스스로 찾아내 모둠 구조를 바꿨고, 그 다리가 가장 많은 추를 버텼습니다. 발명 아이디어 시간에는 "비 오는 날 자동으로 펴지는 우산 가방"을 그려 친구들 박수를 받았습니다. 과학을 즐기는 마음이 그대로 보이는 아이입니다.',
       nextSteps: [
-        '과학 올림피아드 또는 발명 경진대회 참가',
-        '아두이노·라즈베리파이 입문 과정 체험',
-        '관심 분야 STEAM 서적 읽기 (예: 〈파인만 씨 농담도 잘 하시네〉)',
+        '집에 있는 재료로 "가장 튼튼한 다리" 다시 만들어 보기 (빨대 · 종이 · 테이프)',
+        '어린이 과학 잡지나 실험 영상 보고 한 가지 따라 해 보기',
+        '지역 과학관 체험 프로그램 참여',
       ],
-      highlights: ['브릿지 챌린지 팀 최우수상', '발명 아이디어로 팀원들의 박수를 받음'],
+      highlights: ['종이 다리 챌린지 모둠 최우수', '발명 아이디어 스케치 발표에서 친구들 박수'],
     },
     {
       programId: 'prog-ai',
+      sessionNumber: 6,
+      date: '2026.11.14',
       programName: 'AI/SW 바이브 코딩',
-      programIcon: '💻',
       instructorName: '한지훈',
+      instructorTitle: '포항공과대학교 컴퓨터공학과',
       attendance: 100,
       overallScore: 95,
       preScore: 72,
@@ -242,20 +309,35 @@ export const DUMMY_REPORT: StudentReport = {
       growthIndex: 23,
       grade: 'S',
       competencies: [
-        { label: 'AI 개념 이해', score: 96, benchmark: 68, description: 'AI의 원리와 생활 적용 사례 이해 수준' },
-        { label: '코딩 구현력', score: 95, benchmark: 64, description: '주어진 문제를 코드로 구현하는 능력' },
-        { label: '논리·알고리즘 사고', score: 94, benchmark: 62, description: '문제를 단계적으로 분해하고 해결하는 사고력' },
-        { label: '창의적 응용', score: 97, benchmark: 65, description: '배운 내용을 새로운 상황에 창의적으로 적용' },
-        { label: '자기주도 학습', score: 98, benchmark: 67, description: '스스로 탐구하고 학습을 확장하는 능력' },
+        { label: 'AI 이해', score: 96, benchmark: 68, description: 'AI 가 어떻게 배우고 답하는지 이해하는 정도' },
+        { label: '코딩 구현', score: 95, benchmark: 64, description: '생각한 것을 블록·코드로 만들어 내는 힘' },
+        { label: '순서대로 생각하기', score: 94, benchmark: 62, description: '문제를 작은 단계로 나누어 푸는 힘' },
+        { label: '응용하기', score: 97, benchmark: 65, description: '배운 것을 새로운 상황에 써 보는 힘' },
+        { label: '스스로 배우기', score: 98, benchmark: 67, description: '궁금한 것을 스스로 찾아보고 시도하는 힘' },
       ],
       instructorComment:
-        '이 학생은 제가 본 청소년 코딩 수업에서 가장 인상적인 학생 중 하나입니다. 수업 범위를 넘어 스스로 심화 코드를 작성해 오고, AI 이미지 생성 실습에서 직접 새로운 프롬프트 패턴을 발견했습니다. SW 분야 진로를 강력히 권장합니다.',
+        '이번 학기 코딩 수업에서 가장 기억에 남는 학생입니다. 미니 게임 만들기에서 수업에 없던 점수판 기능을 스스로 붙였고, AI 그림 만들기에서는 낱말 순서를 바꾸면 결과가 달라진다는 걸 발견해 반 전체에 알려 주었습니다. 이 열의를 이어 갈 수 있게 집에서도 만들 거리를 하나 정해 주시면 좋겠습니다.',
       nextSteps: [
-        '파이썬 기초 → 중급 과정 온라인 강의 수강 (코세라, 프로그래머스)',
-        '앱 개발 공모전 또는 해커톤 참가',
-        '깃허브 계정 개설 후 프로젝트 관리 시작',
+        '스크래치나 엔트리로 "나만의 미니 게임" 한 편 완성해 가족 앞에서 시연하기',
+        '초등 파이썬 입문 책 또는 무료 온라인 강의 한 과정 시작',
+        '만든 작품을 사진·영상으로 남겨 두는 나만의 포트폴리오 폴더 만들기',
       ],
-      highlights: ['수업 중 AI 프롬프트 신기법 발견으로 전체 공유', '미니 앱 기획 발표 최우수 선정', '자기주도 학습 역량 전체 1위'],
+      highlights: ['AI 그림 만들기에서 찾아낸 방법을 반 전체에 공유', '미니 게임 기획 발표 최우수', '스스로 배우기 부문 반 전체 1위'],
     },
   ],
+  sessionNotes: [
+    { sessionNumber: 1, date: '2026.09.05', topic: '글로벌 영어 커뮤니케이션', instructorName: '김지수', status: 'present', note: '단어를 많이 알고 잘 알아듣습니다. 말할 차례에는 조금 더 용기를 내 보면 좋겠어요.' },
+    { sessionNumber: 2, date: '2026.09.19', topic: '세계사 인문학', instructorName: '박민준', status: 'present', note: '산업혁명과 요즘 AI 를 연결한 발표가 정말 인상적이었습니다. 질문이 깊어요.' },
+    { sessionNumber: 3, date: '2026.10.03', topic: '한국사 인문학', instructorName: '이서연', status: 'late', note: '18분 늦게 왔지만 바로 활동에 들어갔고, 인물 카드 게임에서 근거를 들어 설명했습니다.' },
+    { sessionNumber: 4, date: '2026.10.17', topic: '사고·창의력 디베이트', instructorName: '최현우', status: 'present', note: '상대 팀 말을 끝까지 듣고 빈틈을 정확히 짚었습니다. 마지막 발표를 스스로 맡았어요.' },
+    { sessionNumber: 5, date: '2026.10.31', topic: '창의 융합 과학 STEAM', instructorName: '정다은', status: 'present', note: '종이 다리 만들기에서 삼각형 구조를 스스로 찾아내 모둠 최우수를 받았습니다.' },
+    { sessionNumber: 6, date: '2026.11.14', topic: 'AI/SW 바이브 코딩', instructorName: '한지훈', status: 'present', note: '미니 게임에 점수판을 스스로 붙였습니다. 6회 동안 가장 크게 자란 시간이었어요.' },
+  ],
+  nextProgram: {
+    title: '2026 ThinkCampus 겨울방학 STEAM 특강',
+    period: '2026.12.05 – 2027.01.16 · 매주 토요일',
+    note: '이번 학기에 보여 준 과학·코딩 쪽 강점을 더 깊게 다루는 6회 과정입니다. 앱에서 수강 신청 안내를 보내 드려요.',
+  },
+  closingMessage:
+    '6회 동안 민준이와 함께해서 즐거웠습니다. 궁금한 점은 앱의 문의하기나 캠퍼스로 언제든 연락 주세요.',
 };

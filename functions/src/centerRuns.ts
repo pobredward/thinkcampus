@@ -5,6 +5,7 @@
 import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 import { assertCenterOrCompanyForCampus, assertStaff, canSeeCampus } from './auth/staffClaims';
 import { getDb, todayKstDate } from './lib/centerRunHelpers';
+import { chatKpiFor } from './chat';
 import {
   loadCampuses,
   loadRunContext,
@@ -70,6 +71,8 @@ export async function buildDashboard(ctx: RunContext) {
     studentsWithoutGuardian: withoutGuardian,
     sessionsWithoutInstructor: sessions.filter((s) => !s.instructorId && s.scheduledDate >= today).length,
     nextSessionDate: future[0] ?? null,
+    // 학부모 채팅 · 민원 (chat.ts)
+    ...(await chatKpiFor(ctx.runId)),
   };
 }
 

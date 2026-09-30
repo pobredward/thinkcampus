@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 회사 홈 — 전체 현황 (운영 중 · 수강생 · 승인 대기 · 마지막 명단 등록) + 운영 건 목록
+ * 회사 홈 — 전체 현황 (운영 중 · 수강생 · 승인 대기 · 마지막 명단 등록 · 미처리 민원) + 운영 건 목록
  */
 
 import { Badge, Button, Empty, ErrorBox, fmtDateTime, Loading, PageTitle, RowLink, SectionLabel, Stat } from "@/components/staff/ui";
@@ -27,6 +27,9 @@ export default function CompanyHomePage() {
         <Stat label="승인 대기 리포트" value={data.reportsAwaitingApproval} unit="건" tone={data.reportsAwaitingApproval > 0 ? "gold" : "fg"} href="/admin/policy" />
         <Stat label="운영 중" value={data.runs.filter((r) => r.status === "active").length} unit="건" href="/admin/runs" />
         <Stat label="마지막 명단 등록" value={data.lastImport ? `${data.lastImport.rowCount}명` : "-"} hint={data.lastImport ? `${fmtDateTime(data.lastImport.at)} · ${data.lastImport.contractCode}` : "아직 없음"} href="/admin/import" />
+        <div className="col-span-2">
+          <Stat label="미처리 민원 (모든 캠퍼스)" value={data.complaintsOpen} unit="건" tone={data.complaintsOpen > 0 ? "danger" : "fg"} hint="앱 채팅 · 전화 · 현장 접수 — 처리는 각 캠퍼스 프로그램 매니저가 해요" href="/admin/inquiries" />
+        </div>
       </div>
 
       <SectionLabel right={<Button href="/admin/runs/new" size="sm" variant="secondary">새 운영 건</Button>}>운영 건</SectionLabel>

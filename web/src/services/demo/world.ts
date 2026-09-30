@@ -13,8 +13,10 @@
 import { DUMMY_PROGRAM, type Program, type Session } from "@/data/dummyProgram";
 import { DUMMY_UPCOMING_PROGRAM } from "@/data/dummyUpcomingProgram";
 import { DUMMY_ATTENDANCE_MINJUN, DUMMY_ATTENDANCE_SEOYEON } from "@/data/dummyAttendance";
-import { DUMMY_REPORT, type StudentReport } from "@/data/dummyReport";
+import type { StudentReport } from "@/data/dummyReport";
+import { buildSampleReport } from "@/lib/reportSample";
 import { dateToKey, keyToDate, todayKey } from "@/lib/dates";
+import { seedEngagement } from "./seedEngagement";
 import type { AttendanceStatus, ProgramRunStatus, SessionReportStatus, StaffRole } from "@/services/types";
 
 // ── 컬렉션 타입 (Firestore 문서와 같은 필드) ─────────────────
@@ -24,6 +26,9 @@ export interface DemoCampus {
   name: string;
   municipalityName: string;
   address: string;
+  phone?: string;
+  /** 채팅 답변 시간 안내 */
+  chatHours: string;
 }
 
 export interface DemoStaff {
@@ -103,6 +108,8 @@ export interface DemoRun {
   breaks?: Program["breaks"];
   sections: DemoSection[];
   reportPolicy: { requireCompanyApproval: boolean };
+  /** 발주처 담당자 화면에서 학생 이름 가리기 */
+  partnerNameMasking?: boolean;
   createdAt: string;
 }
 
@@ -216,6 +223,91 @@ export interface DemoFinalReport extends StudentReport {
   programRunId: string;
 }
 
+/** 채팅방 — 자녀 × 운영 건 하나 (`${programRunId}__${studentId}`) */
+export interface DemoChatRoom {
+  id: string;
+  programRunId: string;
+  campusId: string;
+  studentId: string;
+  createdAt: string;
+  /** 읽은 시각 — 학부모는 uid, 캠퍼스 직원은 "staff" 한 칸을 같이 쓴다 */
+  lastReadAt: Record<string, string>;
+}
+
+export interface DemoChatMessage {
+  id: string;
+  roomId: string;
+  fromUid: string;
+  fromRole: "guardian" | "staff" | "system";
+  text: string;
+  photoUrls: string[];
+  kind: "text" | "quick" | "inquiry" | "system";
+  inquiryId?: string;
+  createdAt: string;
+}
+
+export interface DemoInquiry {
+  id: string;
+  programRunId: string;
+  campusId: string;
+  studentId?: string;
+  guardianUid?: string;
+  kind: "question" | "complaint";
+  category: "lesson" | "instructor" | "facility" | "safety" | "operation" | "etc";
+  channel: "chat" | "phone" | "onsite";
+  title: string;
+  body: string;
+  photoUrls: string[];
+  status: "received" | "inProgress" | "resolved";
+  resolution?: string;
+  resolvedAt?: string;
+  resolvedByUid?: string;
+  officerNote?: string;
+  satisfaction?: number;
+  chatRoomId?: string;
+  messageId?: string;
+  createdByUid: string;
+  createdAt: string;
+  updatedAt: string;
+  history: Array<{ at: string; status: "received" | "inProgress" | "resolved"; note?: string; byUid: string }>;
+}
+
+export interface DemoSurvey {
+  programRunId: string;
+  title: string;
+  intro: string;
+  items: Array<{ id: string; label: string; question: string }>;
+  allowReview: boolean;
+  consentLabel: string;
+  opensAt: string;
+  closesAt: string;
+}
+
+export interface DemoSurveyResponse {
+  id: string; // `${programRunId}_${studentId}`
+  programRunId: string;
+  studentId: string;
+  guardianUid: string;
+  scores: Record<string, number>;
+  review: string;
+  consentPublic: boolean;
+  submittedAt: string;
+}
+
+/** 발주처 담당자 (지자체 담당 공무원) */
+export interface DemoOfficer {
+  uid: string;
+  displayName: string;
+  email: string;
+  organization: string;
+  title?: string;
+  phone?: string;
+  programRunIds: string[];
+  mustChangePassword: boolean;
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
 export interface DemoWorld {
   version: number;
   seededFor: string; // 오늘(YYYY-MM-DD) — 날이 바뀌면 다시 만든다
@@ -234,9 +326,18 @@ export interface DemoWorld {
   notifications: DemoNotification[];
   finalReports: DemoFinalReport[];
   imports: Array<{ at: string; rowCount: number; contractCode: string }>;
+  chatRooms: DemoChatRoom[];
+  chatMessages: DemoChatMessage[];
+  inquiries: DemoInquiry[];
+  surveys: DemoSurvey[];
+  surveyResponses: DemoSurveyResponse[];
+  officers: DemoOfficer[];
 }
 
 // ── 체험 계정 (역할별 로그인 사용자) ─────────────────────────
+
+/** 세계 구조가 바뀌면 올린다 — 예전 세계는 버리고 새로 만든다 (2: 채팅 · 민원 · 만족도 · 발주처 담당자) */
+export const DEMO_WORLD_VERSION = 2;
 
 export const DEMO_CAMPUS_ID = "campus-ds26";
 export const DEMO_RUN_A_ID = "run-ds26-creative";
@@ -252,6 +353,31 @@ export const DEMO_STAFF = {
   center: { uid: "demo-staff-center", displayName: "이정민", email: "center@demo.thinkcampus.kr" },
   instructor: { uid: "demo-instructor-park", displayName: "박지훈", email: "teacher@demo.thinkcampus.kr" },
 } as const;
+
+/** 발주처 담당자 체험 계정 — 달성군청 교육지원과 */
+export const DEMO_OFFICER = {
+  uid: "demo-officer-dalseong",
+  displayName: "한지원",
+  email: "officer@dalseong.demo.thinkcampus.kr",
+  organization: "달성군청 교육지원과",
+  title: "주무관",
+} as const;
+
+export const DEFAULT_CHAT_HOURS = "평일 09:00–18:00 · 수업 날은 수업 시간에도";
+
+/** 만족도 조사 기본 문항 (운영 건마다 바꿀 수 있다) */
+export const DEFAULT_SURVEY_ITEMS: DemoSurvey["items"] = [
+  { id: "overall", label: "전반 만족", question: "프로그램에 전반적으로 만족하시나요?" },
+  { id: "content", label: "수업 내용", question: "수업 내용이 아이에게 알맞았나요?" },
+  { id: "teacher", label: "강사", question: "선생님이 친절하고 잘 가르쳤나요?" },
+  { id: "operation", label: "운영·안내", question: "공지·장소·시간 안내가 편했나요?" },
+  { id: "again", label: "재참여 의향", question: "다음에도 이 프로그램에 참여하고 싶으신가요?" },
+];
+
+/** 채팅방 id — 출결 문서처럼 `${programRunId}__${studentId}` (실서비스 chatRooms 문서 id 와 같다) */
+export function chatRoomId(programRunId: string, studentId: string): string {
+  return `${programRunId}__${studentId}`;
+}
 
 // ── 결정적 난수 (같은 날이면 항상 같은 세계) ─────────────────
 
@@ -360,8 +486,8 @@ export function buildDemoWorld(today = todayKey()): DemoWorld {
 
   // ── 캠퍼스 · 직원 ──
   const campuses: DemoCampus[] = [
-    { id: DEMO_CAMPUS_ID, name: "달성캠퍼스", municipalityName: "달성군", address: "대구 달성군 청소년수련관 3층" },
-    { id: "campus-gm26", name: "구미캠퍼스", municipalityName: "구미시", address: "경북 구미시 청소년문화센터 2층" },
+    { id: DEMO_CAMPUS_ID, name: "달성캠퍼스", municipalityName: "달성군", address: "대구 달성군 청소년수련관 3층", phone: "053-000-0000", chatHours: DEFAULT_CHAT_HOURS },
+    { id: "campus-gm26", name: "구미캠퍼스", municipalityName: "구미시", address: "경북 구미시 청소년문화센터 2층", phone: "054-000-0000", chatHours: DEFAULT_CHAT_HOURS },
   ];
 
   const staff: DemoStaff[] = [
@@ -580,28 +706,30 @@ export function buildDemoWorld(today = todayKey()): DemoWorld {
     host: "구미시청 교육지원과 · 씽크캠퍼스 운영",
     sections: sectionsOf(2),
     reportPolicy: { requireCompanyApproval: true },
+    partnerNameMasking: true,
     createdAt: isoAt(addDays(cStart, -30), "10:00"),
   };
 
   // 지난 수강 (학부모 앱 "이전 수강 이력")
+  // 봄학기 — 지금 진행 중인 토요 창의융합과 같은 6과목. 종합 리포트가 발급돼 있다 (리포트 화면 · 공유 · PDF 체험용)
   const runP1: DemoRun = {
-    id: "run-ds26-summer",
-    contractCode: "2026-달성-여름-01",
-    programTemplateId: tplSummer.id,
-    title: "2026 ThinkCampus 여름학기",
+    id: "run-ds26-spring",
+    contractCode: "2026-달성-봄-01",
+    programTemplateId: tplCreative.id,
+    title: "2026 ThinkCampus 봄학기 창의융합",
     campusId: DEMO_CAMPUS_ID,
     municipalityName: "달성군",
     status: "completed",
-    startDate: "2026-07-20",
-    endDate: "2026-08-24",
-    frequency: "weekly",
-    fixedDay: 1,
+    startDate: "2026-03-07",
+    endDate: "2026-05-16",
+    frequency: "biweekly",
+    fixedDay: 6,
     startTime: "10:00",
     endTime: "12:00",
     location: "달성군 청소년수련관 3층 301호",
     sections: sectionsOf(1),
     reportPolicy: { requireCompanyApproval: false },
-    createdAt: "2026-06-20T10:00:00+09:00",
+    createdAt: "2026-02-10T10:00:00+09:00",
   };
   const runP2: DemoRun = {
     id: "run-ds26-english",
@@ -611,8 +739,8 @@ export function buildDemoWorld(today = todayKey()): DemoWorld {
     campusId: DEMO_CAMPUS_ID,
     municipalityName: "달성군",
     status: "completed",
-    startDate: "2026-05-02",
-    endDate: "2026-05-23",
+    startDate: "2026-06-06",
+    endDate: "2026-06-27",
     frequency: "weekly",
     fixedDay: 6,
     startTime: "10:00",
@@ -620,7 +748,7 @@ export function buildDemoWorld(today = todayKey()): DemoWorld {
     location: "달성군 청소년수련관 3층 302호",
     sections: sectionsOf(1),
     reportPolicy: { requireCompanyApproval: false },
-    createdAt: "2026-04-10T10:00:00+09:00",
+    createdAt: "2026-05-10T10:00:00+09:00",
   };
   const runs = [runA, runB, runC, runP1, runP2];
 
@@ -976,41 +1104,63 @@ export function buildDemoWorld(today = todayKey()): DemoWorld {
     read: true,
   });
 
-  // ── 종합 리포트 (지난 프로그램) ──
+  // ── 종합 리포트 (지난 봄학기 — 신민준 · 신서연) ──
+  const dot = (ymd: string) => ymd.replace(/-/g, ".");
+  //   data/dummyReport.ts 의 예시 문장을 이 아이·이 운영 건(회차 날짜 · 강사) 에 맞춰 만든다
+  const springSessions = runSessions
+    .filter((rs) => rs.programRunId === runP1.id && rs.sectionId === "sec-1")
+    .map((rs) => {
+      const st = staff.find((x) => x.uid === rs.instructorId);
+      return {
+        sessionNumber: rs.sessionNumber,
+        date: dot(rs.scheduledDate),
+        topic: rs.topic,
+        instructorName: st?.displayName,
+        instructorTitle: st?.title,
+      };
+    });
+  const dsCampusName = campuses.find((c) => c.id === DEMO_CAMPUS_ID)?.name ?? "달성캠퍼스";
+  const springCommon = {
+    programTitle: runP1.title,
+    campusName: dsCampusName,
+    campPeriod: `${dot(runP1.startDate)} – ${dot(runP1.endDate)}`,
+    issueDate: dot(addDays(runP1.endDate, 6)),
+    issuedBy: `${dsCampusName} · 담당 ${DEMO_STAFF.center.displayName}`,
+    sessions: springSessions,
+    nextProgram: {
+      title: runB.title,
+      period: `${dot(runB.startDate)} – ${dot(runB.endDate)} · 매주 토요일`,
+      note: "이번 학기에 보여 준 과학·코딩 쪽 강점을 더 깊게 다루는 6회 과정입니다. 앱에서 수강 신청 안내를 보내 드려요.",
+    },
+  };
   const finalReports: DemoFinalReport[] = [
     {
-      ...DUMMY_REPORT,
+      ...buildSampleReport({ ...springCommon, reportId: "final-spring-student-001", studentId: minjun.id, studentName: minjun.name }),
       programRunId: runP1.id,
-      reportId: "final-summer-student-001",
-      studentId: minjun.id,
-      studentName: minjun.name,
-      campusName: "달성캠퍼스",
-      campPeriod: "2026.07.20 – 2026.08.24",
-      issueDate: "2026.08.28",
-      overallComment: DUMMY_REPORT.overallComment,
     },
     {
-      ...DUMMY_REPORT,
+      ...buildSampleReport({ ...springCommon, reportId: "final-spring-student-002", studentId: seoyeon.id, studentName: seoyeon.name, variant: "presenter" }),
       programRunId: runP1.id,
-      reportId: "final-summer-student-002",
-      studentId: seoyeon.id,
-      studentName: seoyeon.name,
-      campusName: "달성캠퍼스",
-      campPeriod: "2026.07.20 – 2026.08.24",
-      issueDate: "2026.08.28",
-      totalScore: 78,
-      totalGrade: "A",
-      personalityType: "표현형 창의인재 (PRESENTER)",
-      personalityDesc: "생각을 말과 그림으로 표현하는 것을 즐기고, 친구들 앞에서 발표하는 데 거리낌이 없습니다. 새로운 활동에 먼저 손을 드는 적극성이 돋보입니다.",
-      overallComment: "서연이는 여름학기 내내 밝은 에너지로 모둠을 이끌었습니다. 실험 결과를 정리해 발표하는 활동에서 특히 두각을 보였고, 수 규칙 찾기에서는 끈기 있게 여러 방법을 시도했습니다.",
-      strengthAreas: ["발표·표현력", "모둠 협력"],
-      growthAreas: ["차분한 문제 풀이", "기록 습관"],
-      programs: DUMMY_REPORT.programs.map((p, i) => ({ ...p, overallScore: Math.max(60, p.overallScore - 6 + (i % 3)), grade: "A" as const })),
     },
   ];
 
+  const engagement = seedEngagement({
+    rnd,
+    today,
+    aDates,
+    runA,
+    runB,
+    runC,
+    runP1,
+    students,
+    enrollments,
+    guardianLinks,
+    runSessions,
+    templates,
+  });
+
   return {
-    version: 1,
+    version: DEMO_WORLD_VERSION,
     seededFor: today,
     campuses,
     staff,
@@ -1027,6 +1177,7 @@ export function buildDemoWorld(today = todayKey()): DemoWorld {
     notifications,
     finalReports,
     imports: [{ at: isoAt(addDays(aDates[0], -14), "15:20"), rowCount: 72, contractCode: runA.contractCode }],
+    ...engagement,
   };
 }
 
@@ -1043,7 +1194,7 @@ function readStorage(): DemoWorld | null {
     const raw = window.sessionStorage.getItem(DEMO_WORLD_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as DemoWorld;
-    if (parsed.version !== 1 || parsed.seededFor !== todayKey()) return null;
+    if (parsed.version !== DEMO_WORLD_VERSION || parsed.seededFor !== todayKey()) return null;
     return parsed;
   } catch {
     return null;
@@ -1092,8 +1243,12 @@ export function subscribeDemoWorld(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+/**
+ * 지금 시각 — 시드(isoAt)와 같은 한국 시간 표기 "YYYY-MM-DDTHH:mm:ss.sss+09:00"
+ * 체험 세계의 시각은 문자열로 비교 · 정렬하므로 표기를 하나로 맞춘다 (Z 와 +09:00 이 섞이면 순서가 틀어진다).
+ */
 export function nowIso(): string {
-  return new Date().toISOString();
+  return new Date(Date.now() + 9 * 3_600_000).toISOString().replace("Z", "+09:00");
 }
 
 export function todayIsoTime(): string {

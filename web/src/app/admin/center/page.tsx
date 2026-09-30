@@ -3,14 +3,16 @@
 /**
  * 센터 홈 — 오늘 할 일이 먼저
  *   1. 오늘 브리핑 (오늘 수업 · 출결 미입력 · 다음 수업일)
- *   2. 할 일 카드 4개 (오늘 출결 · 검수 대기 리포트 · 보호자 미연결 · 강사 미배정)
- *   3. 바로 가기 (공지 보내기 · 학생 명단 · 강사 배정)
- *   4. 최근 공지
+ *   2. 학부모 채팅 · 민원 (답을 기다리는 대화 · 가장 오래 기다린 시간 · 미처리 민원)
+ *   3. 할 일 카드 4개 (검수 대기 리포트 · 보호자 미연결 · 강사 미배정 · 수강생)
+ *   4. 바로 가기 (공지 보내기 · 학생 명단 · 강사 배정)
+ *   5. 최근 공지
  */
 
 import Link from "next/link";
 import { Badge, Button, Card, Empty, ErrorBox, fmtDate, fmtDateTime, Loading, PageTitle, SectionLabel, Stat } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { waitedFor } from "@/lib/chatTime";
 import { todayKey } from "@/lib/dates";
 import { useCenterRun } from "@/providers/CenterRunProvider";
 import { PROGRAM_RUN_STATUS_LABEL, useApi, useQuery } from "@/services";
@@ -76,6 +78,28 @@ export default function CenterHomePage() {
               </>
             )}
           </Card>
+
+          {/* 학부모 채팅 · 민원 */}
+          <SectionLabel
+            right={
+              <Link href={`${base}/inquiries`} className="text-gold underline underline-offset-2">
+                민원·문의 기록
+              </Link>
+            }
+          >
+            학부모 채팅
+          </SectionLabel>
+          <div className="grid grid-cols-2 gap-3">
+            <Stat
+              label="답을 기다리는 대화"
+              value={k.chatWaiting}
+              unit="개"
+              tone={k.chatWaiting > 0 ? "late" : "fg"}
+              hint={k.chatOldestWaitingAt ? `가장 오래 ${waitedFor(k.chatOldestWaitingAt)}` : "모두 답했어요"}
+              href={`${base}/chat${k.chatWaiting > 0 ? "?filter=waiting" : ""}`}
+            />
+            <Stat label="미처리 민원" value={k.complaintsOpen} unit="건" tone={k.complaintsOpen > 0 ? "danger" : "fg"} hint="접수 · 처리 중" href={`${base}/inquiries`} />
+          </div>
 
           {/* 할 일 */}
           <SectionLabel>할 일</SectionLabel>

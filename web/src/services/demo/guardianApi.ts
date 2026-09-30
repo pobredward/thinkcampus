@@ -6,6 +6,9 @@ import type { GuardianApi } from "@/services/api";
 import type { ChildDto, GuardianNotificationDto, GuardianProgramBundle, StudentReport } from "@/services/types";
 import { attendanceRecordDtos, buildProgramForSection, campusName, delay, runById } from "./select";
 import { DEMO_GUARDIAN_NAME, DEMO_GUARDIAN_UID, getDemoWorld, mutateDemoWorld, resetDemoWorld } from "./world";
+import { demoShareToken } from "@/services/sharedReport";
+import { buildRoomDetail, guardianRooms, markReadInWorld, sendMessageInWorld, type ChatViewer } from "./chat";
+import { pendingSurveysFor, submitSurveyInWorld, surveyDtoFor } from "./survey";
 
 function toDotDate(iso: string): string {
   return iso.slice(0, 10).replace(/-/g, ".");
@@ -25,6 +28,7 @@ export function setDemoGuardianName(name: string): void {
 
 export function createDemoGuardianApi(): GuardianApi {
   const uid = DEMO_GUARDIAN_UID;
+  const viewer: ChatViewer = { kind: "guardian", uid };
 
   return {
     async listChildren(opts) {
@@ -114,9 +118,11 @@ export function createDemoGuardianApi(): GuardianApi {
     },
 
     async createShareLink(reportId) {
+      // 체험판 링크는 쿠키 없이도 누구나 열린다 (/r/demo-<reportId> 가 같은 시드로 리포트를 다시 만든다)
+      if (!getDemoWorld().finalReports.some((r) => r.reportId === reportId)) throw new Error("리포트를 찾을 수 없어요");
       const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      return delay({ url: `${origin}/main/report_detail/${encodeURIComponent(reportId)}?shared=demo`, expiresAt: expires.toISOString() }, 300);
+      return delay({ url: `${origin}/r/${demoShareToken(reportId)}`, expiresAt: expires.toISOString() }, 300);
     },
 
     async listPendingHousehold() {
@@ -164,6 +170,49 @@ export function createDemoGuardianApi(): GuardianApi {
       // 체험: 세계를 처음 상태로 돌린다 (실서비스는 deleteAccount Function)
       resetDemoWorld();
       await delay(undefined, 300);
+    },
+
+    // ── 채팅 ──
+    async listChatRooms() {
+      return delay(guardianRooms(getDemoWorld(), uid));
+    },
+
+    async getChatRoom(roomId) {
+      return delay(buildRoomDetail(getDemoWorld(), viewer, roomId));
+    },
+
+    async sendChatMessage(input) {
+      mutateDemoWorld((w) => sendMessageInWorld(w, viewer, input));
+      await delay(undefined, 150);
+    },
+
+    async markChatRead(roomId) {
+      const w = getDemoWorld();
+      const room = w.chatRooms.find((r) => r.id === roomId);
+      const unread = room ? w.chatMessages.some((m) => m.roomId === roomId && m.fromRole !== "guardian" && m.createdAt > (room.lastReadAt[uid] ?? "")) : false;
+      if (unread) mutateDemoWorld((world) => markReadInWorld(world, viewer, roomId));
+    },
+
+    async countUnreadChats() {
+      return guardianRooms(getDemoWorld(), uid).reduce((n, r) => n + r.unread, 0);
+    },
+
+    watchChat() {
+      return () => {};
+    },
+
+    // ── 만족도 조사 ──
+    async listPendingSurveys() {
+      return delay(pendingSurveysFor(getDemoWorld(), uid));
+    },
+
+    async getSurvey(studentId, programRunId) {
+      return delay(surveyDtoFor(getDemoWorld(), uid, studentId, programRunId));
+    },
+
+    async submitSurvey(input) {
+      mutateDemoWorld((w) => submitSurveyInWorld(w, uid, input));
+      await delay(undefined, 200);
     },
   };
 }

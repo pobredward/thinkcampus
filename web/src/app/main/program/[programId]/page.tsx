@@ -7,6 +7,7 @@
  *   [규정·지침]    수업 규정·지침(필독) 버튼 하나 — 맨 위에 따로
  *   [수업 안내]    프로그램 일시 및 장소 · 프로그램 목적 및 내용 · 공지사항 · 자주 묻는 질문 — 한 줄에 하나씩
  *   [회차별 수업]  1회차 ~ 6회차 (회차만 — 날짜·시간·출결은 눌러서 회차 화면에서)
+ *   [만족도 조사]  조사가 열려 있거나 응답했으면 한 줄 (→ /main/program/[id]/survey)
  *   [종합 리포트]  모든 회차가 끝나면 열림
  *
  * 회차 버튼을 누르면 → /main/program/[programId]/session/[sessionId]
@@ -39,6 +40,7 @@ import {
 import { programCrumbs } from "@/lib/crumbs";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { emptyAttendance } from "@/lib/mapSessionAttendance";
+import { useApi, useQuery } from "@/services";
 
 export default function ProgramSessionsPage() {
   const { programId } = useParams<{ programId: string }>();
@@ -96,6 +98,11 @@ export default function ProgramSessionsPage() {
   const next = nextUpcoming(items);
   const finished = isProgramFinished(items);
   const openReport = () => pushMain(`/main/program/${programId}/report${qs ? `?${qs}` : ""}`);
+  const openSampleReport = () => {
+    const p = new URLSearchParams(sp.toString());
+    p.set("sample", "1");
+    pushMain(`/main/program/${programId}/report?${p.toString()}`);
+  };
 
   return (
     <div className="flex flex-1 flex-col bg-paper pb-10">
@@ -131,6 +138,9 @@ export default function ProgramSessionsPage() {
         <SessionGrid items={items} next={next} onOpen={openSession} />
       </section>
 
+      {/* ── 만족도 조사 ───────────────────────── */}
+      {sid && <SurveyEntry studentId={sid} programId={programId} onOpen={() => pushMain(`/main/program/${programId}/survey${qs ? `?${qs}` : ""}`)} />}
+
       {/* ── 종합 리포트 ───────────────────────── */}
       <div className="mx-4 mt-7">
         {finished ? (
@@ -147,9 +157,31 @@ export default function ProgramSessionsPage() {
             <p className="mt-1 text-[16px] leading-[24px] text-sub">
               {summary.total}회 수업이 모두 끝나면 열려요. 회차별 리포트는 각 회차에서 볼 수 있어요.
             </p>
+            <button
+              type="button"
+              onClick={openSampleReport}
+              className="tap mt-3 inline-flex min-h-[44px] items-center rounded-xl border border-gold-dim bg-gold-light px-4 text-[15px] font-bold text-gold"
+              data-testid="report-sample-open"
+            >
+              어떤 리포트를 받게 되나요? 샘플 미리보기
+            </button>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** 만족도 조사 한 줄 — 열려 있으면 "참여 전" · 응답했으면 "응답 완료" (기간 전이면 숨김) */
+function SurveyEntry({ studentId, programId, onOpen }: { studentId: string; programId: string; onOpen: () => void }) {
+  const api = useApi();
+  const { data } = useQuery(() => api.guardian.getSurvey(studentId, programId).catch(() => null), [api, studentId, programId]);
+  if (!data || data.status === "upcoming") return null;
+  if (data.status === "closed" && !data.myResponse) return null;
+  const badge = data.myResponse ? "응답 완료" : "참여 전";
+  return (
+    <div className="mx-4 mt-7 overflow-hidden rounded-[18px] border border-gold-dim bg-card" data-testid="program-survey-entry">
+      <MenuRow label="만족도 조사" badge={badge} onClick={onOpen} />
     </div>
   );
 }

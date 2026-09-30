@@ -18,6 +18,7 @@ import {
   signInWithPhoneNumber as fbSignInWithPhoneNumber,
   type Auth,
   type ConfirmationResult,
+  updatePassword as fbUpdatePassword,
 } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore, type Firestore } from "firebase/firestore";
 import { connectFunctionsEmulator, getFunctions, type Functions } from "firebase/functions";
@@ -123,6 +124,13 @@ function resetRecaptcha() {
 /** 관리자·센터 직원 — 이메일/비밀번호 (Firebase Auth Email provider) */
 export async function signInWithStaffEmail(email: string, password: string) {
   return signInWithEmailAndPassword(getFirebaseAuth(), email.trim(), password);
+}
+
+/** 지금 로그인한 계정의 비밀번호 바꾸기 (발주처 담당자 첫 로그인) */
+export async function changeCurrentUserPassword(newPassword: string): Promise<void> {
+  const u = getFirebaseAuth().currentUser;
+  if (!u) throw new Error("로그인이 필요합니다.");
+  await fbUpdatePassword(u, newPassword);
 }
 
 export async function signInWithPhone(e164: string): Promise<ConfirmationResult> {

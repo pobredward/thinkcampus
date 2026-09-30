@@ -7,9 +7,21 @@ import { COL_GUARDIAN_LINKS } from "@/lib/collections";
 import { getDb, getFirebaseAuth } from "@/lib/firebase";
 import { dtoToStudentProgramBundle, type StudentProgramBundleDto } from "@/lib/studentProgramBundlesApi";
 import type { GuardianApi } from "@/services/api";
-import type { AttendanceRecordDto, ChildDto, GuardianNotificationDto, PendingHouseholdMember, StudentReport } from "@/services/types";
+import type {
+  AttendanceRecordDto,
+  ChatRoomDetail,
+  ChatRoomDto,
+  ChildDto,
+  GuardianNotificationDto,
+  PendingHouseholdMember,
+  PendingSurveyDto,
+  SurveyDto,
+} from "@/services/types";
+import { watchChatLive } from "./chatWatch";
 import { call } from "./call";
 import { DUMMY_NOTIFICATIONS, dummyAttendance, dummyBundles, dummyFinalReport, isDummyProgramId } from "./dummyFallback";
+import { normalizeStudentReport } from "@/lib/reportNormalize";
+import { SAMPLE_SHARE_TOKEN } from "@/services/sharedReport";
 
 function isDummyReport(reportId: string): boolean {
   return reportId === dummyFinalReport().reportId;
@@ -89,7 +101,7 @@ export function createLiveGuardianApi(): GuardianApi {
         );
         const d = snap.docs[0];
         if (!d) return null;
-        return { reportId: d.id, ...(d.data() as Omit<StudentReport, "reportId">) };
+        return normalizeStudentReport({ ...(d.data() as Record<string, unknown>), reportId: d.id });
       } catch {
         return null;
       }
@@ -113,7 +125,8 @@ export function createLiveGuardianApi(): GuardianApi {
         // 예시 리포트(서버에 없음)는 미리보기 링크로 — 실제 리포트가 서버에 있으면 위 Function 이 링크를 만든다
         if (!isDummyReport(reportId)) throw e;
         const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-        return { url: `https://thinkcampus.app/report/${encodeURIComponent(reportId)}`, expiresAt: expires.toISOString() };
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        return { url: `${origin}/r/${SAMPLE_SHARE_TOKEN}`, expiresAt: expires.toISOString() };
       }
     },
 
@@ -132,6 +145,50 @@ export function createLiveGuardianApi(): GuardianApi {
 
     async deleteAccount() {
       await call<{ confirm: boolean }, { deleted: boolean }>("deleteAccount", { confirm: true });
+    },
+
+    // ── 채팅 (functions/src/chat.ts) ──
+    async listChatRooms() {
+      return (await call<Record<string, never>, { rooms: ChatRoomDto[] }>("listGuardianChatRooms", {})).rooms ?? [];
+    },
+
+    getChatRoom: (roomId) => call<{ roomId: string }, ChatRoomDetail>("getChatRoom", { roomId }),
+
+    async sendChatMessage(input) {
+      await call("sendChatMessage", input);
+    },
+
+    async markChatRead(roomId) {
+      await call("markChatRead", { roomId });
+    },
+
+    async countUnreadChats() {
+      // 방 문서의 unreadBy.{uid} 합 — Firestore 직접 조회 (규칙: guardianUids 에 내 uid)
+      const uid = getFirebaseAuth().currentUser?.uid;
+      if (!uid) return 0;
+      try {
+        const snap = await getDocs(query(collection(getDb(), "chatRooms"), where("guardianUids", "array-contains", uid)));
+        return snap.docs.reduce((n, d) => n + (Number((d.data().unreadBy as Record<string, number> | undefined)?.[uid]) || 0), 0);
+      } catch {
+        return 0;
+      }
+    },
+
+    watchChat(target, onChange) {
+      return watchChatLive(target.roomId ? { roomId: target.roomId } : { guardian: true }, onChange);
+    },
+
+    // ── 만족도 조사 (functions/src/survey.ts) ──
+    async listPendingSurveys() {
+      return (await call<Record<string, never>, { surveys: PendingSurveyDto[] }>("listPendingSurveys", {})).surveys ?? [];
+    },
+
+    async getSurvey(studentId, programRunId) {
+      return (await call<{ studentId: string; programRunId: string }, { survey: SurveyDto | null }>("getSurvey", { studentId, programRunId })).survey ?? null;
+    },
+
+    async submitSurvey(input) {
+      await call("submitSurvey", input);
     },
   };
 }

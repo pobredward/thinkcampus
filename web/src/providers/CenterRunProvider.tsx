@@ -69,6 +69,13 @@ export function CenterRunProvider({ children }: { children: React.ReactNode }) {
     [api, runId],
   );
 
+  // 학부모 채팅이 오면(실서비스: 방 문서 변경) 요약(답을 기다리는 방 수)을 다시 읽는다
+  const campusId = selectedRun?.campusId ?? null;
+  useEffect(() => {
+    if (!runId || !campusId) return;
+    return api.center.watchChat({ programRunId: runId, campusId }, () => void refetchSummary());
+  }, [api, runId, campusId, refetchSummary]);
+
   const refetch = useCallback(async () => {
     await Promise.all([refetchRuns(), refetchSummary()]);
   }, [refetchRuns, refetchSummary]);

@@ -249,7 +249,28 @@
 
 출결(`recordSessionAttendance`)을 넣으면 draft 문서가 자동으로 생기고, 공개(`published`)될 때 `sessionAttendance` 문서에 `participationScore · homeworkDone · feedback · highlights · improvements` 를 같이 적는다 → 학부모 앱은 `sessionAttendance` 만 읽어도 된다.
 
-**programReports**(종합 리포트)는 아직 `reports` 컬렉션(§ 기존) 그대로.
+**reports** (종합 리포트 — 프로그램이 끝난 뒤 학생마다 한 문서, `data/dummyReport.ts` 의 `StudentReport` 와 같은 모양 + 서버 필드):
+
+```ts
+{
+  studentId, programRunId, guardianUids: string[],       // 서버 필드 (읽기 권한 · 공유 링크 발급 권한)
+  studentName, campusName, programTitle, campPeriod: '2026.03.07 – 2026.05.16', issueDate, issuedBy,
+  totalScore, totalGrade: 'S'|'A'|'B'|'C', personalityType, personalityDesc, strengthAreas[], growthAreas[], overallComment,
+  attendanceSummary: { total, present, late, absent, homeworkDone, homeworkTotal },
+  programs: [{ programId, sessionNumber, date, programName, instructorName, instructorTitle?, attendance,
+               overallScore, preScore, postScore, growthIndex, grade, competencies: [{ label, score, benchmark, description }],
+               instructorComment, highlights[], nextSteps[] }],      // 회차(과목)마다 하나
+  sessionNotes: [{ sessionNumber, date, topic, instructorName, status: 'present'|'late'|'absent', note }],
+  nextProgram?: { title, period, note }, closingMessage,
+  createdAt, updatedAt
+}
+```
+
+- 학부모 앱: `reports` 를 `studentId + programRunId` 로 읽는다(규칙: `guardianUids` 에 내 uid). 없으면 "준비 중" + 샘플 미리보기(`web/src/lib/reportSample.ts`).
+- 빠진 필드가 있어도 화면·PDF 가 죽지 않게 `web/src/lib/reportNormalize.ts` 가 기본값을 채운다 (출석 요약이 없으면 `sessionNotes` 에서 센다).
+- 공유: `createShareToken` → `shareTokens/{token}` `{ reportId, createdByUid, expiresAt(7일), createdAt }` → 웹 주소 `${WEB_ORIGIN}/r/<token>`. 링크를 연 사람은 `getSharedReport`(로그인 없음) 로 문서를 받고(서버 필드 제외) PDF 로 저장할 수 있다. 예전 `viewReport?t=` 주소는 이 페이지로 302.
+- PDF 는 브라우저에서 만든다 (`web/src/lib/reportPdf.tsx`, @react-pdf/renderer + `public/fonts/Pretendard-*.subset.ttf`). 서버 작업 없음.
+- 작성 화면(센터·회사)은 아직 없다 — 당분간 스크립트/콘솔로 문서를 넣는다. 다음 단계.
 
 **notifications**: 출결·공지·리포트 공개 시 Functions 가 생성 (`type: 'attendance' | 'notice' | 'report' | 'schedule'`, `programRunId`, `campusId`, 공지는 `sectionId?` · `recipients`, 개인 알림은 `studentId`). 학부모는 `listGuardianNotifications` 로 자기 자녀 것만 본다. 읽음은 `notificationReads/{uid}_{notificationId}`. FCM 은 이후.
 
@@ -299,6 +320,7 @@ import 결과: `students` upsert, `studentProgramEnrollments`, `enrollmentCodes`
 | `companyAdmin` | 전체 |
 | `centerAdmin` | `campusIds[]` |
 | `instructor` | 배정된 `runSessions`만 |
+| `officer` | 발주처 담당자(지자체 공무원) — `officers/{uid}.programRunIds` 의 운영 건만 (문서가 기준, Claim 은 역할 표시만) |
 
 모든 쓰기: **Callable Functions** + Rules는 읽기 최소 허용.
 
@@ -326,3 +348,63 @@ import 결과: `students` upsert, `studentProgramEnrollments`, `enrollmentCodes`
 - `students`: `householdId` (단일 필드 equality)
 
 기존 데이터 denorm 백필: `scripts/migrateFirestorePhase1.ts`
+
+---
+
+## 12. 학부모 채팅 · 민원 · 만족도 · 발주처 담당자 (2026-09-30)
+
+설계 배경: `docs/OFFICER_PORTAL_PLAN.md`. 쓰기는 모두 Functions(`functions/src/chat.ts` · `inquiries.ts` · `survey.ts` · `officers.ts` · `partnerApi.ts`), 규칙은 방 문서 읽기만 연다.
+
+**chatRooms/{programRunId}__{studentId}** — 자녀 × 운영 건마다 방 하나 (학부모 ↔ 캠퍼스 담당)
+
+```ts
+{
+  programRunId, campusId, studentId, guardianUids: string[],   // guardianUids 는 학생 문서에서 복사 (규칙 · 쿼리용)
+  lastMessage: { text, fromRole: 'guardian'|'staff'|'system', at },
+  unreadBy: { [guardianUid]: number },     // 학부모 앱 탭 배지 — 클라이언트가 직접 읽는다
+  staffUnread: number,                     // 센터가 안 읽은 학부모 메시지
+  waitingSince: Timestamp | null,          // 학부모 메시지에 답이 없으면 그 시각 ("감사합니다" 같은 짧은 인사 · 빠른 질문은 빼고)
+  lastReadAt: { [guardianUid]: Timestamp, staff: Timestamp },   // 읽음 표시
+  openInquiryCount: number,
+  stats: { questionTurns, answeredTurns, replyMinutesSum, openQuestionAt, lastNonSystem },  // 발주처 "문의 · 첫 답변 시간"
+  createdAt, updatedAt
+}
+chatRooms/{id}/messages/{mid} { fromUid, fromRole, text, photoIds: string[], kind: 'text'|'quick'|'inquiry'|'system', inquiryId?, createdAt }
+chatPhotos/{id} { roomId, programRunId, dataUrl, bytes, createdByUid, createdAt }   // 브라우저에서 줄인 JPEG (≤ 900KB, 메시지당 3장)
+```
+
+- 방은 첫 메시지 때 생긴다. 학부모 목록은 수강 등록(탈퇴 제외)마다 방을 보여 준다 — 운영 중 · 예정은 `open`, 끝난 지 30일 안은 `readonly`, 그 뒤는 숨김
+- 빠른 질문: `materials`(다음 회차 준비물 · 시간 · 장소 — `sessionTemplates.materials` + `programRuns.overrides.commonMaterials`) · `place`(`overrides.directions` 의 주차 · 도착하면)는 시스템이 바로 답한다. `absence` 는 글 틀만 채운다
+- 사진은 Storage 대신 `chatPhotos` 문서 (지금 규모에서 Storage 버킷 · 규칙을 새로 만들지 않기 위해). 사진이 많아지면 Storage + 서명 URL 로 옮긴다
+
+**inquiries/{id}** — 민원 · 문의 장부 (학부모 채팅 접수 · 센터가 채팅 메시지를 등록 · 전화/현장 기록)
+
+```ts
+{
+  programRunId, campusId, studentId?, guardianUid?,
+  kind: 'complaint' | 'question', category: 'lesson'|'instructor'|'facility'|'safety'|'operation'|'etc',
+  channel: 'chat' | 'phone' | 'onsite', chatRoomId?, messageId?,
+  title, body, photoIds: string[],
+  status: 'received' | 'inProgress' | 'resolved',
+  resolution?, resolvedAt?, resolvedByUid?,             // 처리 내용 — 학부모 방 · 발주처 화면 · 보고서에 보인다
+  officerNote?, officerNoteByUid?, officerNoteAt?,       // 발주처 담당자 의견
+  history: [{ at, status, note?, byUid }], createdByUid, createdAt, updatedAt
+}
+```
+
+- 채팅 속 단순 질문은 장부에 적지 않는다 — 방의 `stats` 로 "문의 n건 · 답변 n건 · 평균 첫 답변 n분"을 센다
+- 처리 완료 + 학부모에게 알림이면 방에 "처리 완료: …" 안내 메시지
+
+**surveys/{programRunId}** `{ title, intro, items: [{id, label, question}], allowReview, consentLabel, opensAt, closesAt }` — 기본 5문항(전반 · 수업 내용 · 강사 · 운영·안내 · 재참여), 통합 관리자가 `upsertProgramRunSurvey` 로 연다
+**surveyResponses/{programRunId}_{studentId}** `{ programRunId, studentId, guardianUid, scores: {itemId: 1..5}, review, consentPublic, submittedAt }` — 마감 전까지 고칠 수 있다. 대상 = 보호자가 연결된 수강생. 발주처 · 보고서에는 **공개 동의한 후기만, 이름 가림**
+
+**officers/{uid}** `{ displayName, email, organization, title?, phone?, programRunIds, mustChangePassword, disabled, createdByUid, createdAt, lastLoginAt }` + Claim `{ role: 'officer' }`
+
+- `inviteOfficer`: 새 이메일 → Auth 계정 + 임시 비밀번호(`Tc-xxxx0000`, 한 번만 보여 줌) · 이미 담당자 → 운영 건만 추가 · 직원/학부모 이메일은 거절
+- 첫 로그인은 `/partner/login` 에서 새 비밀번호 → `completeOfficerPasswordChange`
+- `revokeOfficer`: 운영 건에서 빼고, 남은 게 없으면 Auth 사용 중지 + 토큰 폐기
+
+**programRuns.partnerNameMasking** (boolean) — 발주처 화면 · 보고서의 학생 이름을 "김○준"으로
+
+규칙: `chatRooms` 문서 읽기 = `guardianUids` 에 내 uid · 센터(`token.campusIds` 에 `campusId`) · 통합 관리자. 메시지 · 사진 · 민원 · 조사 · 담당자 문서는 클라이언트 접근 없음. 새 복합 색인 없음 (같음 조건만 겹친 쿼리).
+

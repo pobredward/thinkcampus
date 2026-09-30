@@ -1,13 +1,15 @@
 /**
- * 체험판 · 회사 관리자 API — 김도현 (전체 캠퍼스)
+ * 체험판 · 통합 관리자(회사) API — 김도현 (전체 캠퍼스)
  */
 
 import { todayKey } from "@/lib/dates";
 import type { CompanyApi } from "@/services/api";
-import type { CampusDto, CompanyHome, ProgramRunDetail, ProgramTemplateDto, RosterImportResult, StaffDto } from "@/services/types";
+import type { CampusDto, CompanyHome, OfficerDto, ProgramRunDetail, ProgramTemplateDto, RosterImportResult, StaffDto } from "@/services/types";
+import { inquiryToDto } from "./chat";
 import { applyReportReview, listReportRows } from "./reports";
 import { activeEnrollments, delay, instructorName, runById, runSummaryDto, sectionLabel, templateOf } from "./select";
-import { type DemoRun, type DemoWorld, getDemoWorld, mutateDemoWorld, nowIso } from "./world";
+import { surveyResults } from "./survey";
+import { DEFAULT_SURVEY_ITEMS, type DemoRun, type DemoWorld, getDemoWorld, mutateDemoWorld, nowIso } from "./world";
 
 function addDays(key: string, days: number): string {
   const [y, m, d] = key.split("-").map(Number);
@@ -49,7 +51,8 @@ export function createDemoCompanyApi(actorUid: string): CompanyApi {
       const totalStudents = new Set(openRuns.flatMap((r) => activeEnrollments(w, r.id).map((e) => e.studentId))).size;
       const last = [...w.imports].sort((a, b) => b.at.localeCompare(a.at))[0] ?? null;
       const awaiting = w.reports.filter((r) => r.status === "reviewed" && runById(w, r.programRunId).reportPolicy.requireCompanyApproval).length;
-      return delay({ runs, campuses: campusDtos(w), totalStudents, lastImport: last, reportsAwaitingApproval: awaiting });
+      const complaintsOpen = w.inquiries.filter((q) => q.kind === "complaint" && q.status !== "resolved").length;
+      return delay({ runs, campuses: campusDtos(w), totalStudents, lastImport: last, reportsAwaitingApproval: awaiting, complaintsOpen });
     },
 
     async listRuns() {
@@ -95,6 +98,7 @@ export function createDemoCompanyApi(actorUid: string): CompanyApi {
         guardianLinkedCount: linked,
         attendanceRate,
         createdAt: run.createdAt,
+        partnerNameMasking: !!run.partnerNameMasking,
       });
     },
 
@@ -305,6 +309,115 @@ export function createDemoCompanyApi(actorUid: string): CompanyApi {
 
     async reviewReports(reportIds, action, note) {
       mutateDemoWorld((w) => applyReportReview(w, reportIds, action, note, "company", actorUid));
+      await delay(undefined, 200);
+    },
+
+    // ── 민원 (모든 캠퍼스) ──
+    async listInquiries(filter) {
+      const w = getDemoWorld();
+      return delay(
+        w.inquiries
+          .filter((q) => !filter.programRunId || q.programRunId === filter.programRunId)
+          .filter((q) => !filter.kind || q.kind === filter.kind)
+          .filter((q) => !filter.status || (filter.status === "open" ? q.status !== "resolved" : q.status === filter.status))
+          .sort((a, b) => (a.status === "resolved" ? 1 : 0) - (b.status === "resolved" ? 1 : 0) || b.createdAt.localeCompare(a.createdAt))
+          .map((q) => inquiryToDto(w, q)),
+      );
+    },
+
+    // ── 발주처 담당자 계정 ──
+    async listOfficers(programRunId) {
+      const w = getDemoWorld();
+      runById(w, programRunId);
+      const list: OfficerDto[] = w.officers
+        .filter((o) => o.programRunIds.includes(programRunId))
+        .map((o) => ({ ...o }))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName, "ko"));
+      return delay(list);
+    },
+
+    async inviteOfficer(input) {
+      const email = input.email.trim().toLowerCase();
+      const displayName = input.displayName.trim();
+      const organization = input.organization.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("이메일 주소를 확인해 주세요.");
+      if (!displayName) throw new Error("담당자 이름을 입력해 주세요.");
+      if (!organization) throw new Error("소속(기관 · 부서)을 입력해 주세요.");
+      let result = { uid: "", email, tempPassword: null as string | null };
+      mutateDemoWorld((w) => {
+        runById(w, input.programRunId);
+        const existing = w.officers.find((o) => o.email === email);
+        if (existing) {
+          if (!existing.programRunIds.includes(input.programRunId)) existing.programRunIds.push(input.programRunId);
+          result = { uid: existing.uid, email, tempPassword: null };
+          return;
+        }
+        const uid = `demo-officer-${Date.now().toString(36)}`;
+        const tempPassword = `Tc-${Math.random().toString(36).slice(2, 6)}${Math.floor(1000 + Math.random() * 9000)}`;
+        w.officers.push({
+          uid,
+          displayName,
+          email,
+          organization,
+          title: input.title?.trim() || undefined,
+          phone: input.phone?.trim() || undefined,
+          programRunIds: [input.programRunId],
+          mustChangePassword: true,
+          createdAt: nowIso(),
+        });
+        result = { uid, email, tempPassword };
+      });
+      return delay(result, 300);
+    },
+
+    async revokeOfficer(uid, programRunId) {
+      mutateDemoWorld((w) => {
+        const o = w.officers.find((x) => x.uid === uid);
+        if (!o) throw new Error("담당자를 찾을 수 없어요.");
+        o.programRunIds = o.programRunIds.filter((id) => id !== programRunId);
+        if (o.programRunIds.length === 0 && o.uid !== "demo-officer-dalseong") w.officers = w.officers.filter((x) => x.uid !== uid);
+      });
+      await delay(undefined, 200);
+    },
+
+    async updatePartnerSettings(programRunId, settings) {
+      mutateDemoWorld((w) => {
+        runById(w, programRunId).partnerNameMasking = settings.nameMasking;
+      });
+      await delay(undefined, 150);
+    },
+
+    // ── 만족도 조사 ──
+    async getSurveyResults(programRunId) {
+      const w = getDemoWorld();
+      runById(w, programRunId);
+      return delay(surveyResults(w, programRunId, { publicOnly: false, mask: false }));
+    },
+
+    async upsertSurvey(input) {
+      const opens = new Date(input.opensAt);
+      const closes = new Date(input.closesAt);
+      if (Number.isNaN(opens.getTime()) || Number.isNaN(closes.getTime()) || closes <= opens) throw new Error("기간이 올바르지 않아요.");
+      mutateDemoWorld((w) => {
+        const run = runById(w, input.programRunId);
+        const existing = w.surveys.find((s) => s.programRunId === run.id);
+        if (existing) {
+          existing.opensAt = input.opensAt;
+          existing.closesAt = input.closesAt;
+          if (input.title?.trim()) existing.title = input.title.trim();
+          return;
+        }
+        w.surveys.push({
+          programRunId: run.id,
+          title: input.title?.trim() || `${run.title} 만족도 조사`,
+          intro: "아이의 수업 경험을 들려주세요. 1분이면 끝나요.",
+          items: DEFAULT_SURVEY_ITEMS,
+          allowReview: true,
+          consentLabel: "후기를 사업 발주 기관(지자체)과 다른 학부모에게 공개해도 좋아요 (이름은 가려져요)",
+          opensAt: input.opensAt,
+          closesAt: input.closesAt,
+        });
+      });
       await delay(undefined, 200);
     },
   };

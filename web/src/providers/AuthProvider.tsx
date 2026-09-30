@@ -21,13 +21,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { onAuthStateChanged, signOut as fbSignOut, updateProfile } from "firebase/auth";
-import { DEMO_HUB_PATH } from "@/lib/demoMode";
+import { isFirebaseOptionalPath } from "@/lib/demoMode";
 import type { DemoRole } from "@/lib/demoMode";
 import { getFirebaseAuth, isFirebaseConfigured, type User } from "@/lib/firebase";
 import { guardianNameError, normalizeGuardianName } from "@/lib/guardianName";
 import { useDemo } from "@/providers/DemoProvider";
 import { demoGuardianName, setDemoGuardianName } from "@/services/demo/guardianApi";
-import { DEMO_GUARDIAN_PHONE_E164, DEMO_GUARDIAN_UID, DEMO_STAFF } from "@/services/demo/world";
+import { DEMO_GUARDIAN_PHONE_E164, DEMO_GUARDIAN_UID, DEMO_OFFICER, DEMO_STAFF } from "@/services/demo/world";
 
 export type SignOutReason = "user" | "withdrawn";
 
@@ -72,6 +72,8 @@ function demoUser(role: DemoRole): User {
       return { ...base, uid: DEMO_STAFF.center.uid, email: DEMO_STAFF.center.email, displayName: DEMO_STAFF.center.displayName } as unknown as User;
     case "instructor":
       return { ...base, uid: DEMO_STAFF.instructor.uid, email: DEMO_STAFF.instructor.email, displayName: DEMO_STAFF.instructor.displayName } as unknown as User;
+    case "officer":
+      return { ...base, uid: DEMO_OFFICER.uid, email: DEMO_OFFICER.email, displayName: DEMO_OFFICER.displayName } as unknown as User;
   }
 }
 
@@ -112,8 +114,8 @@ function FirebaseAuthProvider({ children }: { children: React.ReactNode }) {
   const [savedName, setSavedName] = useState<{ uid: string; name: string } | null>(null);
   const configured = isFirebaseConfigured();
   const pathname = usePathname();
-  // 체험판 허브(/demo)는 Firebase 없이도 떠야 한다
-  const onDemoHub = pathname === DEMO_HUB_PATH || pathname.startsWith(`${DEMO_HUB_PATH}/`);
+  // 체험판 허브(/demo)·공유 리포트(/r)는 Firebase 없이도 떠야 한다
+  const firebaseOptional = isFirebaseOptionalPath(pathname);
 
   useEffect(() => {
     if (!configured) return;
@@ -157,7 +159,7 @@ function FirebaseAuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   // 배포 환경변수 누락 시 원인을 바로 알 수 있게 안내 (Firebase 초기화 에러로 앱이 죽는 것 방지)
-  if (!configured && !onDemoHub) {
+  if (!configured && !firebaseOptional) {
     return (
       <div className="flex min-h-dvh flex-1 flex-col items-center justify-center gap-3 bg-card px-8 text-center">
         <p className="text-[18px] font-bold text-fg">서비스 설정이 완료되지 않았습니다</p>

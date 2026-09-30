@@ -4,7 +4,7 @@
 
 import type { Api } from "@/services/api";
 import { createLiveGuardianApi } from "./guardianApi";
-import { createLiveCenterApi, createLiveCompanyApi, createLiveInstructorApi, createLiveStaffApi } from "./staffApi";
+import { createLiveCenterApi, createLiveCompanyApi, createLiveInstructorApi, createLivePartnerApi, createLiveStaffApi } from "./staffApi";
 
 export function createLiveApi(): Api {
   return {
@@ -13,5 +13,6 @@ export function createLiveApi(): Api {
     center: createLiveCenterApi(),
     instructor: createLiveInstructorApi(),
     company: createLiveCompanyApi(),
+    partner: createLivePartnerApi(),
   };
 }

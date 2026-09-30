@@ -13,7 +13,13 @@ import { chromium } from "playwright";
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3100";
 const browser = await chromium.launch({ executablePath: process.env.E2E_CHROMIUM_PATH || undefined });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const errors = [];
+
+/** 이동 — 센터 화면은 채팅 실시간 구독(Firestore listen)이 열려 있어 networkidle 이 오지 않는다. load 뒤 최대 4초 조용해지길 기다린다 */
+async function go(page, url) {
+  await page.goto(url, { waitUntil: "load" });
+  await page.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
+  await sleep(600);
+}const errors = [];
 const results = [];
 async function check(name, fn) {
   try { const d = await fn(); results.push(true); console.log("PASS", name, d ?? ""); } catch (e) { results.push(false); console.log("FAIL", name, String(e.message).split("\n")[0]); }
@@ -23,7 +29,7 @@ async function newPage(email, next) {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => errors.push(`${email} ${e.message.slice(0, 150)}`));
   page.on("console", (m) => { if (m.type() === "error" && !/501|favicon/.test(m.text())) errors.push(`${email} ${m.text().slice(0, 150)}`); });
-  await page.goto(`${BASE}/admin/login?next=${encodeURIComponent(next)}`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/admin/login?next=${encodeURIComponent(next)}`);
   await page.locator("#admin-email").fill(email);
   await page.locator("#admin-password").fill("Passw0rd!");
   await page.getByRole("button", { name: "로그인" }).click();
@@ -40,7 +46,7 @@ let sessionId = null;
 await check("회사 명단 등록 → 학생·수강·코드", async () => {
   if (process.env.SKIP_IMPORT) return "skipped";
   const page = await newPage("company@thinkcampus.local", "/admin");
-  await page.goto(`${BASE}/admin/import`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/admin/import`);
   await page.locator(".dsg-cell:not(.dsg-cell-header):not(.dsg-cell-gutter)").first().click();
   await page.evaluate(() => {
     const rows = ["박라이브\t20150301\tSEED-ROSTER-001\tcampus-ds26\t\t01055556666", "박라이브2\t20170502\tSEED-ROSTER-001\tcampus-ds26\t\t01055556666"];
@@ -56,7 +62,7 @@ await check("회사 명단 등록 → 학생·수강·코드", async () => {
   const tt = await toast(page);
   assert(tt.includes("2명을 등록했어요"), tt);
   await sleep(1500);
-  await page.goto(`${BASE}/admin`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/admin`);
   await sleep(1500);
   t = await text(page);
   assert(t.includes("마지막 명단 등록 2명"), "홈: " + t.slice(0, 300));
@@ -66,16 +72,16 @@ await check("회사 명단 등록 → 학생·수강·코드", async () => {
 // 2. 센터: 학생 목록 · 강사 배정 · 공지
 await check("센터 학생 2명(형제) · 강사 배정 · 공지", async () => {
   const page = await newPage("center@thinkcampus.local", "/admin/center");
-  await page.goto(`${BASE}/admin/center/students`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/admin/center/students`);
   await sleep(1500);
   let t = await text(page);
   assert(t.includes("박라이브") && t.includes("형제 박라이브2"), "학생: " + t.slice(0, 400));
-  await page.goto(`${BASE}/admin/center/instructors`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/admin/center/instructors`);
   await sleep(1200);
   await page.locator("a[href*='/instructors/']").first().click();
   await page.waitForURL(/instructors\//);
-  await sleep(1500);
   const assignBtns = page.getByRole("button", { name: /회차 .* 배정$/, disabled: false });
+  await assignBtns.first().waitFor({ timeout: 20000 }).catch(() => {});
   const n = await assignBtns.count();
   assert(n > 0, "배정 버튼 없음: " + (await text(page)).slice(0, 400));
   await assignBtns.first().click();
@@ -84,7 +90,7 @@ await check("센터 학생 2명(형제) · 강사 배정 · 공지", async () =>
   await sleep(1500);
   t = await text(page);
   assert(t.includes("담당"), "담당 표시");
-  await page.goto(`${BASE}/admin/center/comms`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/admin/center/comms`);
   await page.locator("#notice-title").fill("라이브 공지");
   await page.getByRole("button", { name: "보내기" }).click();
   const t2 = await toast(page);
@@ -97,7 +103,7 @@ await check("센터 학생 2명(형제) · 강사 배정 · 공지", async () =>
 // 3. 강사: 담당 회차 → 출결 → 리포트 → 제출
 await check("강사 회차 출결 · 리포트 작성 · 검수 요청", async () => {
   const page = await newPage("teacher@thinkcampus.local", "/instructor");
-  await page.goto(`${BASE}/instructor/sessions`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/instructor/sessions`);
   await sleep(1200);
   await page.getByRole("group", { name: "기간" }).getByRole("button", { name: /^전체/ }).click();
   await sleep(300);
@@ -108,13 +114,13 @@ await check("강사 회차 출결 · 리포트 작성 · 검수 요청", async (
   await page.waitForURL(/\/instructor\/session\//);
   sessionId = page.url().match(/session\/([^?]+)/)[1];
   await sleep(1500);
-  await page.goto(`${BASE}/instructor/session/${sessionId}?tab=attendance`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/instructor/session/${sessionId}?tab=attendance`);
   await sleep(1200);
   await page.getByRole("button", { name: /모두 출석/ }).click();
   const t1 = await toast(page);
   assert(t1.includes("출석으로 저장했어요"), t1);
   await sleep(1500);
-  await page.goto(`${BASE}/instructor/session/${sessionId}?tab=report`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/instructor/session/${sessionId}?tab=report`);
   await sleep(1500);
   const tas = page.locator("textarea[placeholder^='오늘 수업에서']");
   const n = await tas.count();
@@ -133,7 +139,7 @@ await check("센터 리포트 검수 → 학부모 공개", async () => {
   await sleep(1000);
   let t = await text(page);
   assert(t.includes("검수 대기 리포트 2"), "홈 KPI: " + t.slice(0, 500));
-  await page.goto(`${BASE}/admin/center/reports`, { waitUntil: "networkidle" });
+  await go(page, `${BASE}/admin/center/reports`);
   await sleep(1500);
   await page.getByRole("button", { name: /2명 모두 학부모 공개/ }).click();
   const tt = await toast(page);

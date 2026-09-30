@@ -7,10 +7,11 @@
  *   0. 상단 경로 "홈" (다른 화면과 같은 줄) — 자녀 2명 이상이면 같은 줄 오른쪽에 자녀 전환
  *   1. 환영 인사 한 줄 "환영합니다, OOO 학부모님" — 보호자 이름(lib/guardianName.ts). 자녀 이름은 전환 버튼·카드에 있으니 넣지 않는다
  *      보호자 이름이 없는 계정이면 "학부모님" + 이름을 묻는 카드(GuardianNamePrompt) 한 번
- *   2. 현재 수강 중 프로그램 카드 (탭하면 → 프로그램 화면: 일시·장소 / 수업 안내 / 회차별 수업)
- *   3. 수강 예정 프로그램 카드 — 지금은 숨김 (SHOW_UPCOMING_ON_HOME)
- *   4. FAQ 진입
- *   5. 이전 수강 이력 — 맨 아래 작은 버튼 (→ /main/history)
+ *   2. 최신 공지 한 줄 (누르면 알림 탭) · 응답할 만족도 조사가 있으면 카드 하나
+ *   3. 현재 수강 중 프로그램 카드 (탭하면 → 프로그램 화면: 일시·장소 / 수업 안내 / 회차별 수업)
+ *   4. 수강 예정 프로그램 카드 — 지금은 숨김 (SHOW_UPCOMING_ON_HOME)
+ *   5. FAQ 진입
+ *   6. 이전 수강 이력 — 맨 아래 작은 버튼 (→ /main/history)
  * 규정·지침은 프로그램 화면의 수업 안내 안에 "필독"으로 있다 (홈에 따로 두지 않음)
  *
  * 프로그램 카드를 누르면 /main/program/[programId]
@@ -18,6 +19,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Spinner } from "@/components/ui/Spinner";
@@ -38,6 +40,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useSelectedChild } from "@/hooks/useSelectedChild";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/providers/ToastProvider";
+import { useApi, useQuery, type GuardianNotificationDto, type PendingSurveyDto } from "@/services";
 
 // ── 기기에 남기는 작은 표시 (없거나 막혀 있어도 화면은 그대로) ──
 
@@ -94,6 +97,13 @@ export default function HomeScreen() {
     return buildProgramCardsFromBundles(selected.studentId, selected.studentName, bundles, attendanceByRunId);
   }, [selected, bundles, attendanceByRunId]);
   const cardsLoading = programsLoading && !!selected;
+
+  // 최신 공지 한 줄 · 응답할 만족도 조사
+  const api = useApi();
+  const { data: notifications } = useQuery(() => (user ? api.guardian.listNotifications() : null), [api, user?.uid]);
+  const latestNotice = notifications?.find((n) => n.type === "notice") ?? null;
+  const { data: pendingSurveys } = useQuery(() => (user ? api.guardian.listPendingSurveys() : null), [api, user?.uid]);
+  const surveysForChild = (pendingSurveys ?? []).filter((s) => !selected || s.studentId === selected.studentId);
 
   const goToProgram = (card: ProgramCard) => {
     const qs = new URLSearchParams({
@@ -195,6 +205,13 @@ export default function HomeScreen() {
         </div>
       )}
 
+      {/* ── 최신 공지 한 줄 ─────────────────────── */}
+      {!loading && latestNotice && <LatestNotice notice={latestNotice} />}
+
+      {/* ── 만족도 조사 (응답 기간 · 아직 안 한 것) ── */}
+      {!loading &&
+        surveysForChild.map((s) => <SurveyCard key={`${s.programRunId}-${s.studentId}`} survey={s} />)}
+
       {/* ── 현재 수강 중 ────────────────────────── */}
       {!loading && active.length > 0 && (
         <>
@@ -257,6 +274,45 @@ export default function HomeScreen() {
 
       <div className="h-6" />
     </div>
+  );
+}
+
+// ── 서브 컴포넌트: 최신 공지 한 줄 ─────────────────────────
+function LatestNotice({ notice }: { notice: GuardianNotificationDto }) {
+  return (
+    <Link
+      href="/main/notification"
+      className="tap mx-5 mb-4 flex min-h-[48px] items-center gap-3 rounded-[14px] border border-line bg-card px-4 py-3"
+      data-testid="home-latest-notice"
+    >
+      <span className="shrink-0 rounded-md border border-gold-dim bg-gold-light px-2 py-[1px] text-[14px] font-bold text-gold">공지</span>
+      <span className={`min-w-0 flex-1 truncate text-[16px] ${notice.isRead ? "text-fg2" : "font-semibold text-fg"}`}>{notice.title}</span>
+      {!notice.isRead && <span aria-label="안 읽음" className="h-2 w-2 shrink-0 rounded-full bg-gold" />}
+      <span aria-hidden="true" className="shrink-0 text-[20px] leading-none text-sub">
+        ›
+      </span>
+    </Link>
+  );
+}
+
+// ── 서브 컴포넌트: 만족도 조사 카드 ─────────────────────────
+function SurveyCard({ survey }: { survey: PendingSurveyDto }) {
+  const qs = new URLSearchParams({ sid: survey.studentId, studentName: survey.studentName, programTitle: survey.programTitle });
+  const close = new Date(survey.closesAt);
+  const until = Number.isNaN(close.getTime()) ? "" : `${close.getMonth() + 1}월 ${close.getDate()}일까지`;
+  return (
+    <Link
+      href={`/main/program/${survey.programRunId}/survey?${qs.toString()}`}
+      className="tap mx-5 mb-4 block rounded-[18px] border border-gold-dim bg-gold-light px-5 py-4"
+      data-testid="home-survey-card"
+    >
+      <p className="text-[14px] font-bold text-gold">만족도 조사 · 1분이면 끝나요</p>
+      <p className="mt-1 text-[17px] font-bold text-fg">{survey.title}</p>
+      <p className="mt-1 text-[15px] text-fg2">
+        {survey.studentName} 학생{until ? ` · ${until}` : ""}
+      </p>
+      <span className="mt-3 inline-flex h-11 items-center rounded-[12px] bg-gold px-4 text-[16px] font-bold text-ink">참여하기</span>
+    </Link>
   );
 }
 

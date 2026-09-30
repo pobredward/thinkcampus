@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * 메인 레이아웃 — 인증 가드 + 하단 탭바 (홈 / 알림 / 내 정보)
+ * 메인 레이아웃 — 인증 가드 + 하단 탭바 (홈 / 채팅 / 알림 / 내 정보)
+ * 채팅방(/main/chat/[roomId])은 입력줄이 맨 아래에 붙으므로 탭바를 숨긴다.
  *
  * 웹은 URL 로 직접 진입할 수 있으므로 여기서 로그인 여부를 확인한다.
  *   확인 중        → 로딩 화면
@@ -36,10 +37,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   if (!user) return <LoadingScreen />;
 
+  const inRoom = /^\/main\/chat\/[^/]+/.test(pathname ?? "");
+
   return (
     <div className="flex min-h-dvh flex-1 flex-col bg-paper">
       <div className="flex flex-1 flex-col">{children}</div>
-      <TabBar />
+      {!inRoom && <TabBar />}
     </div>
   );
 }

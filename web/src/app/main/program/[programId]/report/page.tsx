@@ -2,78 +2,78 @@
 
 /**
  * 프로그램 종합 학습 리포트 (모바일 app/main/program/[programId]/report.tsx)
- * 진입: 프로그램 상세(회차 목록) 아래 [종합 리포트 보기] · 회차 리포트 탭 · 홈 샘플 리포트 카드
- * (종합 리포트 버튼은 모든 회차가 끝난 뒤에만 열린다)
+ * 진입: 프로그램 화면 아래 [종합 리포트 보기](모든 회차가 끝난 뒤) · 회차 리포트 탭 · [샘플 미리보기](?sample=1)
  *
- * 해당 학생의 종합 리포트
- * - 종합 등급 & 총평
- * - 프로그램별 역량 평가
- * - PDF/공유 기능
+ *   ?sample=1  → 이 학생·이 프로그램 이름으로 만든 예시 리포트 (lib/reportSample). PDF 는 되고 공유 링크는 안 된다
+ *   그 외      → api.guardian.getFinalReport. 아직 발급 전이면 "준비 중" + 샘플 미리보기 안내
+ *
+ * 본문은 components/report/FinalReportView, 버튼은 ReportActions (공유 링크 시트 · PDF)
  */
 
-import { useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useMemo } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ProgramHeader } from "@/components/program/ProgramHeader";
-import { getDummyProgram } from "@/data/programView";
-import { programCrumbs } from "@/lib/crumbs";
-import { Collapse } from "@/components/ui/Collapse";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { FinalReportView } from "@/components/report/FinalReportView";
+import { ReportActions } from "@/components/report/ReportActions";
 import { Spinner } from "@/components/ui/Spinner";
-import { usePageTitle } from "@/hooks/usePageTitle";
-import { useShare } from "@/hooks/useShare";
+import { getDummyProgram } from "@/data/programView";
+import { useChildren } from "@/hooks/useChildren";
 import { useFinalReport } from "@/hooks/useFinalReport";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { useProgramBundle } from "@/hooks/useProgramBundle";
+import { programCrumbs } from "@/lib/crumbs";
+import { buildSampleReport } from "@/lib/reportSample";
 import { useApi } from "@/services";
-import { useDialog } from "@/providers/DialogProvider";
-import {
-  getGradeColor,
-  getGradeBg,
-  type ProgramReport,
-} from "@/data/dummyReport";
 
 export default function ProgramReportPage() {
   usePageTitle("종합 리포트");
   const sp = useSearchParams();
+  const router = useRouter();
   const { programId } = useParams<{ programId: string }>();
-  const studentName = sp.get("studentName");
+  const studentName = sp.get("studentName") ?? "";
   const sid = sp.get("sid");
+  const sampleMode = sp.get("sample") === "1";
   const api = useApi();
-  const programTitle = sp.get("programTitle") ?? getDummyProgram(programId).title;
+
+  const { program: loadedProgram, loading: programLoading } = useProgramBundle(programId, sid);
+  const program = loadedProgram ?? getDummyProgram(programId);
+  const programTitle = sp.get("programTitle") ?? program.title;
+  const { children } = useChildren({ activeOnly: true });
+  const campusName = children.find((c) => c.studentId === sid)?.campusName;
+
+  const { report, loading: reportLoading } = useFinalReport(sampleMode ? null : sid, programId);
+
+  const sample = useMemo(() => {
+    if (!sampleMode) return null;
+    return buildSampleReport({
+      reportId: `sample-${programId}`,
+      studentId: sid ?? "sample",
+      studentName: studentName || "우리 아이",
+      programTitle,
+      campusName,
+      campPeriod: `${program.startDate} – ${program.endDate}`,
+      issuedBy: campusName ? `${campusName} · 담당 선생님` : undefined,
+      sessions: program.sessions.map((s) => ({
+        sessionNumber: s.sessionNumber,
+        date: s.date,
+        topic: s.topic,
+        instructorName: s.instructor.name,
+        instructorTitle: s.instructor.title || undefined,
+      })),
+    });
+  }, [sampleMode, programId, sid, studentName, programTitle, campusName, program]);
+
   const header = (
     <ProgramHeader
       mode="report"
-      studentName={studentName ?? ""}
+      studentName={studentName}
       programTitle={programTitle}
-      crumbs={[...programCrumbs({ programId, programTitle, sp }), { label: "종합 리포트" }]}
+      badge={sampleMode ? "샘플" : undefined}
+      crumbs={[...programCrumbs({ programId, programTitle, sp }), { label: sampleMode ? "리포트 샘플" : "종합 리포트" }]}
     />
   );
-  const dialog = useDialog();
-  const share = useShare();
-  const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
-  const [sharing, setSharing] = useState(false);
 
-  const { report, loading } = useFinalReport(sid, programId);
-
-  function toggleProgram(id: string) {
-    setExpandedProgram((prev) => (prev === id ? null : id));
-  }
-
-  async function handleShare() {
-    if (!report) return;
-    setSharing(true);
-    try {
-      const link = await api.guardian.createShareLink(report.reportId);
-      await share({
-        title: `${report.studentName} 학생 리포트`,
-        message: `ThinkCampus 리포트 링크: ${link.url}`,
-        url: link.url,
-      });
-    } catch {
-      void dialog.alert("오류", "공유 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
-    } finally {
-      setSharing(false);
-    }
-  }
-
+  const loading = sampleMode ? programLoading && !loadedProgram : reportLoading;
   if (loading) {
     return (
       <div className="flex flex-1 flex-col bg-paper">
@@ -85,232 +85,41 @@ export default function ProgramReportPage() {
     );
   }
 
-  if (!report) {
+  const shown = sampleMode ? sample : report;
+
+  if (!shown) {
+    const openSample = () => {
+      const p = new URLSearchParams(sp.toString());
+      p.set("sample", "1");
+      router.replace(`/main/program/${programId}/report?${p.toString()}`);
+    };
     return (
       <div className="flex flex-1 flex-col bg-paper">
         {header}
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-paper p-8">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-paper p-8" data-testid="report-pending">
           <p className="text-[20px] font-bold text-fg2">리포트 준비 중</p>
           <p className="text-center text-[16px] leading-[25px] text-sub">
-            프로그램이 끝나면 영업일 기준
+            마지막 수업이 끝나면 영업일 기준
             <br />
             3~5일 안에 올라와요.
           </p>
+          <button type="button" onClick={openSample} className="tap mt-2 inline-flex min-h-[48px] items-center rounded-xl border border-gold-dim bg-gold-light px-5 text-[16px] font-bold text-gold">
+            어떤 리포트를 받게 되나요? 샘플 미리보기
+          </button>
         </div>
       </div>
     );
   }
 
-  const gradeColor = getGradeColor(report.totalGrade);
-  const gradeBg = getGradeBg(report.totalGrade);
-
   return (
     <div className="flex flex-1 flex-col bg-paper">
       {header}
-      <div className="flex flex-1 flex-col bg-paper pt-4 pb-8">
-        {/* ── 종합 등급 카드 ───────────────── */}
-        <div className="mx-4 mb-2 rounded-[20px] border border-line bg-card p-5">
-          <div className="mb-3 flex items-start justify-between">
-            <div>
-              <p className="mb-1 text-[14px] text-sub">
-                {studentName ?? report.studentName} 학생
-              </p>
-              <p className="text-[16px] font-bold text-fg">{report.personalityType}</p>
-            </div>
-            <div
-              className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[14px]"
-              style={{ backgroundColor: gradeBg }}
-            >
-              <span className="text-[30px] font-black" style={{ color: gradeColor }}>
-                {report.totalGrade}
-              </span>
-            </div>
-          </div>
-
-          <div className="mb-4 flex items-baseline gap-1">
-            <span className="text-[40px] font-extrabold leading-[1.2] text-fg">
-              {report.totalScore}
-            </span>
-            <span className="text-[16px] text-sub">/ 100점</span>
-          </div>
-
-          {/* 강점·성장 분야 */}
-          <div className="mb-[14px] flex gap-2">
-            <div className="flex flex-1 flex-col gap-1 rounded-[10px] bg-paper p-[10px]">
-              <p className="mb-[2px] text-[14px] font-bold text-fg2">강점 분야</p>
-              {report.strengthAreas.map((a, i) => (
-                <p key={i} className="text-[14px] font-medium text-gold">
-                  • {a}
-                </p>
-              ))}
-            </div>
-            <div className="flex flex-1 flex-col gap-1 rounded-[10px] bg-elev p-[10px]">
-              <p className="mb-[2px] text-[14px] font-bold text-fg2">발전 분야</p>
-              {report.growthAreas.map((a, i) => (
-                <p key={i} className="text-[14px] font-medium text-sub">
-                  • {a}
-                </p>
-              ))}
-            </div>
-          </div>
-
-          {/* 담임 총평 */}
-          <div className="mb-[14px] rounded-xl border-l-[3px] border-gold bg-elev p-[14px]">
-            <p className="mb-[6px] text-[14px] font-bold uppercase tracking-[0.3px] text-sub">
-              담임 총평
-            </p>
-            <p className="text-[15px] leading-[24px] text-fg2">{report.overallComment}</p>
-          </div>
-
-          {/* 공유 버튼 */}
-          <button
-            type="button"
-            onClick={handleShare}
-            disabled={sharing}
-            className="tap no-print flex w-full items-center justify-center rounded-xl bg-brand py-[13px]"
-          >
-            {sharing ? (
-              <Spinner color="#0c0e13" size="small" />
-            ) : (
-              <span className="text-[16px] font-bold text-ink">리포트 공유하기</span>
-            )}
-          </button>
-        </div>
-
-        {/* ── 프로그램별 상세 ──────────────── */}
-        <p className="px-4 pt-4 pb-2 text-[14px] font-bold uppercase tracking-[0.5px] text-sub">
-          프로그램별 평가
-        </p>
-
-        {report.programs.map((prog) => (
-          <ProgramCard
-            key={prog.programId}
-            program={prog}
-            expanded={expandedProgram === prog.programId}
-            onToggle={() => toggleProgram(prog.programId)}
-          />
-        ))}
-
-        <div className="h-8" />
-      </div>
-    </div>
-  );
-}
-
-// ── 프로그램 리포트 카드 ──────────────────────────────────
-
-function ProgramCard({
-  program,
-  expanded,
-  onToggle,
-}: {
-  program: ProgramReport;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const gradeColor = getGradeColor(program.grade);
-  const gradeBg = getGradeBg(program.grade);
-
-  return (
-    <div className="mx-4 mb-2 overflow-hidden rounded-[14px] border border-line bg-card">
-      {/* 카드 헤더 */}
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        className="tap flex w-full items-center gap-[10px] p-[14px] text-left"
-      >
-        <span className="block min-w-0 flex-1">
-          <span className="block truncate text-[16px] font-bold text-fg">
-            {program.programName}
-          </span>
-          <span className="mt-[2px] block text-[14px] text-sub">{program.instructorName}</span>
-        </span>
-        <span
-          className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px]"
-          style={{ backgroundColor: gradeBg }}
-        >
-          <span className="text-[17px] font-extrabold" style={{ color: gradeColor }}>
-            {program.grade}
-          </span>
-        </span>
-        <span className="ml-[2px] text-[14px] text-sub">{expanded ? "∧" : "∨"}</span>
-      </button>
-
-      {/* 확장 영역 */}
-      <Collapse open={expanded}>
-        <div className="flex flex-col gap-3 border-t border-line p-[14px]">
-          {/* 점수 바 */}
-          <div className="flex items-center gap-[10px]">
-            <p className="text-[22px] font-extrabold text-fg">{program.overallScore}점</p>
-            <div className="rounded-lg border border-line bg-elev px-2 py-[3px]">
-              <p className="text-[14px] font-bold text-gold">+{program.growthIndex}점 성장</p>
-            </div>
-          </div>
-
-          {/* 역량별 바 차트 */}
-          {program.competencies.map((comp) => (
-            <div key={comp.label} className="flex items-center gap-2">
-              <p className="w-20 shrink-0 text-[14px] text-fg2">{comp.label}</p>
-              <div className="relative flex-1">
-                {/* 또래 평균 */}
-                <div
-                  className="absolute top-[-3px] z-[1] h-[14px] w-[2px] rounded-[1px] bg-line2"
-                  style={{ left: `${comp.benchmark}%` }}
-                />
-                {/* 내 점수 */}
-                <ProgressBar
-                  value={comp.score / 100}
-                  height={8}
-                  color={getGradeColor(
-                    comp.score >= 90 ? "S" : comp.score >= 75 ? "A" : comp.score >= 60 ? "B" : "C",
-                  )}
-                />
-              </div>
-              <p className="w-7 shrink-0 text-right text-[14px] font-bold text-fg2">
-                {comp.score}
-              </p>
-            </div>
-          ))}
-          <p className="text-right text-[14px] text-sub">| 또래 평균</p>
-
-          {/* 강사 코멘트 */}
-          <div className="rounded-[10px] border-l-[3px] border-line2 bg-elev p-3">
-            <p className="mb-[6px] text-[14px] font-bold uppercase tracking-[0.3px] text-sub">
-              강사 코멘트
-            </p>
-            <p className="text-[15px] leading-[22px] text-fg2">{program.instructorComment}</p>
-          </div>
-
-          {/* 하이라이트 */}
-          {program.highlights.length > 0 && (
-            <div className="flex flex-col gap-[6px]">
-              <p className="text-[14px] font-bold text-fg2">인상적이었던 점</p>
-              {program.highlights.map((h, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="mt-[7px] h-[5px] w-[5px] shrink-0 rounded-[2.5px] bg-brand" />
-                  <p className="flex-1 text-[14px] leading-[22px] text-fg2">{h}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* 다음 단계 */}
-          {program.nextSteps.length > 0 && (
-            <div className="flex flex-col gap-2 rounded-[10px] bg-elev p-3">
-              <p className="mb-1 text-[14px] font-bold text-gold">향후 발전 방향</p>
-              {program.nextSteps.map((step, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="h-[18px] w-[18px] shrink-0 rounded-[9px] bg-brand text-center text-[14px] font-bold leading-[21px] text-ink">
-                    {i + 1}
-                  </span>
-                  <p className="flex-1 text-[14px] leading-[22px] text-fg">{step}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Collapse>
+      <FinalReportView
+        report={shown}
+        sample={sampleMode}
+        cover="meta"
+        actions={<ReportActions report={shown} sample={sampleMode} createShareLink={() => api.guardian.createShareLink(shown.reportId)} />}
+      />
     </div>
   );
 }

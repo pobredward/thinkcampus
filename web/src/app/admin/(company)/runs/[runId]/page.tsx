@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * 회사 · 운영 건 상세 — 기본 정보 · 반 · 리포트 정책 · 강사 · 회차 일정
+ * 회사 · 운영 건 상세 — 기본 정보 · 반 · 리포트 정책 · 발주처 담당자 · 만족도 조사 · 민원 · 강사 · 회차 일정
  */
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Badge, Button, Card, Empty, ErrorBox, fmtDate, KeyValue, Loading, PageTitle, SectionLabel } from "@/components/staff/ui";
+import { PartnerOfficersPanel, RunSurveyPanel } from "@/components/staff/RunPartnerPanels";
+import { Badge, Button, Card, Empty, ErrorBox, fmtDate, KeyValue, Loading, PageTitle, RowLink, SectionLabel } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { WEEKDAYS } from "@/lib/dates";
 import { useToast } from "@/providers/ToastProvider";
@@ -79,6 +80,13 @@ export default function CompanyRunDetailPage() {
           </Button>
         </div>
       </Card>
+
+      <PartnerOfficersPanel programRunId={data.id} municipalityName={data.municipalityName} nameMasking={data.partnerNameMasking} />
+
+      <RunSurveyPanel programRunId={data.id} startDate={data.startDate} endDate={data.endDate} />
+
+      <SectionLabel>민원 · 문의</SectionLabel>
+      <RowLink href={`/admin/inquiries?run=${encodeURIComponent(data.id)}`} title="이 운영 건의 민원 · 문의 보기" desc="앱 채팅 · 전화 · 현장 접수와 처리 내용" />
 
       <SectionLabel>강사</SectionLabel>
       {data.instructors.length === 0 ? (

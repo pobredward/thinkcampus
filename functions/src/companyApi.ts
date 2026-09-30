@@ -51,6 +51,7 @@ export const getCompanyHome = onCall(
       totalStudents: open.reduce((a, r) => a + r.studentCount, 0),
       lastImport: last ? { at: tsToIso(last.createdAt) ?? '', rowCount: (last.rowCount as number) ?? 0, contractCode: (last.contractCode as string) ?? '' } : null,
       reportsAwaitingApproval: reviewed.size,
+      complaintsOpen: (await getDb().collection('inquiries').where('status', 'in', ['received', 'inProgress']).get()).docs.filter((d) => d.data().kind !== 'question').length,
     };
   },
 );
@@ -103,6 +104,7 @@ export const getProgramRun = onCall(
         status: s.status,
       })),
       instructors: [...counts.entries()].map(([staffId, sessionCount]) => ({ staffId, name: staff.get(staffId)?.displayName ?? staffId, sessionCount })),
+      partnerNameMasking: !!ctx.run.partnerNameMasking,
       guardianLinkedCount: linked,
       attendanceRate: att > 0 ? Math.round((present / att) * 100) : null,
       createdAt: tsToIso(ctx.run.createdAt),

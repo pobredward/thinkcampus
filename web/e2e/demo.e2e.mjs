@@ -1,5 +1,6 @@
 /**
- * 체험판 E2E — 네 역할(학부모·강사·센터·회사)이 한 탭에서 같은 체험 세계를 보는지, 저장이 역할 사이에 이어지는지
+ * 체험판 E2E — 다섯 역할(학부모 · 강사 · 프로그램 매니저 · 통합 관리자 · 발주처 담당자)이 한 탭에서 같은 체험 세계를 보는지,
+ * 저장이 역할 사이에 이어지는지 (채팅 · 민원 · 만족도 · 발주처 보고서 포함)
  *
  *   cd web && npm run build && npm run start          (포트 3000, Firebase 환경변수 없어도 된다)
  *   npm run e2e:demo                                   (다른 주소: E2E_DEMO_BASE_URL=http://127.0.0.1:3400)
@@ -89,11 +90,14 @@ const confirmDialog = async () => {
 };
 
 // ── 허브 ──────────────────────────────────────────────
-await check("루트 → 체험판 허브, 역할 4개", async () => {
+await check("루트 → 체험판 허브, 3묶음(내부 운영 · 발주처 · 학부모) · 역할 5개", async () => {
   await goto("/");
   assert(page.url().endsWith("/demo"), page.url());
   const t = await text();
-  for (const s of ["학부모", "강사", "센터 관리자", "회사 관리자", "신선웅", "박지훈", "이정민", "김도현"]) assert(t.includes(s), s);
+  for (const s of ["내부 운영", "발주처", "학부모", "강사", "프로그램 매니저", "통합 관리자", "발주처 담당자", "신선웅", "박지훈", "이정민", "김도현", "한지원"]) assert(t.includes(s), s);
+  assert(!t.includes("센터 관리자") && !t.includes("회사 관리자") && !t.includes("대학생 멘토"), "옛 이름 · 문구");
+  for (const id of ["internal", "partner", "guardian"]) assert(await page.getByTestId(`demo-sector-${id}`).count(), id);
+  assert((await page.locator('[data-testid^="demo-enter-"]').count()) === 5, "역할 5개");
   assert(!(await page.locator('[data-testid="demo-banner"]').count()), "허브에는 배너 없음");
   await shot("hub");
 });
@@ -289,6 +293,280 @@ await check("학부모 내 정보 — 이름 수정이 홈 인사말에 반영 �
   assert((await text()).includes("환영합니다, 신선웅 학부모님"), "인사말");
 });
 
+// ── 종합 리포트 ─────────────────────────────────────────
+await check("학부모 진행 중 프로그램 — 종합 리포트 잠김 + 샘플 미리보기(이 아이 이름 · 공유는 안내 · PDF 는 됨)", async () => {
+  await goto("/main/program/run-ds26-creative?sid=student-001&studentName=신민준");
+  await page.getByTestId("report-sample-open").waitFor();
+  await sleep(600);
+  assert((await text()).includes("6회 수업이 모두 끝나면 열려요"), "잠김 안내");
+  await page.getByTestId("report-sample-open").click();
+  await page.waitForSelector('[data-testid="final-report"][data-sample="true"]');
+  const t = await text();
+  assert(t.includes("샘플 리포트예요") && t.includes("신민준 학생"), "샘플 배너 · 학생 이름");
+  assert(t.includes("민준이는 6회 수업 동안"), "총평에 아이 이름");
+  assert(!t.includes("김민준"), "예시 원본 이름이 남아 있음");
+  await shot("guardian-report-sample");
+  await page.getByTestId("report-share").click();
+  const dlg = page.locator('[role="alertdialog"]');
+  await dlg.waitFor();
+  assert((await dlg.innerText()).includes("실제 리포트가 발급되면"), "샘플 공유 안내");
+  await dlg.getByRole("button").last().click();
+  await sleep(300);
+});
+
+let shareUrl = "";
+await check("학부모 지난 프로그램(봄학기) — 종합 리포트 · 과목 6개 · 출석 요약 · 회차별 한마디", async () => {
+  await goto("/main/history");
+  await page.getByText("봄학기 창의융합").first().click();
+  await page.getByRole("button", { name: "종합 리포트 보기" }).waitFor();
+  await sleep(600);
+  await page.getByRole("button", { name: "종합 리포트 보기" }).click();
+  await page.waitForSelector('[data-testid="final-report"][data-sample="false"]');
+  assert((await page.locator('[data-testid="report-subject"]').count()) === 6, "과목 6개");
+  const t = await text();
+  assert(t.includes("83") && t.includes("A · 우수"), "종합 점수·등급");
+  assert(t.includes("출석 5회") || /출석\s*5회/.test(t), "출석 요약: " + t.slice(t.indexOf("출석"), t.indexOf("출석") + 60));
+  assert(t.includes("회차별 선생님 한마디") && t.includes("다음 프로그램 안내"), "한마디 · 다음 프로그램");
+  await page.getByRole("button", { name: "모두 펼치기" }).click();
+  await sleep(500);
+  await shot("guardian-report-full");
+});
+
+await check("리포트 공유 — 링크 시트(복사 · 만료 안내) · 링크는 /r/", async () => {
+  await page.getByTestId("report-share").click();
+  await page.locator('[data-testid="share-sheet"]').waitFor();
+  shareUrl = (await page.getByTestId("share-url").innerText()).trim();
+  assert(shareUrl.startsWith(BASE + "/r/demo-"), shareUrl);
+  assert((await text()).includes("까지 열려요"), "만료 안내");
+  await page.getByTestId("share-copy").click();
+  const tt = await toast();
+  assert(tt.includes("복사했어요"), tt);
+  await shot("guardian-report-share");
+  await page.keyboard.press("Escape");
+  await sleep(300);
+});
+
+await check("리포트 PDF 저장 — 파일 내려받기(이름에 학생·프로그램) · 1MB 미만", async () => {
+  const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByTestId("report-pdf").click()]);
+  const file = path.join(SHOTS, "demo-report.pdf");
+  await download.saveAs(file);
+  const size = fs.statSync(file).size;
+  assert(size > 30_000 && size < 1_000_000, `크기 ${size}`);
+  const name = download.suggestedFilename();
+  // 리눅스 컨테이너(LANG=C)의 크로미움은 한글 파일명을 "download" 로 바꾼다 — 그 경우만 넘어간다
+  assert(name === "download" || /신민준_.*종합리포트\.pdf$/.test(name), name);
+  const head = fs.readFileSync(file).subarray(0, 5).toString();
+  assert(head === "%PDF-", "PDF 헤더: " + head);
+  return `${size}B ${name}`;
+});
+
+await check("공유 링크 — 쿠키·로그인 없는 새 브라우저에서 열림 · PDF 만 · 없는 링크는 안내", async () => {
+  const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ko-KR" });
+  const p2 = await ctx2.newPage();
+  const errs = [];
+  p2.on("pageerror", (e) => errs.push(e.message));
+  await p2.goto(shareUrl, { waitUntil: "networkidle" });
+  await p2.waitForSelector('[data-testid="final-report"]');
+  const t = (await p2.locator("body").innerText()).replace(/\s+/g, " ");
+  assert(t.includes("보호자가 공유한 리포트예요") && t.includes("신민준 학생"), "공유 페이지 본문");
+  assert((await p2.getByTestId("report-pdf").count()) === 1 && (await p2.getByTestId("report-share").count()) === 0, "PDF 만");
+  assert(!(await p2.locator('[data-testid="demo-banner"]').count()), "체험 배너 없음");
+  await p2.screenshot({ path: path.join(SHOTS, "demo-shared-report.png"), fullPage: true });
+  await p2.goto(BASE + "/r/demo-none", { waitUntil: "networkidle" });
+  await p2.waitForSelector('[data-testid="shared-report-unavailable"]');
+  assert(errs.length === 0, errs[0]);
+  await ctx2.close();
+});
+
+// ── 채팅 · 민원 · 만족도 (학부모 ↔ 프로그램 매니저) ─────────────
+await check("학부모 홈 — 최신 공지 1줄 · 만족도 조사 카드 · 채팅 탭 배지", async () => {
+  await enter("guardian");
+  await page.getByTestId("home-latest-notice").waitFor();
+  const notice = await page.getByTestId("home-latest-notice").innerText();
+  assert(notice.includes("E2E 준비물 안내"), "최신 공지: " + notice);
+  assert(await page.getByTestId("home-survey-card").count(), "만족도 카드");
+  const badge = (await page.getByTestId("tab-chat-badge").innerText()).trim();
+  assert(Number(badge) >= 1, "배지 " + badge);
+  await shot("guardian-home-engage");
+  return `공지 · 배지 ${badge}`;
+});
+
+await check("학부모 채팅 — 방 목록 → 방(탭바 숨김) → 빠른 질문 자동 안내 → 불편·요청 접수", async () => {
+  await page.getByRole("link", { name: /채팅/ }).first().click();
+  await page.waitForURL(/\/main\/chat$/);
+  await page.getByTestId("chat-room").first().waitFor();
+  assert((await page.getByTestId("chat-room").count()) >= 2, "방 2개 이상");
+  await shot("guardian-chat-list");
+  await page.getByTestId("chat-room").filter({ hasText: "신민준" }).filter({ hasText: "토요 창의융합" }).click();
+  await page.waitForURL(/\/main\/chat\/.+/);
+  await page.locator("#chat-input").waitFor();
+  assert(!(await page.locator('nav[aria-label="메인 탭"]').count()), "방에서는 탭바 숨김");
+  await page.getByRole("button", { name: "다음 수업 준비물" }).click();
+  await page.getByText(/준비물: /).last().waitFor({ timeout: 8000 });
+  await page.getByRole("switch", { name: /불편·요청/ }).click();
+  await page.getByRole("button", { name: "시설·환경" }).click();
+  await page.locator("#chat-input").fill("E2E 교실 창문이 잘 안 닫혀요.");
+  await page.getByRole("button", { name: "접수", exact: true }).click();
+  await page.getByText("불편·요청 사항으로 접수됐어요").last().waitFor({ timeout: 8000 });
+  const t = await text();
+  assert(t.includes("접수한 요청") && t.includes("처리 중"), "요청 요약: " + t.slice(0, 300));
+  await shot("guardian-chat-room");
+});
+
+await check("학부모 만족도 — 5문항 · 후기 공개 동의 → 감사 화면 → 홈 카드 사라짐", async () => {
+  await goto("/main");
+  await page.getByTestId("home-survey-card").first().click();
+  await page.waitForURL(/\/survey\?/);
+  await page.getByTestId("survey-submit").waitFor();
+  const groups = page.locator('[role="radiogroup"]');
+  const n = await groups.count();
+  assert(n === 5, `문항 ${n}`);
+  for (let i = 0; i < n; i++) await groups.nth(i).getByRole("radio", { name: /5점/ }).click();
+  await page.locator("#survey-review").fill("E2E 후기 — 아이가 토요일만 기다려요.");
+  await page.getByRole("checkbox").check();
+  await shot("guardian-survey");
+  await page.getByTestId("survey-submit").click();
+  await page.getByTestId("survey-done").waitFor();
+  await goto("/main");
+  const left = await page.getByTestId("home-survey-card").count();
+  return `남은 카드 ${left}`;
+});
+
+await check("센터 채팅 — 탭 배지 · 답변 대기 방 → 자주 쓰는 답변으로 답장 · 민원 처리 완료", async () => {
+  await enter("center");
+  await page.getByTestId("nav-badge-chatWaiting").waitFor();
+  await goto("/admin/center/chat");
+  await page.getByTestId("center-chat-room").first().waitFor();
+  await shot("center-chat-list");
+  await page.getByTestId("center-chat-room").filter({ hasText: "신민준" }).first().click();
+  await page.waitForURL(/\/admin\/center\/chat\/.+/);
+  await page.locator("#chat-input").waitFor();
+  await page.getByRole("button", { name: "자주 쓰는 답변" }).click();
+  await page.locator('[role="dialog"]').getByRole("button").filter({ hasText: "불편을 드려 죄송합니다" }).click();
+  await page.getByRole("button", { name: "보내기" }).click();
+  await page.getByTestId("chat-mine").filter({ hasText: "불편을 드려 죄송합니다" }).last().waitFor();
+  await page.getByRole("button", { name: "처리하기" }).first().click();
+  const sheet = page.locator('[role="dialog"]');
+  await sheet.getByRole("radio", { name: "처리 완료" }).click();
+  await sheet.locator("textarea").last().fill("E2E 창문 잠금장치를 고쳤어요.");
+  await sheet.getByRole("button", { name: "저장" }).click();
+  assert((await toast()).includes("저장했어요"), "토스트");
+  await shot("center-chat-room");
+});
+
+await check("센터 민원·문의 — 전화 접수 기록 → 상세 · 만족도 결과(방금 응답 포함)", async () => {
+  await goto("/admin/center/inquiries");
+  await page.getByRole("button", { name: "전화·현장 접수" }).click();
+  const sheet = page.locator('[role="dialog"]');
+  await sheet.getByRole("radio", { name: /문의/ }).click();
+  await sheet.locator("#inq-cat").selectOption("operation");
+  await sheet.locator("#inq-title").fill("E2E 전화 문의");
+  await sheet.locator("#inq-body").fill("다음 학기 모집 일정 문의");
+  await sheet.getByRole("button", { name: "기록하기" }).click();
+  await page.waitForURL(/\/admin\/center\/inquiries\/.+/);
+  await page.getByRole("heading", { name: "E2E 전화 문의" }).waitFor({ timeout: 8000 });
+  await goto("/admin/center/survey");
+  await page.getByTestId("survey-results").waitFor();
+  const t = await text();
+  assert(t.includes("E2E 후기") && t.includes("공개 동의"), "후기");
+  await shot("center-survey");
+});
+
+await check("학부모 채팅방 — 처리 완료 안내 · 처리 내용", async () => {
+  await enter("guardian");
+  await goto("/main/chat");
+  await page.getByTestId("chat-room").filter({ hasText: "신민준" }).filter({ hasText: "토요 창의융합" }).click();
+  await page.getByText(/처리 완료: E2E 창문/).waitFor({ timeout: 8000 });
+});
+
+// ── 발주처 담당자 ─────────────────────────────────────
+await check("발주처 현황 — 4칸 · 회차별 출석 표 · 최근 민원에 방금 처리한 건", async () => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await enter("officer");
+  assert(page.url().endsWith("/partner"), page.url());
+  await page.getByTestId("partner-home").waitFor();
+  await page.getByTestId("attendance-table").waitFor();
+  const t = await text();
+  for (const s of ["진행 회차", "전체 출석률", "민원", "학부모 만족도", "E2E 교실 창문"]) assert(t.includes(s), s);
+  assert(/5\s*건 접수/.test(t) && t.includes("처리 완료 4"), "민원 5 · 처리 4: " + t.slice(0, 600));
+  await shot("partner-home");
+});
+
+await check("발주처 수업 · 참여 · 강사진 · 만족도 — 화면마다 내용", async () => {
+  await goto("/partner/lessons");
+  assert((await page.getByTestId("partner-lesson").count()) === 6, "6회차");
+  await goto("/partner/participation");
+  await page.getByTestId("participation-table").waitFor();
+  await goto("/partner/instructors");
+  assert((await page.getByTestId("partner-instructor").count()) >= 3, "강사 3명");
+  await goto("/partner/survey");
+  const t = await text();
+  assert(t.includes("공개에 동의한 후기만") && t.includes("E2E 후기") && !t.includes("신선웅 학부모"), "공개 후기만 · 이름 가림");
+  await shot("partner-survey");
+});
+
+await check("발주처 민원 — 원문 + 처리 내용 · 담당자 의견 남기기", async () => {
+  await goto("/partner/inquiries");
+  const card = page.getByTestId("partner-complaint").filter({ hasText: "E2E 교실 창문" });
+  await card.waitFor();
+  assert((await card.innerText()).includes("E2E 창문 잠금장치를 고쳤어요"), "처리 내용");
+  await card.getByRole("button", { name: "의견 남기기" }).click();
+  await card.locator("textarea").fill("E2E 확인했습니다.");
+  await card.getByRole("button", { name: "저장" }).click();
+  assert((await toast()).includes("의견을 남겼어요"), "토스트");
+  await shot("partner-inquiries");
+});
+
+await check("발주처 보고서 — 장 선택 · 개요 정리하기 · 한글 · 워드 · PDF · 엑셀 내려받기", async () => {
+  await goto("/partner/reports");
+  await page.getByTestId("report-preview").waitFor();
+  assert((await page.getByTestId("report-sections").locator('input[type="checkbox"]').count()) === 10, "장 10개");
+  await page.getByRole("button", { name: "개요 정리하기" }).click();
+  const outline = await page.getByTestId("report-outline").locator("textarea").inputValue();
+  assert(outline.includes("1. 사업 개요") && outline.includes("민원"), "개요");
+  const sizes = {};
+  for (const f of ["hwpx", "docx", "pdf", "xlsx"]) {
+    const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 90000 }), page.getByTestId(`report-download-${f}`).click()]);
+    const file = path.join(SHOTS, `demo-partner-report.${f}`);
+    await dl.saveAs(file);
+    const buf = fs.readFileSync(file);
+    sizes[f] = buf.length;
+    const magic = buf.subarray(0, 4).toString("latin1");
+    assert(f === "pdf" ? magic === "%PDF" : magic.startsWith("PK"), `${f} 헤더 ${magic}`);
+    if (f === "hwpx") assert(buf.subarray(30, 38).toString("latin1") === "mimetype", "hwpx 첫 항목 mimetype");
+    const name = dl.suggestedFilename();
+    assert(name === "download" || name.endsWith(`운영 결과 보고서.${f}`), name);
+    await sleep(400);
+  }
+  await shot("partner-reports");
+  return Object.entries(sizes).map(([k, v]) => `${k} ${Math.round(v / 1024)}KB`).join(" · ");
+});
+
+await check("통합 관리자 — 운영 건 상세: 발주처 담당자 · 초대(임시 비밀번호 1회) · 이름 가리기 · 만족도", async () => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await enter("company");
+  await goto("/admin/runs/run-ds26-creative");
+  await page.getByTestId("officer-list").waitFor();
+  let t = await text();
+  assert(t.includes("한지원") && t.includes("만족도 조사") && t.includes("응답"), "담당자 · 만족도");
+  await page.getByRole("button", { name: "담당자 초대" }).click();
+  const sheet = page.locator('[role="dialog"]');
+  await sheet.locator("#off-name").fill("E2E 담당");
+  await sheet.locator("#off-email").fill("e2e@dalseong.go.kr");
+  await sheet.getByRole("button", { name: "계정 만들기" }).click();
+  const pw = (await page.getByTestId("temp-password").innerText()).trim();
+  assert(/^Tc-/.test(pw), pw);
+  await page.keyboard.press("Escape");
+  await page.getByTestId("partner-masking").check();
+  assert((await toast()).includes("가려서"), "마스킹 토스트");
+  await shot("company-run-partner");
+  await enter("officer");
+  await goto("/partner/participation");
+  t = await text();
+  assert(t.includes("이름 일부를 가려서") && t.includes("신○준"), "가림 반영");
+  return pw;
+});
+
 // ── 회사 ──────────────────────────────────────────────
 await check("회사 홈 — 캠퍼스 2곳 · 운영 건 · 승인 대기", async () => {
   await enter("company");
@@ -359,14 +637,14 @@ await check("회사 리포트 정책 — 승인 대기 목록 · 정책 토글",
 await check("회사 체험 중 센터 화면 — 회사 관리자는 센터 앱도 볼 수 있다", async () => {
   await goto("/admin/center");
   const t = await text();
-  assert(t.includes("센터 관리") && t.includes("2026-달성-창의-01"), t.slice(0, 200));
+  assert(t.includes("프로그램 매니저") && t.includes("2026-달성-창의-01"), t.slice(0, 200));
 });
 
-await check("학부모 체험 중 /admin → 역할 안내(회사 관리자 체험으로 바꾸기)", async () => {
+await check("학부모 체험 중 /admin → 역할 안내(통합 관리자 체험으로 바꾸기)", async () => {
   await enter("guardian");
   await goto("/admin");
   const t = await text();
-  assert(t.includes("학부모 체험 중") && t.includes("회사 관리자 체험으로 바꾸기"), t.slice(0, 200));
+  assert(t.includes("학부모 체험 중") && t.includes("통합 관리자 체험으로 바꾸기"), t.slice(0, 200));
   await shot("guard-wrong-role");
 });
 

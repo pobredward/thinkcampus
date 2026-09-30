@@ -9,8 +9,9 @@ import { createDemoCenterApi } from "./centerApi";
 import { createDemoCompanyApi } from "./companyApi";
 import { createDemoGuardianApi } from "./guardianApi";
 import { createDemoInstructorApi } from "./instructorApi";
+import { createDemoPartnerApi } from "./partnerApi";
 import { delay } from "./select";
-import { DEMO_CAMPUS_ID, DEMO_STAFF } from "./world";
+import { DEMO_CAMPUS_ID, DEMO_OFFICER, DEMO_STAFF } from "./world";
 
 export function demoStaffAccess(role: DemoRole): StaffAccess {
   switch (role) {
@@ -32,5 +33,6 @@ export function createDemoApi(role: DemoRole): Api {
     center: createDemoCenterApi([DEMO_CAMPUS_ID], DEMO_STAFF.center.uid),
     instructor: createDemoInstructorApi(DEMO_STAFF.instructor.uid),
     company: createDemoCompanyApi(DEMO_STAFF.company.uid),
+    partner: createDemoPartnerApi(DEMO_OFFICER.uid),
   };
 }

@@ -37,6 +37,8 @@ function RunPicker() {
 
 export function StaffShell({ variant, subtitle, children }: { variant: StaffVariant; subtitle?: string; children: React.ReactNode }) {
   const { user } = useAuth();
+  const { summary } = useCenterRun();
+  const badges = variant === "center" ? { chatWaiting: summary?.dashboard.chatWaiting ?? 0 } : undefined;
   const base = STAFF_BASE[variant];
   const profileHref = variant === "company" ? `${base}/settings` : `${base}/profile`;
   const name = user?.displayName ?? user?.email ?? "";
@@ -64,7 +66,7 @@ export function StaffShell({ variant, subtitle, children }: { variant: StaffVari
 
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-8 pt-5">{children}</main>
 
-      <StaffNav items={buildStaffNavItems(variant)} />
+      <StaffNav items={buildStaffNavItems(variant)} badges={badges} />
     </div>
   );
 }

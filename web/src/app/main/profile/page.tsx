@@ -185,13 +185,13 @@ export default function ProfileScreen() {
           <span className="text-[20px] text-sub">›</span>
         </button>
         <div className="mx-4 h-px bg-elev" />
-        <button
-          type="button"
+        <Link
+          href="/main/chat"
           className="tap flex w-full items-center justify-between px-4 py-[14px] text-left"
         >
-          <span className="text-[16px] text-fg">문의하기</span>
+          <span className="text-[16px] text-fg">문의하기 (담당 선생님과 채팅)</span>
           <span className="text-[20px] text-sub">›</span>
-        </button>
+        </Link>
         <div className="mx-4 h-px bg-elev" />
         <button
           type="button"

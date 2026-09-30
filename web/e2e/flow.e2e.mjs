@@ -728,15 +728,39 @@ await check("홈에 샘플 리포트 카드 없음 · 종합 리포트(주소로
   await page.getByRole("heading", { name: "종합 학습 리포트" }).waitFor({ timeout: 20000 });
   await sleep(300);
   await shot("09-program-report");
-  await page.getByRole("button", { name: /리포트 공유하기/ }).click();
-  // headless chromium: navigator.share 없음 → 클립보드 복사 → 토스트
-  const toast = page.getByRole("status").filter({ hasText: "링크가 복사되었습니다" });
+  await page.getByTestId("report-share").click();
+  // 서버에 리포트가 없는 초기 단계: createShareToken 실패 → 예시 리포트 공개 링크(/r/sample) 로 폴백
+  await page.getByTestId("share-sheet").waitFor({ timeout: 15000 });
+  const url = (await page.getByTestId("share-url").innerText()).trim();
+  if (!url.startsWith(BASE + "/r/sample")) throw new Error("share url=" + url);
+  await page.getByTestId("share-copy").click();
+  const toast = page.getByRole("status").filter({ hasText: "링크를 복사했어요" });
   await toast.waitFor({ timeout: 15000 });
-  await shot("09b-toast");
+  await shot("09b-share-sheet");
   const clip = await page.evaluate(() => navigator.clipboard.readText());
-  await toast.waitFor({ state: "detached", timeout: 5000 });
-  if (!clip.includes("thinkcampus")) throw new Error("clipboard=" + clip);
-  return `clipboard="${clip.slice(0, 60)}…"`;
+  if (clip !== url) throw new Error("clipboard=" + clip);
+  await page.keyboard.press("Escape");
+  await page.getByTestId("share-sheet").waitFor({ state: "detached", timeout: 5000 });
+  return `url="${url}"`;
+});
+
+await check("종합 리포트 PDF 저장 → PDF 파일 내려받기", async () => {
+  const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByTestId("report-pdf").click()]);
+  const file = path.join(SHOTS, "09c-report.pdf");
+  await download.saveAs(file);
+  const buf = fs.readFileSync(file);
+  if (buf.subarray(0, 5).toString() !== "%PDF-" || buf.length < 30_000) throw new Error(`pdf ${buf.length}B`);
+  return `${buf.length}B`;
+});
+
+await check("공유 링크(/r/sample) — 로그인 없는 새 브라우저에서 열림 · PDF 버튼만", async () => {
+  const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ko-KR" });
+  const p2 = await ctx2.newPage();
+  await p2.goto(`${BASE}/r/sample`, { waitUntil: "networkidle" });
+  await p2.locator('[data-testid="final-report"]').waitFor({ timeout: 20000 });
+  if (!(await p2.getByTestId("report-pdf").count()) || (await p2.getByTestId("report-share").count())) throw new Error("buttons");
+  await p2.screenshot({ path: path.join(SHOTS, "09d-shared-report.png"), fullPage: true });
+  await ctx2.close();
 });
 
 await check("종합 리포트 경로(홈 › 토요 창의융합 › 종합 리포트) → [토요 창의융합](바로 연 주소라 기록 없음 → 이동) → [홈]", async () => {
@@ -824,9 +848,7 @@ await check("보호자 초대 시트 → addGuardianPhone 성공", async () => {
 // ── 4. 기타 화면 ────────────────────────────────────────
 for (const [name, path, text] of [
   ["13-faq", "/main/faq", "자주 묻는 질문"],
-  ["15-report", "/main/report", "학습 리포트"],
   ["16-attendance", "/main/attendance", "출결"],
-  ["17-report-detail", "/main/report_detail/report-2026-001", "PDF 저장·공유"],
   ["18-program-list", "/main/program", "회차별 일정"],
 ]) {
   await check(`화면 렌더: ${path}`, async () => {
@@ -860,27 +882,6 @@ await check("딥링크 새로고침: 세션 유지 + 경로(홈 › 토요 창�
   await page.getByRole("heading", { name: "회차별 수업" }).waitFor();
 });
 
-await check("리포트 상세: 인쇄 버튼 → 인쇄 iframe 생성", async () => {
-  await page.goto(BASE + "/main/report_detail/report-2026-001");
-  await page.getByRole("button", { name: "인쇄" }).waitFor();
-  await page.evaluate(() => { window.__printed = 0; HTMLIFrameElement.prototype.__x = 1; });
-  // iframe 의 print 호출을 가로채 확인
-  await page.evaluate(() => {
-    const orig = document.createElement.bind(document);
-    document.createElement = (tag, o) => {
-      const el = orig(tag, o);
-      if (String(tag).toLowerCase() === "iframe") {
-        setTimeout(() => { try { el.contentWindow.print = () => { window.__printed++; }; } catch {} }, 0);
-      }
-      return el;
-    };
-  });
-  await page.getByRole("button", { name: "인쇄" }).click();
-  await sleep(800);
-  const n = await page.evaluate(() => window.__printed);
-  if (n < 1) throw new Error("print not called");
-});
-
 // ── 5. 로그아웃 / 가드 / 재로그인 ────────────────────────
 await check("로그아웃 → /onboarding (가드 경합 없음)", async () => {
   await page.goto(BASE + "/main/profile");
@@ -893,12 +894,12 @@ await check("로그아웃 → /onboarding (가드 경합 없음)", async () => {
 });
 
 await check("미인증 딥링크 → /onboarding/login?next=…", async () => {
-  await page.goto(BASE + "/main/report");
-  await page.waitForURL(/\/onboarding\/login\?next=%2Fmain%2Freport/, { timeout: 20000 });
+  await page.goto(BASE + "/main/notification");
+  await page.waitForURL(/\/onboarding\/login\?next=%2Fmain%2Fnotification/, { timeout: 20000 });
 });
 await shot("19-login");
 
-await check("기존 학부모 로그인 → next 경로(/main/report) 복귀", async () => {
+await check("기존 학부모 로그인 → next 경로(/main/notification) 복귀", async () => {
   await page.locator("#phone").fill("01011112222");
   const v = await page.locator("#phone").inputValue();
   if (v !== "010-1111-2222") throw new Error("format " + v);
@@ -909,7 +910,7 @@ await check("기존 학부모 로그인 → next 경로(/main/report) 복귀", a
   const code = await latestCode("+821011112222");
   await page.getByLabel("6자리 인증번호").fill(code);
   await page.getByRole("button", { name: "로그인" }).click();
-  await page.waitForURL(/\/main\/report$/, { timeout: 20000 });
+  await page.waitForURL(/\/main\/notification$/, { timeout: 20000 });
 });
 
 await check("기존 계정에 두 번째 자녀 연결 → 홈 오른쪽 위 자녀 전환 버튼 표시", async () => {

@@ -58,7 +58,7 @@ function StaffLoginForm() {
       const dest = resolveStaffDestination(access, nextParam);
       if (!dest) {
         await signOut();
-        setError("직원 권한이 없는 계정이에요. 회사 관리자에게 권한을 요청해 주세요.");
+        setError("직원 권한이 없는 계정이에요. 통합 관리자에게 권한을 요청해 주세요.");
         return;
       }
       router.replace(dest);

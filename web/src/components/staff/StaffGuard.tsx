@@ -16,7 +16,7 @@ import type { StaffVariant } from "@/lib/staffAppNav";
 import { useAuth } from "@/providers/AuthProvider";
 import { useDemo } from "@/providers/DemoProvider";
 
-const VARIANT_LABEL: Record<StaffVariant, string> = { center: "센터 관리자", company: "회사 관리자", instructor: "강사" };
+const VARIANT_LABEL: Record<StaffVariant, string> = { center: "프로그램 매니저", company: "통합 관리자", instructor: "강사" };
 
 export function StaffGuard({ variant, children }: { variant: StaffVariant; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -74,7 +74,7 @@ export function StaffGuard({ variant, children }: { variant: StaffVariant; child
           </>
         ) : (
           <>
-            <p className="text-[16px] leading-[24px] text-sub">이 계정에는 {VARIANT_LABEL[variant]} 권한이 없어요. 회사 관리자에게 권한을 요청해 주세요.</p>
+            <p className="text-[16px] leading-[24px] text-sub">이 계정에는 {VARIANT_LABEL[variant]} 권한이 없어요. 통합 관리자에게 권한을 요청해 주세요.</p>
             {home && (
               <Button href={home} size="lg">
                 내 화면으로

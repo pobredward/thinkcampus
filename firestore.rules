@@ -81,12 +81,16 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/students/$(studentId)).data.guardianUids;
     }
 
+    // 발주처 담당자(role officer)는 다른 지자체 운영 건을 보면 안 되므로 직접 읽기를 막는다 — 담당자 화면은 Callable 만 쓴다
+    function notOfficer() {
+      return request.auth.token.get('role', '') != 'officer';
+    }
     match /programRuns/{doc} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && notOfficer();
       allow write: if false;
     }
     match /runSessions/{doc} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && notOfficer();
       allow write: if false;
     }
     match /studentProgramEnrollments/{doc} {
@@ -123,6 +127,41 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /rosterImports/{doc} {
+      allow read, write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // 학부모 채팅 (functions/src/chat.ts) — 쓰기는 모두 Functions
+    // 방 문서는 읽기만: 학부모 앱 탭 배지(unreadBy) · 새 메시지 실시간 신호(onSnapshot)
+    //   학부모: guardianUids 에 내 uid / 센터: 내 캠퍼스(token.campusIds) / 통합 관리자: 전체
+    // 메시지 · 사진 본문은 Callable(getChatRoom)로만 (이름 · 민원 상태를 서버가 붙인다)
+    // ─────────────────────────────────────────────────────
+    match /chatRooms/{roomId} {
+      allow read: if request.auth != null && (
+        request.auth.uid in resource.data.guardianUids
+        || request.auth.token.role == 'companyAdmin'
+        || (request.auth.token.role == 'centerAdmin' && resource.data.campusId in request.auth.token.campusIds)
+      );
+      allow write: if false;
+      match /messages/{messageId} {
+        allow read, write: if false;
+      }
+    }
+    match /chatPhotos/{doc} {
+      allow read, write: if false;
+    }
+
+    // 민원 · 문의 장부 · 만족도 조사 · 발주처 담당자 — Functions(Callable)로만
+    match /inquiries/{doc} {
+      allow read, write: if false;
+    }
+    match /surveys/{doc} {
+      allow read, write: if false;
+    }
+    match /surveyResponses/{doc} {
+      allow read, write: if false;
+    }
+    match /officers/{doc} {
       allow read, write: if false;
     }
   }

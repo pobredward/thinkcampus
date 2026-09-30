@@ -25,6 +25,6 @@ export function useApi(): Api {
   return useMemo(() => (role ? createDemoApi(role) : getLiveApi()), [role]);
 }
 
-export type { Api, CenterApi, CompanyApi, GuardianApi, InstructorApi, StaffApi } from "./api";
+export type { Api, CenterApi, CompanyApi, GuardianApi, InstructorApi, PartnerApi, StaffApi } from "./api";
 export * from "./types";
 export { useMutation, useQuery } from "./hooks";

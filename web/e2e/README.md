@@ -48,14 +48,30 @@ cd ../web && npm run e2e:staff        # 5/5 passed · 다시 돌릴 때 SKIP_IMP
 
 회사 명단 등록(형제 2명) → 센터 학생 목록(형제 표시)·강사 배정(지난 회차는 잠김)·공지 → 강사 담당 회차 출결(모두 출석)·리포트 작성·검수 요청 → 센터 홈 검수 대기 2 → 모두 학부모 공개.
 
+## 채팅 · 민원 · 만족도 · 발주처 담당자 (에뮬레이터 · 실제 Functions · 보안 규칙)
+
+브라우저 없이 Firebase JS SDK 로 웹 앱과 같은 Callable 을 부르고 `chatRooms` 읽기 규칙까지 확인한다.
+
+```bash
+# ①② 뒤에 (시드 · 직원 3명 · 보호자 2명 · 반 2개 · 다른 운영 건 · 다른 캠퍼스 센터)
+cd scripts && export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=demo-thinkcampus
+STAFF_NAME=김도현 npx ts-node createStaffUser.ts company@thinkcampus.local 'Passw0rd!' company
+STAFF_NAME=이정민 npx ts-node createStaffUser.ts center@thinkcampus.local 'Passw0rd!' center campus-ds26
+STAFF_NAME=박지훈 npx ts-node createStaffUser.ts teacher@thinkcampus.local 'Passw0rd!' instructor campus-ds26
+npx ts-node engageSetup.ts
+cd ../web && node e2e/engage.e2e.mjs      # 25/25 passed · 다시 돌릴 때는 ②부터
+```
+
+학부모 방 목록 → 질문(센터 답변 대기) → 빠른 질문 자동 안내(준비물 · 주차) · 짧은 인사는 대기 아님 → 탭 배지(unreadBy, 남의 방 · 메시지 직접 읽기 거절) → 센터 답장 · 읽음 → 다른 보호자 · 다른 캠퍼스 거절 → 불편·요청 접수(사진) → 처리 중 → 처리 완료(학부모 방 안내) → 채팅 메시지를 민원으로 등록(중복 거절) → 전화 문의 기록 → 센터 · 회사 요약 → 만족도 열기 · 응답(검증 · 수정) · 결과 → 담당자 초대(임시 비밀번호 · 직원 이메일 거절) → 첫 로그인 비밀번호 변경 → 현황 · 수업 · 참여 · 강사진 · 만족도(공개 후기만 · 이름 가림) → 민원 원문 + 의견 → 이름 가리기 → 보고서 자료(개인정보 없음) → 담당 외 운영 건 · 채팅방 · 운영 건 문서 직접 읽기 거절 → 권한 해제(로그인 막힘) → 다시 초대
+
 ## 체험판 (별도, 에뮬레이터 불필요)
 
 ```bash
 cd web && npm run build && npm run start          # .next · 포트 3000 (다른 포트면 E2E_DEMO_BASE_URL)
-npm run e2e:demo                                   # 25/25 passed
+LC_ALL=C.UTF-8 npm run e2e:demo                    # 41/41 passed (한글 파일 이름 때문에 UTF-8 로캘)
 ```
 
-`/` → 허브 → 학부모(인사말 · 자녀 2명 · 회차 리포트) → 강사(4반 출결 12/12 · 1반 리포트 작성 후 검수 요청) → 센터(검수 대기 36 → 1반 공개 → 24 · 학생 미연결 필터 · 강사 배정(겹침 차단) · 공지) → 학부모 알림에 공지·리포트 도착 · 4회차 피드백 공개 → 회사(새 운영 건 · 명단 붙여넣기 등록 · 리포트 정책) → 배너 초기화 → 체험 종료(쿠키 삭제) · 데스크톱 폭 · **Firebase 요청 0건** · 페이지 오류 없음 · 글자 14px 이상. 구조는 `../docs/DEMO_ARCHITECTURE.md`.
+`/` → 허브 → 학부모(인사말 · 자녀 2명 · 회차 리포트) → 강사(4반 출결 12/12 · 1반 리포트 작성 후 검수 요청) → 센터(검수 대기 36 → 1반 공개 → 24 · 학생 미연결 필터 · 강사 배정(겹침 차단) · 공지) → 학부모 알림에 공지·리포트 도착 · 4회차 피드백 공개 → 학부모 채팅(빠른 질문 · 불편·요청 접수) · 만족도 응답 → 센터 채팅 답장 · 민원 처리 · 전화 접수 · 만족도 결과 → 학부모 방에 처리 완료 → 발주처(현황 · 수업 · 참여 · 강사진 · 만족도 · 민원 의견 · 보고서 HWPX/DOCX/PDF/XLSX) → 통합 관리자(담당자 초대 · 이름 가리기) → 회사(새 운영 건 · 명단 붙여넣기 등록 · 리포트 정책) → 배너 초기화 → 체험 종료(쿠키 삭제) · 데스크톱 폭 · **Firebase 요청 0건** · 페이지 오류 없음 · 글자 14px 이상. 구조는 `../docs/DEMO_ARCHITECTURE.md`.
 
 ## 검증 시나리오 (59)
 
