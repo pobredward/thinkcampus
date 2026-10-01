@@ -23,7 +23,7 @@ function pickDefaultDate(days: CenterScheduleDay[], today: string): string | nul
   return days.find((d) => d.date >= today)?.date ?? days[days.length - 1].date;
 }
 
-function SessionCard({ s, date }: { s: CenterScheduleSession; date: string }) {
+function SessionCard({ s, date, showLocation }: { s: CenterScheduleSession; date: string; showLocation: boolean }) {
   const done = s.enrolledCount > 0 && s.recordedCount >= s.enrolledCount;
   const past = date < todayKey();
   const attendanceTone = done ? "gold" : s.recordedCount > 0 ? "late" : past ? "danger" : "neutral";
@@ -33,7 +33,7 @@ function SessionCard({ s, date }: { s: CenterScheduleSession; date: string }) {
         <div className="min-w-0">
           <p className="text-[18px] font-extrabold text-fg">{s.sectionLabel}</p>
           <p className="mt-[2px] text-[15px] text-fg2">{s.instructorName ?? <span className="text-danger">강사 미배정</span>}</p>
-          <p className="mt-[2px] text-[14px] text-sub">{s.location}</p>
+          {showLocation && <p className="mt-[2px] text-[14px] text-sub">{s.location}</p>}
         </div>
         {s.status === "cancelled" ? (
           <Badge tone="dim">휴강</Badge>
@@ -91,10 +91,13 @@ export default function CenterLessonsPage() {
   const day = days.find((d) => d.date === selectedDate) ?? days[0];
   const total = day.slots.reduce((a, s) => a + s.sessions.length, 0);
   const recorded = day.slots.reduce((a, s) => a + s.sessions.filter((x) => x.enrolledCount > 0 && x.recordedCount >= x.enrolledCount).length, 0);
+  // 모든 반이 같은 장소면 위에 한 번만
+  const locations = new Set(day.slots.flatMap((sl) => sl.sessions.map((x) => x.location)));
+  const oneLocation = locations.size === 1 ? [...locations][0] : null;
 
   return (
     <div>
-      <PageTitle title="수업" desc={`${selectedRun.title} · ${selectedRun.sections.length}개 반`} />
+      <PageTitle title="수업" desc={`${selectedRun.sections.length}개 반 · 날짜를 고르면 반별 출결 · 리포트가 보여요`} />
 
       {/* 날짜 리본 */}
       <div role="tablist" aria-label="수업 날짜" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1">
@@ -128,7 +131,10 @@ export default function CenterLessonsPage() {
           출결 완료 {recorded}/{total}반
         </span>
       </div>
-      <p className="mt-1 text-[15px] text-sub">{day.slots[0]?.sessions[0]?.topic}</p>
+      <p className="mt-1 text-[15px] text-sub">
+        {day.slots[0]?.sessions[0]?.topic}
+        {oneLocation ? ` · ${oneLocation}` : ""}
+      </p>
 
       {day.slots.map((slot) => (
         <section key={`${slot.startTime}-${slot.endTime}`} className="mt-4" aria-label={`${slot.startTime}–${slot.endTime}`}>
@@ -137,7 +143,7 @@ export default function CenterLessonsPage() {
           </p>
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {slot.sessions.map((s) => (
-              <SessionCard key={s.id} s={s} date={day.date} />
+              <SessionCard key={s.id} s={s} date={day.date} showLocation={!oneLocation} />
             ))}
           </ul>
         </section>

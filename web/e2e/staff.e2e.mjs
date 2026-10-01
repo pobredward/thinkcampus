@@ -41,6 +41,7 @@ const text = async (page) => (await page.locator("body").innerText()).replace(/\
 const toast = async (page) => { const t = page.locator('[role="status"][aria-live="polite"]'); await t.waitFor({ timeout: 15000 }); return (await t.innerText()).trim(); };
 const assert = (c, m) => { if (!c) throw new Error(m); };
 
+let reportCount = 2;
 let sessionId = null;
 // 1. 회사: 명단 등록 (2명, 가구 같음)
 await check("회사 명단 등록 → 학생·수강·코드", async () => {
@@ -62,10 +63,9 @@ await check("회사 명단 등록 → 학생·수강·코드", async () => {
   const tt = await toast(page);
   assert(tt.includes("2명을 등록했어요"), tt);
   await sleep(1500);
-  await go(page, `${BASE}/admin`);
-  await sleep(1500);
+  await sleep(1000);
   t = await text(page);
-  assert(t.includes("마지막 명단 등록 2명"), "홈: " + t.slice(0, 300));
+  assert(t.includes("마지막 명단 등록 2명"), "명단 화면: " + t.slice(0, 300));
   await page.context().close();
 });
 
@@ -108,7 +108,7 @@ await check("강사 회차 출결 · 리포트 작성 · 검수 요청", async (
   await page.getByRole("group", { name: "기간" }).getByRole("button", { name: /^전체/ }).click();
   await sleep(300);
   // 아직 출결을 넣지 않은 담당 회차 (다시 돌려도 새로 배정된 회차를 고른다)
-  const link = page.locator('a[href^="/instructor/session/"]').filter({ hasText: "출결 0/" }).first();
+  const link = page.locator('a[href^="/instructor/session/"][data-recorded="0"]').first();
   assert(await link.count(), "담당 회차 없음: " + (await text(page)).slice(0, 300));
   await link.click();
   await page.waitForURL(/\/instructor\/session\//);
@@ -122,14 +122,22 @@ await check("강사 회차 출결 · 리포트 작성 · 검수 요청", async (
   await sleep(1500);
   await go(page, `${BASE}/instructor/session/${sessionId}?tab=report`);
   await sleep(1500);
-  const tas = page.locator("textarea[placeholder^='오늘 수업에서']");
-  const n = await tas.count();
-  assert(n === 2, "리포트 학생 수 " + n);
-  for (let i = 0; i < n; i++) { await tas.nth(i).fill("라이브 피드백입니다."); await tas.nth(i).blur(); await sleep(400); }
+  const rows = await page.getByTestId("report-student").count();
+  assert(rows >= 2, "리포트 학생 수 " + rows);
+  reportCount = rows;
+  // 한 명씩 펼쳐 쓴다 (처음에는 첫 학생이 펼쳐져 있다)
+  for (let i = 0; i < rows; i++) {
+    const ta = page.locator("textarea[placeholder^='오늘 수업에서']").first();
+    await ta.fill("라이브 피드백입니다.");
+    await ta.blur();
+    await sleep(400);
+    const next = page.getByRole("button", { name: /^다음 학생/ });
+    if (await next.count()) { await next.click(); await sleep(300); }
+  }
   await sleep(1500);
   await page.getByRole("button", { name: /리포트 센터 검수 요청/ }).click();
   const t2 = await toast(page);
-  assert(t2.includes("2명 리포트를 센터 검수로 보냈어요"), t2);
+  assert(t2.includes(`${reportCount}명 리포트를 센터 검수로 보냈어요`), t2);
   await page.context().close();
 });
 
@@ -138,17 +146,17 @@ await check("센터 리포트 검수 → 학부모 공개", async () => {
   const page = await newPage("center@thinkcampus.local", "/admin/center");
   await sleep(1000);
   let t = await text(page);
-  assert(t.includes("검수 대기 리포트 2"), "홈 KPI: " + t.slice(0, 500));
+  assert(new RegExp(`검수 대기 리포트\\s*${reportCount}`).test(t), "홈 할 일: " + t.slice(0, 500));
   await go(page, `${BASE}/admin/center/reports`);
   await sleep(1500);
-  await page.getByRole("button", { name: /2명 모두 학부모 공개/ }).click();
+  await page.getByRole("button", { name: new RegExp(`${reportCount}명 모두 학부모 공개`) }).click();
   const tt = await toast(page);
   assert(tt.includes("학부모에게 공개했어요"), tt);
   await sleep(1500);
   await page.getByRole("button", { name: /공개됨/ }).click();
   await sleep(500);
   t = await text(page);
-  assert(t.includes("박라이브") && t.includes("학부모 공개"), "공개 목록: " + t.slice(0, 300));
+  assert(t.includes("박라이브"), "공개 목록: " + t.slice(0, 300));
   await page.context().close();
 });
 

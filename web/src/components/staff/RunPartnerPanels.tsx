@@ -39,7 +39,7 @@ export function PartnerOfficersPanel({ programRunId, municipalityName, nameMaski
         발주처 담당자
       </SectionLabel>
       <p className="mb-2 text-[14px] leading-[20px] text-sub">
-        {municipalityName} 담당 공무원이 /partner 에서 출석 · 민원 처리 · 수업 내용 · 만족도를 보고 보고서를 만들어요. 학부모 연락처 · 생년월일은 보이지 않아요.
+        {municipalityName} 담당 공무원이 출석 · 민원 · 수업 내용 · 만족도를 보고 보고서를 받아요. 학부모 연락처는 보이지 않아요.
       </p>
       {loading && !data ? (
         <Loading />

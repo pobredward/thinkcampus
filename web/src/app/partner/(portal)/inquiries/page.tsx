@@ -7,8 +7,7 @@
  */
 
 import { useState } from "react";
-import { Kpi } from "@/components/partner/parts";
-import { InquiryBadges, InquiryHistory } from "@/components/staff/InquiryParts";
+import { InquiryBadges, InquiryHistory, InquiryStatusChip } from "@/components/staff/InquiryParts";
 import { Button, ChipRow, Empty, ErrorBox, inputClass, Loading, PageTitle, SectionLabel } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { chatStamp } from "@/lib/chatTime";
@@ -36,17 +35,11 @@ export default function PartnerInquiriesPage() {
   return (
     <div>
       <PageTitle title="민원·문의" desc="학부모 민원은 원문과 처리 내용을 그대로 보여 드려요. 학부모 연락처는 보이지 않아요." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="민원 접수" value={stats.complaints.received} unit="건" />
-        <Kpi label="처리 완료" value={stats.complaints.resolved} unit="건" tone="gold" />
-        <Kpi label="처리 중" value={stats.complaints.inProgress} unit="건" tone={stats.complaints.inProgress ? "late" : "fg"} />
-        <Kpi
-          label="학부모 문의"
-          value={stats.questions.received}
-          unit="건"
-          hint={`답변 ${stats.questions.answered}건${stats.questions.avgFirstReplyMinutes != null ? ` · 평균 첫 답변 ${stats.questions.avgFirstReplyMinutes}분` : ""}`}
-        />
-      </div>
+      <p className="mb-2 rounded-[14px] border border-line bg-card px-4 py-3 text-[15px] text-fg2" data-testid="partner-question-stats">
+        학부모 문의 <b className="text-fg">{stats.questions.received}건</b> · 답변 {stats.questions.answered}건
+        {stats.questions.avgFirstReplyMinutes != null ? ` · 평균 첫 답변 ${stats.questions.avgFirstReplyMinutes}분` : ""}
+        <span className="text-sub"> (앱 채팅 · 전화)</span>
+      </p>
 
       <SectionLabel>민원</SectionLabel>
       <ChipRow<Filter>
@@ -102,8 +95,10 @@ function ComplaintCard({ q }: { q: InquiryDto }) {
 
   return (
     <article className="h-full rounded-[18px] border border-line bg-card px-4 py-4" data-testid="partner-complaint">
-      <InquiryBadges q={q} />
-      <h2 className="mt-2 text-[17px] font-bold leading-[24px] text-fg">{q.title}</h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="min-w-0 text-[17px] font-bold leading-[24px] text-fg">{q.title}</h2>
+        <InquiryStatusChip status={q.status} />
+      </div>
       <p className="mt-1 text-[14px] text-sub">
         {q.studentLabel} · {chatStamp(q.createdAt)} 접수
       </p>

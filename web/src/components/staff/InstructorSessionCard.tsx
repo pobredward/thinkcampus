@@ -5,7 +5,7 @@ import { Badge, fmtDate } from "@/components/staff/ui";
 import { todayKey } from "@/lib/dates";
 import type { InstructorSessionDto } from "@/services";
 
-/** 강사 회차 카드 — 오늘 · 앞으로 · 지난 회차에 같은 모양 */
+/** 강사 회차 카드 — 오늘 · 앞으로 · 지난 회차에 같은 모양. 출결 · 리포트 칸은 오늘과 지난 회차에만 */
 export function InstructorSessionCard({ s, showDate = true }: { s: InstructorSessionDto; showDate?: boolean }) {
   const today = todayKey();
   const past = s.scheduledDate < today;
@@ -15,6 +15,7 @@ export function InstructorSessionCard({ s, showDate = true }: { s: InstructorSes
   return (
     <Link
       href={`/instructor/session/${encodeURIComponent(s.id)}`}
+      data-recorded={s.recordedCount}
       className={`tap block rounded-[18px] border p-4 hover:border-gold-dim ${isToday ? "border-gold-dim bg-card" : "border-line bg-card"}`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -33,13 +34,11 @@ export function InstructorSessionCard({ s, showDate = true }: { s: InstructorSes
             {s.sectionLabel} · {s.sessionNumber}회차
           </p>
           <p className="mt-[2px] truncate text-[15px] text-fg2">{s.topic}</p>
-          <p className="mt-[2px] text-[14px] text-sub">
-            {s.programTitle} · {s.location}
-          </p>
+          <p className="mt-[2px] truncate text-[14px] text-sub">{s.location}</p>
         </div>
         {s.status === "cancelled" ? (
           <Badge tone="dim">휴강</Badge>
-        ) : (
+        ) : !past && !isToday ? null : (
           <div className="flex shrink-0 flex-col items-end gap-1">
             <Badge tone={attDone ? "gold" : s.recordedCount > 0 ? "late" : past || isToday ? "danger" : "neutral"}>
               출결 {s.recordedCount}/{s.enrolledCount}

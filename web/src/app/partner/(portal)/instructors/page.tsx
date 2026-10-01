@@ -6,7 +6,7 @@
  */
 
 import { Photo } from "@/components/staff/Photo";
-import { dayLabel } from "@/components/partner/parts";
+import { dayLabel, LessonsSwitch } from "@/components/partner/parts";
 import { Card, Empty, ErrorBox, KeyValue, Loading, PageTitle, SectionLabel } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePartnerRun } from "@/providers/PartnerRunProvider";
@@ -26,7 +26,8 @@ export default function PartnerInstructorsPage() {
 
   return (
     <div>
-      <PageTitle title="강사진" desc={`${data.instructors.length}명이 이 프로그램을 맡고 있어요`} />
+      <PageTitle title="수업" desc={`강사 ${data.instructors.length}명이 이 프로그램을 맡고 있어요`} />
+      <LessonsSwitch current="instructors" />
       {data.instructors.length === 0 ? (
         <Empty title="아직 배정된 강사가 없어요" />
       ) : (

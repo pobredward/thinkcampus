@@ -4,21 +4,30 @@
  * 발주처 포털 공통 조각 — 컴퓨터 화면에서 넓게 (표 · 가로 막대), 폰에서는 세로로
  */
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/staff/ui";
 import type { PartnerAttendanceRow, PartnerLesson } from "@/services/types";
 
-export function Kpi({ label, value, unit, hint, tone = "fg" }: { label: string; value: ReactNode; unit?: string; hint?: ReactNode; tone?: "fg" | "gold" | "danger" | "late" }) {
+export function Kpi({ label, value, unit, hint, tone = "fg", href }: { label: string; value: ReactNode; unit?: string; hint?: ReactNode; tone?: "fg" | "gold" | "danger" | "late"; href?: string }) {
   const color = tone === "gold" ? "text-gold" : tone === "danger" ? "text-danger" : tone === "late" ? "text-late" : "text-fg";
-  return (
-    <div className="rounded-[18px] border border-line bg-card p-4 md:p-5">
+  const body = (
+    <>
       <p className="text-[14px] font-semibold text-sub">{label}</p>
       <p className={`mt-1 text-[28px] font-extrabold leading-[34px] ${color}`}>
         {value}
         {unit && <span className="ml-1 text-[15px] font-semibold text-sub">{unit}</span>}
       </p>
       {hint && <div className="mt-1 text-[14px] leading-[20px] text-sub">{hint}</div>}
-    </div>
+    </>
+  );
+  const cls = "block rounded-[18px] border border-line bg-card p-4 md:p-5";
+  return href ? (
+    <Link href={href} className={`tap ${cls} hover:border-gold-dim`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
   );
 }
 
@@ -115,6 +124,32 @@ export function LessonBody({ l }: { l: PartnerLesson }) {
         {l.materials.length > 0 && <p className="mt-3 text-[15px] text-fg2">준비물 · {l.materials.join(", ")}</p>}
         <p className="mt-3 text-[15px] text-fg2">강사 · {l.instructors.map((i) => `${i.name} (${i.sections.join("·")})`).join(", ")}</p>
       </div>
+    </div>
+  );
+}
+
+/** [수업] 메뉴 안의 두 화면 — 회차별 수업 · 강사진 */
+export function LessonsSwitch({ current }: { current: "lessons" | "instructors" }) {
+  const items = [
+    { id: "lessons", label: "회차별 수업", href: "/partner/lessons" },
+    { id: "instructors", label: "강사진", href: "/partner/instructors" },
+  ] as const;
+  return (
+    <div role="tablist" aria-label="수업 보기" className="mb-4 inline-flex rounded-xl border border-line bg-card2 p-1">
+      {items.map((it) => {
+        const on = it.id === current;
+        return (
+          <Link
+            key={it.id}
+            href={it.href}
+            role="tab"
+            aria-selected={on}
+            className={`tap flex h-10 items-center rounded-lg px-4 text-[15px] ${on ? "bg-elev font-bold text-fg" : "font-medium text-sub"}`}
+          >
+            {it.label}
+          </Link>
+        );
+      })}
     </div>
   );
 }

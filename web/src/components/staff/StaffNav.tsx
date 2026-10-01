@@ -107,10 +107,45 @@ function NavIcon({ name }: { name: StaffNavIcon }) {
   }
 }
 
-export function StaffNav({ items, badges }: { items: StaffNavItem[]; badges?: Partial<Record<NonNullable<StaffNavItem["badge"]>, number>> }) {
+type Badges = Partial<Record<NonNullable<StaffNavItem["badge"]>, number>>;
+
+/** 컴퓨터 화면 — 헤더 안 가로 메뉴 (휴대폰에서는 숨기고 아래 탭을 쓴다) */
+export function StaffTopNav({ items, badges }: { items: StaffNavItem[]; badges?: Badges }) {
   const pathname = usePathname();
   return (
-    <nav aria-label="메인 탭" className="no-print sticky bottom-0 z-40 border-t border-line bg-paper" style={{ paddingBottom: "var(--sab)" }}>
+    <nav aria-label="메인 메뉴" className="hidden h-full md:block">
+      <ul className="flex h-full items-stretch gap-1">
+        {items.map((t) => {
+          const on = t.match(pathname);
+          const count = t.badge ? (badges?.[t.badge] ?? 0) : 0;
+          return (
+            <li key={t.href} className="relative flex">
+              <Link
+                href={t.href}
+                aria-current={on ? "page" : undefined}
+                className={`tap flex items-center gap-1 px-3 text-[15px] ${on ? "font-bold text-gold" : "font-medium text-sub hover:text-fg2"}`}
+              >
+                {t.label}
+                {count > 0 && (
+                  <span className="flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-late px-[5px] text-[14px] font-bold leading-none text-ink" data-testid={`topnav-badge-${t.badge}`}>
+                    {count > 99 ? "99+" : count}
+                  </span>
+                )}
+              </Link>
+              {on && <span aria-hidden="true" className="absolute inset-x-2 bottom-0 h-[3px] rounded-t-full bg-gold" />}
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+/** 휴대폰 화면 — 아래 탭 */
+export function StaffNav({ items, badges }: { items: StaffNavItem[]; badges?: Badges }) {
+  const pathname = usePathname();
+  return (
+    <nav aria-label="메인 탭" className="no-print sticky bottom-0 z-40 border-t border-line bg-paper md:hidden" style={{ paddingBottom: "var(--sab)" }}>
       <ul className="mx-auto flex max-w-2xl" style={{ height: "var(--tabbar-h)" }}>
         {items.map((t) => {
           const focused = t.match(pathname);

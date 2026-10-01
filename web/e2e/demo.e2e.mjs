@@ -163,17 +163,29 @@ await check("강사 4반 출결 — 한 명 지각(늦은 시간 +5) · 나머�
 await check("강사 1반 리포트 — 비어 있는 한마디 채우고 센터 검수 요청", async () => {
   await goto("/instructor/session/rs-ds26-creative-04-sec-1?tab=report");
   let t = await text();
-  assert(t.includes("작성 중 12명"), "작성 중 12명: " + t.slice(0, 200));
-  const empties = page.locator("textarea[placeholder^='오늘 수업에서']").filter({ hasText: "" });
-  const n = await empties.count();
+  assert(/한마디 \d+\/11명 작성/.test(t), "한마디 n/11명: " + t.slice(0, 300));
+  // 학생 한 명씩 펼쳐 쓴다 — 처음에는 한마디가 빈 첫 학생이 펼쳐져 있다
   let filled = 0;
-  for (let i = 0; i < n; i++) {
-    const ta = empties.nth(i);
-    if ((await ta.inputValue()).trim()) continue;
-    await ta.fill("오늘 토론에서 자기 생각을 또렷하게 말했어요.");
-    await ta.blur();
-    filled++;
-    await sleep(300);
+  for (let guard = 0; guard < 15; guard++) {
+    const ta = page.locator("textarea[placeholder^='오늘 수업에서']");
+    if ((await ta.count()) === 0) {
+      const row = page.getByTestId("report-student").filter({ hasText: "작성 전" }).first();
+      if (!(await row.count())) break;
+      await row.locator("button").first().click();
+      await sleep(200);
+      continue;
+    }
+    if (!(await ta.first().inputValue()).trim()) {
+      await ta.first().fill("오늘 토론에서 자기 생각을 또렷하게 말했어요.");
+      await ta.first().blur();
+      filled++;
+      await sleep(300);
+    }
+    const next = page.getByRole("button", { name: /^다음 학생/ });
+    if (await next.count()) {
+      await next.click();
+      await sleep(300);
+    } else break;
   }
   assert(filled >= 1, "비어 있던 한마디가 있어야 함");
   await sleep(1200);
@@ -194,9 +206,9 @@ await check("센터 홈 — 검수 대기 36건(24+12) · 오늘 출결 미입�
   await enter("center");
   assert(page.url().endsWith("/admin/center"), page.url());
   const t = await text();
-  assert(t.includes("검수 대기 리포트 36"), "36건: " + t.slice(0, 400));
+  assert(/검수 대기 리포트\s*36/.test(t), "36건: " + t.slice(0, 400));
   assert(t.includes("출결이 아직 안 들어온 학생 24명"), "4반 입력 후 24명: " + t.slice(0, 400));
-  assert(t.includes("강사 미배정 회차 1"), "미배정 1");
+  assert(/강사 미배정 회차\s*1/.test(t), "미배정 1");
   await shot("center-home");
 });
 
@@ -219,7 +231,7 @@ await check("센터 리포트 검수 — 1반 4회차 12명 모두 학부모 공
   const t = await text();
   assert(!t.includes("검수 대기") || t.includes("공개됨"), "상태 변경");
   await goto("/admin/center");
-  assert((await text()).includes("검수 대기 리포트 24"), "36 → 24");
+  assert(/검수 대기 리포트\s*24/.test(await text()), "36 → 24");
   await shot("center-reports");
 });
 
@@ -251,7 +263,7 @@ await check("센터 강사 배정 — 5회차 6반 미배정 → 최현우 배�
   await sleep(400);
   await goto("/admin/center");
   t = await text();
-  assert(t.includes("강사 미배정 회차 0"), "미배정 0: " + t.slice(0, 400));
+  assert(!t.includes("강사 미배정 회차"), "미배정 0 → 할 일에서 빠짐: " + t.slice(0, 400));
   await shot("center-instructor");
 });
 
@@ -480,15 +492,15 @@ await check("학부모 채팅방 — 처리 완료 안내 · 처리 내용", asy
 });
 
 // ── 발주처 담당자 ─────────────────────────────────────
-await check("발주처 현황 — 4칸 · 회차별 출석 표 · 최근 민원에 방금 처리한 건", async () => {
+await check("발주처 현황 — 숫자 4칸 · 다음 수업 · 최근 민원에 방금 처리한 건", async () => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await enter("officer");
   assert(page.url().endsWith("/partner"), page.url());
   await page.getByTestId("partner-home").waitFor();
-  await page.getByTestId("attendance-table").waitFor();
   const t = await text();
-  for (const s of ["진행 회차", "전체 출석률", "민원", "학부모 만족도", "E2E 교실 창문"]) assert(t.includes(s), s);
-  assert(/5\s*건 접수/.test(t) && t.includes("처리 완료 4"), "민원 5 · 처리 4: " + t.slice(0, 600));
+  for (const s of ["진행 회차", "출석률", "민원", "학부모 만족도", "다음 수업", "E2E 교실 창문"]) assert(t.includes(s), s);
+  assert(/민원\s*5\s*건/.test(t) && t.includes("처리 중 1건"), "민원 5 · 처리 중 1: " + t.slice(0, 600));
+  assert((await page.getByTestId("attendance-table").count()) === 0, "출석 표는 [참여]로");
   await shot("partner-home");
 });
 
@@ -496,6 +508,7 @@ await check("발주처 수업 · 참여 · 강사진 · 만족도 — 화면마�
   await goto("/partner/lessons");
   assert((await page.getByTestId("partner-lesson").count()) === 6, "6회차");
   await goto("/partner/participation");
+  await page.getByTestId("attendance-table").waitFor();
   await page.getByTestId("participation-table").waitFor();
   await goto("/partner/instructors");
   assert((await page.getByTestId("partner-instructor").count()) >= 3, "강사 3명");
@@ -573,8 +586,8 @@ await check("회사 홈 — 캠퍼스 2곳 · 운영 건 · 승인 대기", asyn
   assert(page.url().endsWith("/admin"), page.url());
   const t = await text();
   assert(t.includes("캠퍼스 2곳"), "캠퍼스 2곳");
-  assert(t.includes("2026-구미-STEAM-01") && t.includes("2026-달성-창의-01"), "운영 건");
-  assert(/승인 대기 리포트 \d+/.test(t), "승인 대기");
+  assert(t.includes("구미 STEAM 탐구") && t.includes("토요 창의융합"), "운영 건");
+  assert(/승인 대기 리포트\s*\d+/.test(t), "승인 대기");
   await shot("company-home");
 });
 
@@ -637,7 +650,7 @@ await check("회사 리포트 정책 — 승인 대기 목록 · 정책 토글",
 await check("회사 체험 중 센터 화면 — 회사 관리자는 센터 앱도 볼 수 있다", async () => {
   await goto("/admin/center");
   const t = await text();
-  assert(t.includes("프로그램 매니저") && t.includes("2026-달성-창의-01"), t.slice(0, 200));
+  assert(t.includes("프로그램 매니저") && t.includes("토요 창의융합"), t.slice(0, 200));
 });
 
 await check("학부모 체험 중 /admin → 역할 안내(통합 관리자 체험으로 바꾸기)", async () => {
@@ -656,8 +669,8 @@ await check("배너 초기화 → 세계가 처음으로 (센터 검수 대기 2
   await page.waitForLoadState("networkidle");
   await sleep(800);
   const t = await text();
-  assert(t.includes("검수 대기 리포트 24"), "24: " + t.slice(0, 400));
-  assert(t.includes("강사 미배정 회차 1"), "미배정 1");
+  assert(/검수 대기 리포트\s*24/.test(t), "24: " + t.slice(0, 400));
+  assert(/강사 미배정 회차\s*1/.test(t), "미배정 1");
   await enter("company");
   assert(!(await text()).includes("2026-E2E-TEST-01"), "새 운영 건 사라짐");
 });

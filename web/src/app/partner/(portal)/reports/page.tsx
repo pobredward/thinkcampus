@@ -89,7 +89,7 @@ function ReportBuilder({ data }: { data: PartnerReportData }) {
     <div>
       <PageTitle title="사업 보고서" desc="필요한 장을 고르면 한글 · 워드 · PDF · 엑셀로 바로 받을 수 있어요. 숫자는 오늘까지의 기록이에요." />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         {/* ── 양식 만들기 ── */}
         <section aria-labelledby="form-title" className="lg:sticky lg:top-[128px] lg:max-h-[calc(100dvh-140px)] lg:self-start lg:overflow-y-auto">
           <Card>

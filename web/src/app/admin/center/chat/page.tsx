@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Badge, ChipRow, Empty, ErrorBox, inputClass, Loading, PageTitle, Stat } from "@/components/staff/ui";
+import { Badge, ChipRow, Empty, ErrorBox, inputClass, Loading, PageTitle } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { chatListTime, waitedFor } from "@/lib/chatTime";
 import { useCenterRun } from "@/providers/CenterRunProvider";
@@ -52,18 +52,15 @@ export default function CenterChatListPage() {
 
   return (
     <div>
-      <PageTitle title="학부모 채팅" desc={`${selectedRun.title} · 수업 준비 · 수업 중 문의에 답해 주세요`} />
-
-      <div className="mb-4 grid grid-cols-2 gap-3">
-        <Stat
-          label="답을 기다리는 대화"
-          value={k?.chatWaiting ?? waiting}
-          unit="개"
-          tone={(k?.chatWaiting ?? waiting) > 0 ? "late" : "fg"}
-          hint={k?.chatOldestWaitingAt ? `가장 오래 ${waitedFor(k.chatOldestWaitingAt)}` : "모두 답했어요"}
-        />
-        <Stat label="미처리 민원" value={k?.complaintsOpen ?? 0} unit="건" tone={(k?.complaintsOpen ?? 0) > 0 ? "danger" : "fg"} href="/admin/center/inquiries" hint="민원·문의 기록 보기" />
-      </div>
+      <PageTitle
+        title="학부모 채팅"
+        desc="학부모 문의에 답해 주세요. 불편 사항은 민원으로 등록할 수 있어요."
+        right={
+          <Link href="/admin/center/inquiries" className="tap inline-flex h-10 items-center rounded-lg border border-line bg-elev px-3 text-[14px] font-semibold text-fg2">
+            민원 기록{k && k.complaintsOpen > 0 ? ` (${k.complaintsOpen})` : ""}
+          </Link>
+        }
+      />
 
       <ChipRow<Filter>
         label="대화방 필터"

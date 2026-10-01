@@ -101,6 +101,7 @@ export function ReportReviewList({
     <div className="flex flex-col gap-4">
       {groups.map((g) => {
         const actionable = g.rows.filter((r) => nextAction(r));
+        const sameStatus = g.rows.every((r) => r.status === g.rows[0]?.status);
         const first = actionable[0] ? nextAction(actionable[0]) : null;
         return (
           <section key={g.key} aria-label={`${g.sessionNumber}회차 ${g.sectionLabel}`} className="rounded-[18px] border border-line bg-card p-3">
@@ -146,7 +147,10 @@ export function ReportReviewList({
                       </span>
                       <span className="block truncate text-[14px] text-sub">{r.feedback || (r.attendanceStatus === "absent" ? "결석 — 피드백 없음" : "피드백 없음")}</span>
                     </span>
-                    <Badge tone={REPORT_STATUS_TONE[r.status]}>{SESSION_REPORT_STATUS_LABEL[r.status]}</Badge>
+                    {!sameStatus && <Badge tone={REPORT_STATUS_TONE[r.status]}>{SESSION_REPORT_STATUS_LABEL[r.status]}</Badge>}
+                    <span aria-hidden="true" className="shrink-0 text-[20px] leading-none text-faint">
+                      ›
+                    </span>
                   </button>
                 </li>
               ))}

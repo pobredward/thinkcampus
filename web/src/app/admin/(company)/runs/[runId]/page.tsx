@@ -42,7 +42,7 @@ export default function CompanyRunDetailPage() {
       <Link href="/admin/runs" className="tap inline-flex h-11 items-center text-[15px] font-semibold text-sub">
         ‹ 운영 건 목록
       </Link>
-      <PageTitle eyebrow={data.contractCode} title={data.title} desc={`${data.campusName} · ${data.municipalityName}`} right={<Badge tone={data.status === "active" ? "gold" : "neutral"}>{PROGRAM_RUN_STATUS_LABEL[data.status]}</Badge>} />
+      <PageTitle eyebrow={`${data.campusName} · ${data.municipalityName}`} title={data.title} desc={data.contractCode} right={<Badge tone={data.status === "active" ? "gold" : "neutral"}>{PROGRAM_RUN_STATUS_LABEL[data.status]}</Badge>} />
 
       <Card>
         <KeyValue
@@ -52,21 +52,12 @@ export default function CompanyRunDetailPage() {
             { k: "일정", v: `${data.frequency === "biweekly" ? "격주" : "매주"} ${WEEKDAYS[data.fixedDay]}요일 · ${data.startTime}–${data.endTime} · 총 ${data.totalSessions}회` },
             { k: "장소", v: data.location },
             { k: "주최", v: data.host ?? "-" },
+            { k: "반", v: data.sections.map((x) => `${x.label} ${x.studentCount}명`).join(" · ") },
             { k: "수강생", v: `${data.studentCount}명 · 보호자 연결 ${data.guardianLinkedCount}명` },
             { k: "출석률", v: data.attendanceRate != null ? `${data.attendanceRate}%` : "아직 없음" },
           ]}
         />
       </Card>
-
-      <SectionLabel>반</SectionLabel>
-      <ul className="grid grid-cols-3 gap-2">
-        {data.sections.map((s) => (
-          <li key={s.id} className="rounded-[14px] border border-line bg-card px-3 py-2 text-center">
-            <p className="text-[16px] font-bold text-fg">{s.label}</p>
-            <p className="text-[14px] text-sub">{s.studentCount}명</p>
-          </li>
-        ))}
-      </ul>
 
       <SectionLabel>리포트 정책</SectionLabel>
       <Card>
@@ -87,19 +78,6 @@ export default function CompanyRunDetailPage() {
 
       <SectionLabel>민원 · 문의</SectionLabel>
       <RowLink href={`/admin/inquiries?run=${encodeURIComponent(data.id)}`} title="이 운영 건의 민원 · 문의 보기" desc="앱 채팅 · 전화 · 현장 접수와 처리 내용" />
-
-      <SectionLabel>강사</SectionLabel>
-      {data.instructors.length === 0 ? (
-        <Empty title="아직 배정된 강사가 없어요" desc="센터 앱의 강사 배정에서 회차별로 정해요." />
-      ) : (
-        <ul className="flex flex-wrap gap-2">
-          {data.instructors.map((i) => (
-            <li key={i.staffId} className="rounded-full border border-line bg-card px-4 py-2 text-[15px] text-fg2">
-              <b className="text-fg">{i.name}</b> · {i.sessionCount}회
-            </li>
-          ))}
-        </ul>
-      )}
 
       <SectionLabel right={`${data.sessions.length}개 회차`}>회차 일정</SectionLabel>
       <ul className="flex flex-col gap-2">

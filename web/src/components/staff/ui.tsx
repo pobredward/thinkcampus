@@ -239,6 +239,47 @@ export function RowLink({ href, onClick, title, desc, badge, left }: { href?: st
   );
 }
 
+/**
+ * 할 일 목록 — 한 줄에 하나 (이름 · 숫자 · ›). 0 인 줄은 숨긴다.
+ * 모두 0 이면 done 문구 한 줄.
+ */
+export function TaskList({
+  items,
+  done = "지금 할 일이 없어요",
+}: {
+  items: Array<{ label: string; count: number; unit: string; href: string; hint?: string; tone?: "gold" | "late" | "danger"; testId?: string }>;
+  done?: string;
+}) {
+  const shown = items.filter((it) => it.count > 0);
+  if (shown.length === 0) {
+    return <p className="rounded-[16px] border border-line bg-card px-4 py-4 text-[16px] text-sub">{done}</p>;
+  }
+  return (
+    <ul className="divide-y divide-line overflow-hidden rounded-[16px] border border-line bg-card">
+      {shown.map((it) => {
+        const color = it.tone === "danger" ? "text-danger" : it.tone === "late" ? "text-late" : "text-gold";
+        return (
+          <li key={it.label}>
+            <Link href={it.href} className="tap flex min-h-[60px] items-center gap-3 px-4 py-3 hover:bg-elev" data-testid={it.testId}>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[16px] font-semibold text-fg">{it.label}</span>
+                {it.hint && <span className="mt-[2px] block text-[14px] text-sub">{it.hint}</span>}
+              </span>
+              <span className={`shrink-0 text-[20px] font-extrabold ${color}`}>
+                {it.count}
+                <span className="ml-[2px] text-[14px] font-semibold text-sub">{it.unit}</span>
+              </span>
+              <span aria-hidden="true" className="shrink-0 text-[20px] leading-none text-faint">
+                ›
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function KeyValue({ items }: { items: Array<{ k: string; v: ReactNode }> }) {
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">

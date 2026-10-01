@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * 발주처 · 참여 — 반별 출석률 + 학생 × 회차 출결표 (출 · 지 · 결)
+ * 발주처 · 참여 — 회차별 출석 표 + 학생 × 회차 출결표 (출 · 지 · 결)
  * 학생 이름은 운영 건 설정에 따라 가려진다 ("김○준"). 연락처 · 생년월일은 없다.
  */
 
 import { useMemo, useState } from "react";
-import { dayLabel, rateText } from "@/components/partner/parts";
-import { ChipRow, Empty, ErrorBox, inputClass, Loading, PageTitle } from "@/components/staff/ui";
+import { AttendanceTable, dayLabel } from "@/components/partner/parts";
+import { ChipRow, Empty, ErrorBox, inputClass, Loading, PageTitle, SectionLabel } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePartnerRun } from "@/providers/PartnerRunProvider";
 import { useApi, useQuery, type AttendanceStatus } from "@/services";
@@ -24,6 +24,7 @@ export default function PartnerParticipationPage() {
   const { selectedRun } = usePartnerRun();
   const runId = selectedRun?.id ?? null;
   const { data, loading, error, refetch } = useQuery(() => (runId ? api.partner.getParticipation(runId) : null), [api, runId]);
+  const { data: lessons } = useQuery(() => (runId ? api.partner.listLessons(runId) : null), [api, runId]);
   const [section, setSection] = useState("all");
   const [q, setQ] = useState("");
   const rows = useMemo(() => {
@@ -39,19 +40,12 @@ export default function PartnerParticipationPage() {
 
   return (
     <div>
-      <PageTitle title="학생 참여" desc={`${data.students.length}명 · ${data.masked ? "이름 일부를 가려서 보여 드려요" : "출석 · 지각 · 결석"}`} />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        {data.sections.map((s) => (
-          <div key={s.id} className="rounded-[16px] border border-line bg-card px-4 py-3">
-            <p className="text-[15px] font-bold text-fg">{s.label}</p>
-            <p className="mt-1 text-[14px] text-sub">
-              {s.studentCount}명 · 출석률 <b className="text-gold">{rateText(s.rate)}</b>
-            </p>
-          </div>
-        ))}
-      </div>
+      <PageTitle title="참여" desc={data.masked ? "학생 이름 일부를 가려서 보여 드려요" : "출석 · 지각 · 결석"} />
+      <SectionLabel>회차별 출석</SectionLabel>
+      {lessons ? <AttendanceTable rows={lessons.map((l) => l.attendance)} /> : <Loading />}
 
-      <div className="mt-5 flex flex-col gap-2 md:flex-row md:items-center">
+      <SectionLabel>학생별 출석 ({data.students.length}명)</SectionLabel>
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <div className="min-w-0 flex-1">
           <ChipRow label="반" value={section} onChange={setSection} items={[{ id: "all", label: "전체" }, ...data.sections.map((s) => ({ id: s.id, label: s.label }))]} />
         </div>

@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * 강사 · 오늘 — 오늘 수업이 맨 위, 그다음 다가오는 수업, 담당 운영 건
+ * 강사 · 오늘 — 오늘 수업이 맨 위, 그다음 다음 수업 2개 (나머지는 [내 수업])
  */
 
 import { InstructorSessionCard } from "@/components/staff/InstructorSessionCard";
-import { Button, Card, Empty, ErrorBox, fmtDate, Loading, PageTitle, SectionLabel } from "@/components/staff/ui";
+import { Button, Empty, ErrorBox, fmtDate, Loading, PageTitle, SectionLabel } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useApi, useQuery } from "@/services";
 
@@ -29,7 +29,7 @@ export default function InstructorHomePage() {
       />
 
       {data.todaySessions.length > 0 && (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid gap-2 md:grid-cols-2">
           {data.todaySessions.map((s) => (
             <li key={s.id}>
               <InstructorSessionCard s={s} showDate={false} />
@@ -38,32 +38,14 @@ export default function InstructorHomePage() {
         </ul>
       )}
 
-      <SectionLabel right={<Button href="/instructor/sessions" variant="ghost" size="sm">전체 보기</Button>}>다가오는 수업</SectionLabel>
+      <SectionLabel right={<Button href="/instructor/sessions" variant="ghost" size="sm">전체 보기</Button>}>다음 수업</SectionLabel>
       {data.upcoming.length === 0 ? (
         <Empty title="예정된 수업이 없어요" />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {data.upcoming.slice(0, 4).map((s) => (
+        <ul className="grid gap-2 md:grid-cols-2">
+          {data.upcoming.slice(0, 2).map((s) => (
             <li key={s.id}>
               <InstructorSessionCard s={s} />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <SectionLabel>담당 운영 건</SectionLabel>
-      {data.runs.length === 0 ? (
-        <Empty title="배정된 운영 건이 없어요" desc="센터에서 회차를 배정하면 여기에 보여요." />
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {data.runs.map((r) => (
-            <li key={r.programRunId}>
-              <Card>
-                <p className="text-[16px] font-bold text-fg">{r.title}</p>
-                <p className="mt-[2px] text-[14px] text-sub">
-                  {r.campusName} · {r.scheduleLine} · 담당 {r.mySessions}회
-                </p>
-              </Card>
             </li>
           ))}
         </ul>

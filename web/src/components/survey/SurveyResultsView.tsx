@@ -3,7 +3,7 @@
 /**
  * 만족도 조사 결과 — 센터(후기 전부 · 공개 동의 표시) · 발주처 담당자(공개 동의한 후기만) 공통
  *   요약: 응답 n / 대상 m (응답률) · 전체 평균 · 기간
- *   문항별: 평균 막대 + 1~5점 분포
+ *   문항별: 한 줄에 이름 · 평균 막대 · 점수 (분포는 보고서에)
  *   후기: 최근순
  */
 
@@ -52,31 +52,16 @@ export function SurveyResultsView({ results, showConsent }: { results: SurveyRes
 
       <div className="rounded-[18px] border border-line bg-card p-4">
         <p className="text-[16px] font-bold text-fg">문항별 평균</p>
-        <ul className="mt-3 flex flex-col gap-4">
-          {results.items.map((it) => {
-            const total = it.distribution.reduce((a, b) => a + b, 0);
-            return (
-              <li key={it.id}>
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-[15px] font-bold text-fg">{it.label}</p>
-                  <p className="text-[16px] font-extrabold text-gold">{it.avg != null ? it.avg.toFixed(2) : "-"}</p>
-                </div>
-                <p className="mt-[2px] text-[14px] leading-[20px] text-sub">{it.question}</p>
-                <div className="mt-2 h-[10px] overflow-hidden rounded-full bg-line2" aria-hidden="true">
-                  <div className="h-full rounded-full bg-gold" style={{ width: `${it.avg != null ? (it.avg / 5) * 100 : 0}%` }} />
-                </div>
-                <div className="mt-2 grid grid-cols-5 gap-1 text-center" aria-label={`${it.label} 점수 분포`}>
-                  {it.distribution.map((n, i) => (
-                    <div key={i} className="rounded-[8px] bg-elev px-1 py-1">
-                      <p className="text-[14px] text-faint">{i + 1}점</p>
-                      <p className="text-[15px] font-bold text-fg2">{n}</p>
-                      {total > 0 && <p className="text-[14px] text-faint">{Math.round((n / total) * 100)}%</p>}
-                    </div>
-                  ))}
-                </div>
-              </li>
-            );
-          })}
+        <ul className="mt-3 flex flex-col gap-3">
+          {results.items.map((it) => (
+            <li key={it.id} className="grid grid-cols-[6.5rem_1fr_3rem] items-center gap-3" title={it.question}>
+              <p className="truncate text-[15px] font-semibold text-fg2">{it.label}</p>
+              <div className="h-[10px] overflow-hidden rounded-full bg-line2" aria-hidden="true">
+                <div className="h-full rounded-full bg-gold" style={{ width: `${it.avg != null ? (it.avg / 5) * 100 : 0}%` }} />
+              </div>
+              <p className="text-right text-[16px] font-extrabold text-gold">{it.avg != null ? it.avg.toFixed(1) : "-"}</p>
+            </li>
+          ))}
         </ul>
       </div>
 

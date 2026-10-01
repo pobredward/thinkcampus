@@ -50,6 +50,7 @@ export function RosterPasteGrid({ rows, onRowsChange }: RosterPasteGridProps) {
           columns={columns}
           createRow={createEmptyRosterRow}
           autoAddRow
+          addRowsComponent={false}
           disableSmartDelete
           lockRows={false}
           height={Math.min(520, 36 + rows.length * 40)}

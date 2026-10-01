@@ -9,7 +9,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { RosterPasteGrid } from "@/components/admin/RosterPasteGrid";
-import { Badge, Button, Card, ErrorBox, PageTitle, SectionLabel } from "@/components/staff/ui";
+import { Badge, Button, Card, ErrorBox, fmtDateTime, PageTitle, SectionLabel } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { parseRosterText, type ParsedRosterRow } from "@/lib/parseRosterTable";
 import { emptyRosterRows, parsedToRosterRows, validateRosterRows, type RosterGridRow } from "@/lib/rosterGrid";
@@ -21,6 +21,8 @@ export default function CompanyImportPage() {
   const api = useApi();
   const toast = useToast();
   const { data: runs } = useQuery(() => api.company.listRuns(), [api]);
+  const { data: home, refetch: refetchHome } = useQuery(() => api.company.getHome(), [api]);
+  const last = home?.lastImport ?? null;
   const [sheetRows, setSheetRows] = useState<RosterGridRow[]>(() => emptyRosterRows());
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [result, setResult] = useState<RosterImportResult | null>(null);
@@ -67,6 +69,7 @@ export default function CompanyImportPage() {
       if (!dryRun && res.errors.length === 0) {
         toast.show(`${res.rowCount}명을 등록했어요`);
         setSheetRows(emptyRosterRows());
+        void refetchHome();
       }
     } catch (e) {
       setFnError((e as Error).message || "처리하지 못했어요");
@@ -78,6 +81,11 @@ export default function CompanyImportPage() {
   return (
     <div>
       <PageTitle title="명단 등록" desc="지자체에서 받은 명단을 붙여 넣으면 학생·수강·등록코드가 만들어져요." />
+      {last && (
+        <p className="mb-4 text-[15px] text-sub" data-testid="last-import">
+          마지막 명단 등록 <b className="text-fg2">{last.rowCount}명</b> · {fmtDateTime(last.at)} · {last.contractCode}
+        </p>
+      )}
 
       {runs && runs.length > 0 && (
         <Card tone="card2" className="mb-3">

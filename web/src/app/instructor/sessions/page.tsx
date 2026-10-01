@@ -38,7 +38,7 @@ export default function InstructorSessionsPage() {
 
   return (
     <div>
-      <PageTitle title="내 수업" desc="회차를 누르면 교수 방안 · 자료 · 출결 · 리포트를 볼 수 있어요." />
+      <PageTitle title="내 수업" desc="회차를 누르면 출결 · 리포트 · 수업 안내를 볼 수 있어요." />
       <ChipRow
         label="기간"
         value={filter}
@@ -54,7 +54,7 @@ export default function InstructorSessionsPage() {
           <Empty title="해당하는 수업이 없어요" />
         </div>
       ) : (
-        <ul className="mt-3 flex flex-col gap-2">
+        <ul className="mt-3 grid gap-2 md:grid-cols-2">
           {list.map((s) => (
             <li key={s.id}>
               <InstructorSessionCard s={s} />

@@ -18,7 +18,7 @@ export default function CompanyRunsPage() {
 
   return (
     <div>
-      <PageTitle title="운영 건" desc="지자체 계약 한 건 = 운영 건 하나. 반과 회차 일정이 여기서 만들어져요." right={<Button href="/admin/runs/new" size="sm">새 운영 건</Button>} />
+      <PageTitle title="운영 건" desc="지자체 계약 한 건이 운영 건 하나예요." right={<Button href="/admin/runs/new" size="sm">새 운영 건</Button>} />
       {!data || data.length === 0 ? (
         <Empty title="운영 건이 없어요" action={<Button href="/admin/runs/new">첫 운영 건 만들기</Button>} />
       ) : (
@@ -28,7 +28,7 @@ export default function CompanyRunsPage() {
               <RowLink
                 href={`/admin/runs/${encodeURIComponent(r.id)}`}
                 title={r.title}
-                desc={`${r.contractCode} · ${r.campusName} · ${fmtDate(r.startDate)}부터 ${r.totalSessions}회 · ${r.studentCount}명`}
+                desc={`${r.contractCode} · ${r.campusName} · ${fmtDate(r.startDate)}부터 ${r.totalSessions}회 · 수강 ${r.studentCount}명`}
                 badge={<Badge tone={r.status === "active" ? "gold" : r.status === "scheduled" ? "neutral" : "dim"}>{PROGRAM_RUN_STATUS_LABEL[r.status]}</Badge>}
               />
             </li>

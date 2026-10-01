@@ -1,10 +1,14 @@
 "use client";
 
 /**
- * 회사 홈 — 전체 현황 (운영 중 · 수강생 · 승인 대기 · 마지막 명단 등록 · 미처리 민원) + 운영 건 목록
+ * 회사 홈 — 처음 보는 사람도 한눈에
+ *   1. 한 줄 요약 (캠퍼스 · 운영 중 · 수강생)
+ *   2. 할 일 (승인 대기 리포트 · 미처리 민원) — 0 인 줄은 숨김
+ *   3. 진행 중 · 예정 운영 건 (+ 새 운영 건). 끝난 운영 건 · 명단 기록은 각 탭에서
  */
 
-import { Badge, Button, Empty, ErrorBox, fmtDateTime, Loading, PageTitle, RowLink, SectionLabel, Stat } from "@/components/staff/ui";
+import Link from "next/link";
+import { Badge, Button, Empty, ErrorBox, Loading, PageTitle, RowLink, SectionLabel, TaskList } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { PROGRAM_RUN_STATUS_LABEL, useApi, useQuery } from "@/services";
 
@@ -18,49 +22,51 @@ export default function CompanyHomePage() {
   if (!data) return null;
 
   const open = data.runs.filter((r) => r.status === "active" || r.status === "scheduled");
+  const active = data.runs.filter((r) => r.status === "active").length;
 
   return (
     <div>
-      <PageTitle title="씽크캠퍼스 운영 현황" desc={`캠퍼스 ${data.campuses.length}곳 · 운영 중 ${open.length}건`} />
-      <div className="grid grid-cols-2 gap-3">
-        <Stat label="수강생" value={data.totalStudents} unit="명" hint="운영 중·예정 기준" />
-        <Stat label="승인 대기 리포트" value={data.reportsAwaitingApproval} unit="건" tone={data.reportsAwaitingApproval > 0 ? "gold" : "fg"} href="/admin/policy" />
-        <Stat label="운영 중" value={data.runs.filter((r) => r.status === "active").length} unit="건" href="/admin/runs" />
-        <Stat label="마지막 명단 등록" value={data.lastImport ? `${data.lastImport.rowCount}명` : "-"} hint={data.lastImport ? `${fmtDateTime(data.lastImport.at)} · ${data.lastImport.contractCode}` : "아직 없음"} href="/admin/import" />
-        <div className="col-span-2">
-          <Stat label="미처리 민원 (모든 캠퍼스)" value={data.complaintsOpen} unit="건" tone={data.complaintsOpen > 0 ? "danger" : "fg"} hint="앱 채팅 · 전화 · 현장 접수 — 처리는 각 캠퍼스 프로그램 매니저가 해요" href="/admin/inquiries" />
-        </div>
-      </div>
+      <PageTitle title="운영 현황" desc={`캠퍼스 ${data.campuses.length}곳 · 운영 중 ${active}건 · 수강생 ${data.totalStudents}명`} />
 
-      <SectionLabel right={<Button href="/admin/runs/new" size="sm" variant="secondary">새 운영 건</Button>}>운영 건</SectionLabel>
-      {data.runs.length === 0 ? (
-        <Empty title="운영 건이 없어요" action={<Button href="/admin/runs/new">첫 운영 건 만들기</Button>} />
+      <SectionLabel>할 일</SectionLabel>
+      <TaskList
+        done="지금 처리할 일이 없어요"
+        items={[
+          { label: "승인 대기 리포트", count: data.reportsAwaitingApproval, unit: "건", href: "/admin/policy", testId: "company-task-reports" },
+          { label: "미처리 민원", count: data.complaintsOpen, unit: "건", tone: "danger", hint: "처리는 각 캠퍼스 프로그램 매니저가 해요", href: "/admin/inquiries", testId: "company-task-complaints" },
+        ]}
+      />
+
+      <SectionLabel
+        right={
+          <div className="flex items-center gap-3">
+            <Link href="/admin/runs" className="text-gold underline underline-offset-2">
+              전체 보기
+            </Link>
+            <Button href="/admin/runs/new" size="sm" variant="secondary">
+              새 운영 건
+            </Button>
+          </div>
+        }
+      >
+        진행 중인 운영 건
+      </SectionLabel>
+      {open.length === 0 ? (
+        <Empty title="진행 중인 운영 건이 없어요" action={<Button href="/admin/runs/new">운영 건 만들기</Button>} />
       ) : (
         <ul className="flex flex-col gap-2">
-          {data.runs.map((r) => (
+          {open.map((r) => (
             <li key={r.id}>
               <RowLink
                 href={`/admin/runs/${encodeURIComponent(r.id)}`}
                 title={r.title}
-                desc={`${r.contractCode} · ${r.campusName} · ${r.sections.length}개 반 · ${r.studentCount}명`}
-                badge={<Badge tone={r.status === "active" ? "gold" : r.status === "scheduled" ? "neutral" : "dim"}>{PROGRAM_RUN_STATUS_LABEL[r.status]}</Badge>}
+                desc={`${r.campusName} · 수강 ${r.studentCount}명`}
+                badge={<Badge tone={r.status === "active" ? "gold" : "neutral"}>{PROGRAM_RUN_STATUS_LABEL[r.status]}</Badge>}
               />
             </li>
           ))}
         </ul>
       )}
-
-      <SectionLabel>캠퍼스</SectionLabel>
-      <ul className="grid grid-cols-2 gap-2">
-        {data.campuses.map((c) => (
-          <li key={c.id} className="rounded-[16px] border border-line bg-card px-4 py-3">
-            <p className="text-[16px] font-bold text-fg">{c.name}</p>
-            <p className="text-[14px] text-sub">
-              {c.municipalityName} · 운영 {c.runCount}건 · {c.studentCount}명
-            </p>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

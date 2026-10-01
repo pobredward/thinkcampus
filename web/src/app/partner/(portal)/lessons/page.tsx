@@ -5,7 +5,7 @@
  * 눌러 펼치면 수업 내용(목표 · 흐름 · 준비물). 예정 회차도 내용이 보여 "다음 수업이 무엇인지" 알 수 있다.
  */
 
-import { dayLabel, LessonBody, LessonStatus, rateText } from "@/components/partner/parts";
+import { dayLabel, LessonBody, LessonsSwitch, LessonStatus, rateText } from "@/components/partner/parts";
 import { Empty, ErrorBox, Loading, PageTitle } from "@/components/staff/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePartnerRun } from "@/providers/PartnerRunProvider";
@@ -26,7 +26,8 @@ export default function PartnerLessonsPage() {
 
   return (
     <div>
-      <PageTitle title="회차별 수업" desc={`${selectedRun.title} · 총 ${lessons.length}회`} />
+      <PageTitle title="수업" desc={`총 ${lessons.length}회 · 회차를 누르면 수업 내용이 보여요`} />
+      <LessonsSwitch current="lessons" />
       {lessons.length === 0 ? (
         <Empty title="아직 회차가 없어요" />
       ) : (
