@@ -11,7 +11,7 @@
  * /main 인증 가드가 로그인 화면 대신 온보딩 첫 화면으로 보낸다.
  * 회원 탈퇴 후에는 signOut("withdrawn") → 가드가 /goodbye 로 보낸다.
  *
- * 체험(DemoProvider 의 role)에서는 Firebase 없이 역할별 체험 계정으로 로그인된 상태 (학부모는 010-7656-7933 보호자 신선웅).
+ * 체험(DemoProvider 의 role)에서는 Firebase 없이 역할별 체험 계정으로 로그인된 상태 (학부모는 010-7656-7933 보호자 손영란).
  *
  * guardianName: 보호자 이름 (계정 표시 이름 — lib/guardianName.ts). 없으면 null.
  * saveGuardianName(): 이름을 저장한다. 계정 정보가 바뀌어도 onAuthStateChanged 는 다시 오지 않아서

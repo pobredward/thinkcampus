@@ -4,7 +4,7 @@
  *
  * 준비 (e2e/README.md): 에뮬레이터 + 시드 + `npm run start:emu`(3100) + 직원 계정 3개
  *   FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=demo-thinkcampus \
- *     STAFF_NAME=김도현 npx ts-node createStaffUser.ts company@thinkcampus.local 'Passw0rd!' company
+ *     STAFF_NAME=신선웅 npx ts-node createStaffUser.ts company@thinkcampus.local 'Passw0rd!' company
  *     STAFF_NAME=이정민 npx ts-node createStaffUser.ts center@thinkcampus.local 'Passw0rd!' center campus-ds26
  *     STAFF_NAME=박지훈 npx ts-node createStaffUser.ts teacher@thinkcampus.local 'Passw0rd!' instructor campus-ds26
  *   npm run e2e:staff      (SKIP_IMPORT=1 이면 명단 등록 단계 생략)

@@ -28,9 +28,9 @@ export const DEMO_ROLES: DemoRole[] = ["company", "center", "instructor", "offic
  *   학부모   : 자녀의 수업 · 출결 · 리포트 · 채팅
  */
 export const DEMO_SECTORS: Array<{ id: "internal" | "partner" | "guardian"; title: string; desc: string; roles: DemoRole[] }> = [
-  { id: "internal", title: "내부 운영", desc: "씽크캠퍼스 직원이 프로그램을 운영하는 화면", roles: ["company", "center", "instructor"] },
-  { id: "partner", title: "발주처", desc: "지자체 담당 공무원이 진행 상황을 보고 보고서를 받는 화면", roles: ["officer"] },
-  { id: "guardian", title: "학부모", desc: "자녀의 수업과 선생님 소식을 받는 앱", roles: ["guardian"] },
+  { id: "guardian", title: "학부모", desc: "자녀를 둔 학부모가 보는 화면", roles: ["guardian"] },
+  { id: "partner", title: "발주처", desc: "지자체 담당 공무원이 보는 화면", roles: ["officer"] },
+  { id: "internal", title: "내부 운영", desc: "", roles: ["company", "center", "instructor"] },
 ];
 
 export function isDemoRole(v: unknown): v is DemoRole {

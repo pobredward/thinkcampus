@@ -47,7 +47,7 @@ web/
 
 - `/` → `/demo` 허브. 역할(학부모 · 강사 · 센터 관리자 · 회사 관리자)을 고르면 `/demo/<role>` 이 쿠키 `tc_demo` 를 심고 **실서비스 주소**(`/main` · `/instructor` · `/admin/center` · `/admin`)로 보낸다. Firebase 값이 없어도 동작
 - 네 역할이 **같은 예시 세계**(`src/services/demo/world.ts`, 오늘 기준으로 생성)를 본다. 저장(출결 · 리포트 · 공지 · 명단 등록 · 운영 건 생성)은 진짜처럼 되고 이 브라우저 탭(sessionStorage)에서만 유지된다. 배너의 **초기화**로 처음 상태로, **체험 종료**(`/demo/exit`)로 쿠키 삭제
-- 학부모 체험 계정: **010-7656-7933** 보호자 **신선웅**, 자녀 **신민준(1반) · 신서연(4반)**. 강사 박지훈 · 센터 이정민 · 회사 김도현
+- 학부모 체험 계정: **010-7656-7933** 보호자 **손영란**, 자녀 **신민준(1반) · 신서연(4반)**. 강사 박지훈 · 센터 이정민 · 회사 신선웅
 - 화면 코드에는 체험 분기가 없다 — `src/services` 가 체험(demo) / 실서비스(live) 를 고른다. 구조와 실서비스 전환은 **`docs/DEMO_ARCHITECTURE.md`**
 - 체험판 확인: `npm run build && npm run start` → `npm run e2e:demo` (30개 시나리오 · 리눅스는 `LC_ALL=C.UTF-8`)
 - 홈의 "수강 예정 프로그램" 섹션은 잠시 숨김 (`data/programView.ts` 의 `SHOW_UPCOMING_ON_HOME`, 모바일도 같음)

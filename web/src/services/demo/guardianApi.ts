@@ -1,5 +1,5 @@
 /**
- * 체험판 · 학부모 API — 보호자 신선웅(010-7656-7933)의 두 자녀 신민준(1반) · 신서연(4반)
+ * 체험판 · 학부모 API — 보호자 손영란(010-7656-7933)의 두 자녀 신민준(1반) · 신서연(4반)
  */
 
 import type { GuardianApi } from "@/services/api";
@@ -149,7 +149,7 @@ export function createDemoGuardianApi(): GuardianApi {
           guardianUid: uid,
           studentId,
           campusId: st.campusId,
-          guardianRelation: "부",
+          guardianRelation: "모",
           status: "active",
         });
       });

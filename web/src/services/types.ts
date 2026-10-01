@@ -608,7 +608,7 @@ export interface ChatRoomDto {
   studentId: string;
   studentName: string;
   sectionLabel: string;
-  /** 직원 화면용 — "신선웅 (부)" · "보호자 2명" */
+  /** 직원 화면용 — "손영란 (모)" · "보호자 2명" */
   guardianLabel: string;
   /** 학부모 화면용 — "달성캠퍼스 담당 선생님" */
   staffLabel: string;

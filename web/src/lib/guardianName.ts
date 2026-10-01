@@ -4,7 +4,7 @@
  * - 가입(자녀 정보 확인 화면)에서 받는다.
  * - 이름이 없는 계정(예전에 가입했거나 초대받아 로그인한 보호자)은 홈에서 한 번 물어본다.
  * - 내 정보에서 언제든 바꿀 수 있다.
- * - 홈 인사말: "환영합니다, 신선웅 학부모님" (이름이 없으면 "환영합니다, 학부모님")
+ * - 홈 인사말: "환영합니다, 손영란 학부모님" (이름이 없으면 "환영합니다, 학부모님")
  *
  * (모바일 lib/guardianName.ts 와 같은 내용)
  */
@@ -24,7 +24,7 @@ export function guardianNameError(raw: string): string | null {
   return null;
 }
 
-/** 인사말에 넣는 호칭 — "신선웅 학부모님" / 이름이 없으면 "학부모님" */
+/** 인사말에 넣는 호칭 — "손영란 학부모님" / 이름이 없으면 "학부모님" */
 export function guardianTitle(name: string | null | undefined): string {
   const n = name ? normalizeGuardianName(name) : "";
   return n ? `${n} 학부모님` : "학부모님";

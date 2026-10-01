@@ -90,11 +90,11 @@ const confirmDialog = async () => {
 };
 
 // ── 허브 ──────────────────────────────────────────────
-await check("루트 → 체험판 허브, 3묶음(내부 운영 · 발주처 · 학부모) · 역할 5개", async () => {
+await check("루트 → 시연용 페이지, 3묶음(학부모 · 발주처 · 내부 운영) · 역할 5개", async () => {
   await goto("/");
   assert(page.url().endsWith("/demo"), page.url());
   const t = await text();
-  for (const s of ["내부 운영", "발주처", "학부모", "강사", "프로그램 매니저", "통합 관리자", "발주처 담당자", "신선웅", "박지훈", "이정민", "김도현", "한지원"]) assert(t.includes(s), s);
+  for (const s of ["내부 운영", "발주처", "학부모", "강사", "프로그램 매니저", "통합 관리자", "발주처 담당자", "손영란", "박지훈", "이정민", "신선웅", "한지원"]) assert(t.includes(s), s);
   assert(!t.includes("센터 관리자") && !t.includes("회사 관리자") && !t.includes("대학생 멘토"), "옛 이름 · 문구");
   for (const id of ["internal", "partner", "guardian"]) assert(await page.getByTestId(`demo-sector-${id}`).count(), id);
   assert((await page.locator('[data-testid^="demo-enter-"]').count()) === 5, "역할 5개");
@@ -109,7 +109,7 @@ await check("학부모 체험 진입 → /main · 배너 · 인사말 · 자녀 
   await page.locator('[data-testid="demo-banner"]').waitFor();
   const t = await text();
   assert(t.includes("학부모 체험"), "배너 역할");
-  assert(t.includes("환영합니다, 신선웅 학부모님"), "인사말");
+  assert(t.includes("환영합니다, 손영란 학부모님"), "인사말");
   assert(t.includes("연결된 자녀 2명"), "자녀 2명");
   assert(t.includes("2026 ThinkCampus 토요 창의융합"), "수강 중 카드");
   assert(/4\/6회/.test(t), "오늘(4회차) 출석까지 진도 4/6: " + t.slice(0, 300));
@@ -286,11 +286,11 @@ await check("학부모 내 정보 — 이름 수정이 홈 인사말에 반영 �
   await page.getByRole("button", { name: "이름 수정" }).click();
   const sheet = page.locator('[role="dialog"]');
   await sheet.waitFor();
-  await sheet.locator("input").fill("신선웅");
+  await sheet.locator("input").fill("손영란");
   await sheet.getByRole("button", { name: "저장" }).click();
   await sleep(500);
   await goto("/main");
-  assert((await text()).includes("환영합니다, 신선웅 학부모님"), "인사말");
+  assert((await text()).includes("환영합니다, 손영란 학부모님"), "인사말");
 });
 
 // ── 종합 리포트 ─────────────────────────────────────────
@@ -501,7 +501,7 @@ await check("발주처 수업 · 참여 · 강사진 · 만족도 — 화면마�
   assert((await page.getByTestId("partner-instructor").count()) >= 3, "강사 3명");
   await goto("/partner/survey");
   const t = await text();
-  assert(t.includes("공개에 동의한 후기만") && t.includes("E2E 후기") && !t.includes("신선웅 학부모"), "공개 후기만 · 이름 가림");
+  assert(t.includes("공개에 동의한 후기만") && t.includes("E2E 후기") && !t.includes("손영란 학부모"), "공개 후기만 · 이름 가림");
   await shot("partner-survey");
 });
 

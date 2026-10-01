@@ -40,7 +40,7 @@ cd web && npm run e2e           # 창을 보면서: E2E_HEADED=1 npm run e2e
 
 ```bash
 cd scripts && export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=demo-thinkcampus
-STAFF_NAME=김도현 npx ts-node createStaffUser.ts company@thinkcampus.local 'Passw0rd!' company
+STAFF_NAME=신선웅 npx ts-node createStaffUser.ts company@thinkcampus.local 'Passw0rd!' company
 STAFF_NAME=이정민 npx ts-node createStaffUser.ts center@thinkcampus.local 'Passw0rd!' center campus-ds26
 STAFF_NAME=박지훈 npx ts-node createStaffUser.ts teacher@thinkcampus.local 'Passw0rd!' instructor campus-ds26
 cd ../web && npm run e2e:staff        # 5/5 passed · 다시 돌릴 때 SKIP_IMPORT=1
@@ -55,7 +55,7 @@ cd ../web && npm run e2e:staff        # 5/5 passed · 다시 돌릴 때 SKIP_IMP
 ```bash
 # ①② 뒤에 (시드 · 직원 3명 · 보호자 2명 · 반 2개 · 다른 운영 건 · 다른 캠퍼스 센터)
 cd scripts && export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=demo-thinkcampus
-STAFF_NAME=김도현 npx ts-node createStaffUser.ts company@thinkcampus.local 'Passw0rd!' company
+STAFF_NAME=신선웅 npx ts-node createStaffUser.ts company@thinkcampus.local 'Passw0rd!' company
 STAFF_NAME=이정민 npx ts-node createStaffUser.ts center@thinkcampus.local 'Passw0rd!' center campus-ds26
 STAFF_NAME=박지훈 npx ts-node createStaffUser.ts teacher@thinkcampus.local 'Passw0rd!' instructor campus-ds26
 npx ts-node engageSetup.ts

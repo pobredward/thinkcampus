@@ -336,8 +336,8 @@ export interface DemoWorld {
 
 // ── 체험 계정 (역할별 로그인 사용자) ─────────────────────────
 
-/** 세계 구조가 바뀌면 올린다 — 예전 세계는 버리고 새로 만든다 (2: 채팅 · 민원 · 만족도 · 발주처 담당자) */
-export const DEMO_WORLD_VERSION = 2;
+/** 세계 구조가 바뀌면 올린다 — 예전 세계는 버리고 새로 만든다 (2: 채팅 · 민원 · 만족도 · 발주처 담당자 / 3: 체험 계정 이름) */
+export const DEMO_WORLD_VERSION = 3;
 
 export const DEMO_CAMPUS_ID = "campus-ds26";
 export const DEMO_RUN_A_ID = "run-ds26-creative";
@@ -346,10 +346,10 @@ export const DEMO_RUN_C_ID = "run-gumi-steam";
 
 export const DEMO_GUARDIAN_UID = "demo-guardian-01076567933";
 export const DEMO_GUARDIAN_PHONE_E164 = "+821076567933";
-export const DEMO_GUARDIAN_NAME = "신선웅";
+export const DEMO_GUARDIAN_NAME = "손영란";
 
 export const DEMO_STAFF = {
-  company: { uid: "demo-staff-company", displayName: "김도현", email: "admin@demo.thinkcampus.kr" },
+  company: { uid: "demo-staff-company", displayName: "신선웅", email: "admin@demo.thinkcampus.kr" },
   center: { uid: "demo-staff-center", displayName: "이정민", email: "center@demo.thinkcampus.kr" },
   instructor: { uid: "demo-instructor-park", displayName: "박지훈", email: "teacher@demo.thinkcampus.kr" },
 } as const;
@@ -886,8 +886,8 @@ export function buildDemoWorld(today = todayKey()): DemoWorld {
   enroll(minjun, runP1, "sec-1", "completed", "used");
   enroll(seoyeon, runP1, "sec-1", "completed", "used");
   enroll(minjun, runP2, "sec-1", "completed", "used");
-  linkGuardian(minjun, DEMO_GUARDIAN_UID, "부");
-  linkGuardian(seoyeon, DEMO_GUARDIAN_UID, "부");
+  linkGuardian(minjun, DEMO_GUARDIAN_UID, "모");
+  linkGuardian(seoyeon, DEMO_GUARDIAN_UID, "모");
 
   // 나머지 70명 — 6반 × 12명, 형제 가구 8곳, 보호자 연결 약 85%
   let seq = 2;

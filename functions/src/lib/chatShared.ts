@@ -107,7 +107,7 @@ export async function guardianNames(uids: string[]): Promise<Map<string, string>
 
 const RELATION_LABEL: Record<string, string> = { 모: '어머니', 부: '아버지', 조모: '할머니', 조부: '할아버지' };
 
-/** "신선웅 (부)" · "어머니" · "아버지 외 1명" */
+/** "손영란 (모)" · "어머니" · "아버지 외 1명" */
 export async function guardianLabelFor(studentId: string, names?: Map<string, string>): Promise<string> {
   const snap = await getDb().collection('guardianLinks').where('studentId', '==', studentId).get();
   const links = snap.docs.map((d) => d.data()).filter((l) => (l.status as string | undefined) !== 'inactive');

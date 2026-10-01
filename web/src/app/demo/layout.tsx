@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "체험판",
-  description: "ThinkCampus 역할별 체험 화면",
+  title: "시연용 페이지",
+  description: "ThinkCampus 역할별 시연용 페이지",
 };
 
 export default function DemoSectionLayout({ children }: { children: React.ReactNode }) {
