@@ -53,7 +53,7 @@ export default function DemoHubPage() {
                 <p className="text-[15px] text-sub">{sector.desc}</p>
               </div>
             </div>
-            <ul className={`grid gap-3 ${sector.roles.length > 1 ? "sm:grid-cols-3" : ""}`}>
+            <ul className="flex flex-col gap-3">
               {sector.roles.map((role) => (
                 <li key={role}>
                   <a
